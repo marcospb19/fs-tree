@@ -2,8 +2,7 @@ use std::path::Path;
 
 #[derive(Debug)]
 pub struct DotfileGroup {
-    // starting_path: PathBuf,
-// files: Vec<File>,
+    // starting_path: PathBuf, files: Vec<File>,
 }
 
 impl DotfileGroup {

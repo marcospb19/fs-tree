@@ -1,6 +1,6 @@
 mod cli;
 
-use crate::dotfiles::DotfileGroup;
+use dotao::dotfiles::DotfileGroup;
 
 fn main() {
     let args = cli::parse_args();
