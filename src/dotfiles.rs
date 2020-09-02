@@ -1,4 +1,5 @@
-use std::path::Path;
+use crate::error::*;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub struct DotfileGroup {
@@ -6,7 +7,8 @@ pub struct DotfileGroup {
 }
 
 impl DotfileGroup {
-    pub fn new<T: AsRef<Path>>(_path: T) -> Self {
-        DotfileGroup {}
+    pub fn new<T: AsRef<Path>>(_path: T) -> Result<Self> {
+        let _a = PathBuf::new().metadata()?;
+        Ok(DotfileGroup {})
     }
 }
