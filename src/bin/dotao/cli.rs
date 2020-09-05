@@ -1,11 +1,17 @@
 use clap::*;
+use AppSettings::*;
 
-pub(crate) fn parse_args() -> clap::ArgMatches<'static> {
+pub(super) fn parse_args() -> clap::ArgMatches<'static> {
+    let mut version = String::from(crate_version!());
+    version.push_str("\nhttps://github.com/marcospb19/dotao");
+
     App::new(crate_name!())
-        .version(crate_version!())
-        .about(crate_description!())
-        .after_help("Repository: https://github.com/marcospb19/dotao")
-        .settings(&[AppSettings::ColoredHelp])
         .arg(Arg::with_name("ARG")) // Temporary
+        .settings(&[ColoredHelp, ArgRequiredElseHelp])
+        .version(version.as_ref())
+        .about("See --help for more detailed help.")
+        .long_about("See -h for shorter help.")
+        .help_message("Display help information.")
+        .version_message("Display version information.")
         .get_matches()
 }
