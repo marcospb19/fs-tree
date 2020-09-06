@@ -1,6 +1,6 @@
 use crate::{
     error::*,
-    file::{collect_files_from_directory_path, File, FlatFileType},
+    file::{collect_files_from_directory_path, get_symlink_metadata_from_path, File},
 };
 
 use std::path::{Path, PathBuf};
@@ -20,15 +20,17 @@ impl DotfileGroup {
     }
 
     pub fn from_directory_path(path: impl AsRef<Path>) -> Result<Self> {
-        if !path.as_ref().exists() {
+        let path = path.as_ref();
+        if !path.exists() {
             return Err(DotaoError::NotFoundInFilesystem);
-        } else if !FlatFileType::from_path(&path)?.is_directory() {
+        } else if !get_symlink_metadata_from_path(&path)?.is_dir() {
             return Err(DotaoError::NotADirectory);
         }
 
-        // Get all chidren from the directory path
+        // Recursively get all chidren from the directory path
         let files = collect_files_from_directory_path(&path)?;
 
-        Ok(DotfileGroup::new(path.as_ref().to_path_buf(), files))
+        let group = DotfileGroup::new(path.to_path_buf(), files);
+        Ok(group)
     }
 }
