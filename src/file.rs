@@ -20,46 +20,35 @@ pub enum FileType {
     SymbolicLink { target_path: PathBuf },
 }
 
-/// Similar to FileType, but no enum variant inner members.
-#[derive(Debug)]
-pub enum FlatFileType {
-    File,
-    Directory,
-    SymbolicLink,
-}
-
 impl File {
     pub fn new(path: PathBuf, file_type: FileType) -> Self {
         File { path, file_type }
     }
 
     pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
-        let kk = File {
-            path: path.as_ref().to_path_buf(),
-            file_type: FileType::default(),
-        };
+        let file_type = FileType::from_path(&path)?;
 
-        Ok(kk)
+        let result = File::new(path.as_ref().to_path_buf(), file_type);
+
+        Ok(result)
     }
 }
 
 impl FileType {
     pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
-        // Reuse FlatFileType code, but assing the inner members after
-        let file_type = FlatFileType::from_path(&path)?;
+        let metadata = get_symlink_metadata_from_path(&path)?;
 
-        // If File, add nothing,
-        // If Directory, add `children`,
-        // If SymbolicLink, add `target_path`.
-        let result = match file_type {
-            FlatFileType::File => FileType::File,
-            FlatFileType::Directory => FileType::Directory {
-                children: collect_files_from_directory_path(path)?,
-            },
-            FlatFileType::SymbolicLink => FileType::SymbolicLink {
-                target_path: get_symlink_target_from_path(path)?,
-            },
+        // Is file, directory, or symlink
+        let result = if metadata.is_file() {
+            FileType::File
+        } else if metadata.is_dir() {
+            let children = collect_files_from_directory_path(path)?;
+            FileType::Directory { children }
+        } else {
+            let target_path = get_symlink_target_from_path(path)?;
+            FileType::SymbolicLink { target_path }
         };
+
         Ok(result)
     }
 
@@ -85,26 +74,9 @@ impl FileType {
     }
 }
 
-impl FlatFileType {
-    pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
-        let metadata_file_type = get_metadata_from_path(&path)?.file_type();
-
-        let result = if metadata_file_type.is_file() {
-            FlatFileType::File
-        } else if metadata_file_type.is_dir() {
-            FlatFileType::Directory
-        } else if metadata_file_type.is_symlink() {
-            FlatFileType::SymbolicLink
-        } else {
-            panic!();
-        };
-        Ok(result)
-    }
-}
-
 /// Fill a Vec with our own File struct
 pub fn collect_files_from_directory_path(path: impl AsRef<Path>) -> Result<Vec<File>> {
-    if !FlatFileType::from_path(&path)?.is_directory() {
+    if !get_symlink_metadata_from_path(&path)?.is_dir() {
         return Err(DotaoError::NotADirectory);
     }
 
@@ -119,6 +91,7 @@ pub fn collect_files_from_directory_path(path: impl AsRef<Path>) -> Result<Vec<F
             path: path.as_ref().to_path_buf(),
             source: err,
         })?;
+
         let file = File::from_path(entry.path())?;
         children.push(file);
     }
@@ -136,7 +109,7 @@ pub fn get_symlink_target_from_path(path: impl AsRef<Path>) -> Result<PathBuf> {
 }
 
 /// Used by FileType and FlatFileType `from_path` function.
-pub fn get_metadata_from_path(path: impl AsRef<Path>) -> Result<fs::Metadata> {
+pub fn get_symlink_metadata_from_path(path: impl AsRef<Path>) -> Result<fs::Metadata> {
     let path = path.as_ref();
     let metadata = path.metadata().map_err(|err| DotaoError::ReadError {
         path: path.to_path_buf(),
@@ -149,11 +122,5 @@ pub fn get_metadata_from_path(path: impl AsRef<Path>) -> Result<fs::Metadata> {
 impl Default for FileType {
     fn default() -> Self {
         FileType::File
-    }
-}
-
-impl Default for FlatFileType {
-    fn default() -> Self {
-        FlatFileType::File
     }
 }
