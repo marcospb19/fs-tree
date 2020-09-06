@@ -100,21 +100,31 @@ pub fn collect_files_from_directory_path(path: impl AsRef<Path>) -> Result<Vec<F
 
 /// Follow symlink one level
 pub fn get_symlink_target_from_path(path: impl AsRef<Path>) -> Result<PathBuf> {
-    let asd = fs::read_link(&path).map_err(|err| DotaoError::ReadError {
-        path: path.as_ref().to_path_buf(),
+    let path = path.as_ref();
+
+    if !path.exists() {
+        return Err(DotaoError::NotFoundInFilesystem);
+    }
+
+    let result = fs::read_link(&path).map_err(|err| DotaoError::ReadError {
+        path: path.to_path_buf(),
         source: err,
     })?;
 
-    Ok(asd)
+    Ok(result)
 }
 
 /// Used by FileType and FlatFileType `from_path` function.
 pub fn get_symlink_metadata_from_path(path: impl AsRef<Path>) -> Result<fs::Metadata> {
-    let path = path.as_ref();
-    let metadata = path.metadata().map_err(|err| DotaoError::ReadError {
-        path: path.to_path_buf(),
-        source: err,
-    })?;
+    let path = path.as_ref().to_path_buf();
+
+    if !path.exists() {
+        return Err(DotaoError::NotFoundInFilesystem);
+    }
+
+    let metadata = path
+        .metadata()
+        .map_err(|err| DotaoError::ReadError { path, source: err })?;
 
     Ok(metadata)
 }
