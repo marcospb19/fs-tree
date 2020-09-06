@@ -62,6 +62,27 @@ impl FileType {
         };
         Ok(result)
     }
+
+    pub fn is_file(&self) -> bool {
+        match self {
+            FileType::File => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_directory(&self) -> bool {
+        match self {
+            FileType::Directory { .. } => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_symbolic_link(&self) -> bool {
+        match self {
+            FileType::SymbolicLink { .. } => true,
+            _ => false,
+        }
+    }
 }
 
 impl FlatFileType {
@@ -83,7 +104,7 @@ impl FlatFileType {
 
 /// Fill a Vec with our own File struct
 pub fn collect_files_from_directory_path(path: impl AsRef<Path>) -> Result<Vec<File>> {
-    if let FlatFileType::Directory = FlatFileType::from_path(&path)? {
+    if !FlatFileType::from_path(&path)?.is_directory() {
         return Err(DotaoError::NotADirectory);
     }
 

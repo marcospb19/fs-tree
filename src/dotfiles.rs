@@ -1,6 +1,6 @@
 use crate::{
     error::*,
-    file::{File, FlatFileType},
+    file::{collect_files_from_directory_path, File, FlatFileType},
 };
 
 use std::path::{Path, PathBuf};
@@ -12,9 +12,9 @@ pub struct DotfileGroup {
 }
 
 impl DotfileGroup {
-    pub fn new(path: PathBuf, files: Vec<File>) -> Self {
+    pub fn new(starting_path: PathBuf, files: Vec<File>) -> Self {
         DotfileGroup {
-            starting_path: path,
+            starting_path,
             files,
         }
     }
@@ -22,15 +22,13 @@ impl DotfileGroup {
     pub fn from_directory_path(path: impl AsRef<Path>) -> Result<Self> {
         if !path.as_ref().exists() {
             return Err(DotaoError::NotFoundInFilesystem);
+        } else if !FlatFileType::from_path(&path)?.is_directory() {
+            return Err(DotaoError::NotADirectory);
         }
 
-        match FlatFileType::from_path(path)? {
-            FlatFileType::Directory => {},
-            _ => return Err(DotaoError::NotADirectory),
-        }
+        // Get all chidren from the directory path
+        let files = collect_files_from_directory_path(&path)?;
 
-        unimplemented!();
-
-        Ok(DotfileGroup::default())
+        Ok(DotfileGroup::new(path.as_ref().to_path_buf(), files))
     }
 }
