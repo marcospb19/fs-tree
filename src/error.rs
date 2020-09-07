@@ -10,12 +10,13 @@ pub enum DotaoError {
     NotADirectory,
 }
 
+use DotaoError::*;
+
 impl error::Error for DotaoError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            DotaoError::ReadError { source, .. } => Some(source),
-            DotaoError::NotFoundInFilesystem => None,
-            DotaoError::NotADirectory => None,
+            ReadError { source, .. } => Some(source),
+            _ => None,
         }
     }
 }
@@ -23,9 +24,9 @@ impl error::Error for DotaoError {
 impl fmt::Display for DotaoError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            DotaoError::ReadError { source, .. } => source.fmt(f),
-            DotaoError::NotFoundInFilesystem => write!(f, "File not found"),
-            DotaoError::NotADirectory => write!(f, "File is not a directory"),
+            ReadError { source, .. } => source.fmt(f),
+            NotFoundInFilesystem => write!(f, "File not found"),
+            NotADirectory => write!(f, "File is not a directory"),
         }
     }
 }
