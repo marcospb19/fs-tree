@@ -27,8 +27,8 @@ impl File {
 
     pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
         let file_type = FileType::from_path(&path)?;
-
-        let result = File::new(path.as_ref().to_path_buf(), file_type);
+        let path = path.as_ref().to_path_buf();
+        let result = File::new(path, file_type);
 
         Ok(result)
     }
@@ -42,7 +42,7 @@ impl FileType {
         let result = if metadata.is_file() {
             FileType::File
         } else if metadata.is_dir() {
-            let children = collect_files_from_current_directory(path)?;
+            let children = collect_files_from_current_directory(&path)?;
             FileType::Directory { children }
         } else {
             let target_path = get_symlink_target_from_path(path)?;
@@ -76,20 +76,21 @@ impl FileType {
 
 /// Fill a Vec with our own File struct
 pub fn collect_files_from_current_directory(path: impl AsRef<Path>) -> Result<Vec<File>> {
+    let path = path.as_ref().to_path_buf();
     if !get_symlink_metadata_from_path(&path)?.is_dir() {
         return Err(DotaoError::NotADirectory);
     }
 
-    let dirs = fs::read_dir(&path).map_err(|err| DotaoError::ReadError {
-        path: path.as_ref().to_path_buf(),
-        source: err,
+    let dirs = fs::read_dir(&path).map_err(|source| DotaoError::ReadError {
+        path: path.clone(),
+        source,
     })?;
 
     let mut children = vec![];
     for entry in dirs {
-        let entry = entry.map_err(|err| DotaoError::ReadError {
-            path: path.as_ref().to_path_buf(),
-            source: err,
+        let entry = entry.map_err(|source| DotaoError::ReadError {
+            path: path.clone(),
+            source,
         })?;
 
         let file = File::from_path(entry.path())?;
@@ -101,30 +102,29 @@ pub fn collect_files_from_current_directory(path: impl AsRef<Path>) -> Result<Ve
 /// Follow symlink one level
 pub fn get_symlink_target_from_path(path: impl AsRef<Path>) -> Result<PathBuf> {
     let path = path.as_ref();
-
     if !path.exists() {
         return Err(DotaoError::NotFoundInFilesystem);
     }
 
-    let result = fs::read_link(&path).map_err(|err| DotaoError::ReadError {
+    let target = fs::read_link(&path).map_err(|source| DotaoError::ReadError {
         path: path.to_path_buf(),
-        source: err,
+        source,
     })?;
 
-    Ok(result)
+    Ok(target)
 }
 
 /// Used by FileType and FlatFileType `from_path` function.
 pub fn get_symlink_metadata_from_path(path: impl AsRef<Path>) -> Result<fs::Metadata> {
-    let path = path.as_ref().to_path_buf();
-
+    let path = path.as_ref();
     if !path.exists() {
         return Err(DotaoError::NotFoundInFilesystem);
     }
 
-    let metadata = path
-        .metadata()
-        .map_err(|err| DotaoError::ReadError { path, source: err })?;
+    let metadata = path.metadata().map_err(|source| DotaoError::ReadError {
+        path: path.to_path_buf(),
+        source,
+    })?;
 
     Ok(metadata)
 }
