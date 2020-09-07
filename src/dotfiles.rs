@@ -1,12 +1,9 @@
 use crate::{
     error::*,
-    file::{collect_files_from_current_directory, get_symlink_metadata_from_path, File},
+    file::{collect_files_from_current_directory, get_symlink_metadata_from_path, File, FileType},
 };
 
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Default)]
 pub struct DotfileGroup {
@@ -30,31 +27,42 @@ impl DotfileGroup {
             return Err(DotaoError::NotADirectory);
         }
 
-        // Before reading the group, enter it's directory first, to access the file
-        // path, now you'll need to type 'group.starting_path.join(file.path)'
-        // For a `file` that is inside of `group`
-        let save_previous_dir = env::current_dir().map_err(|source| DotaoError::ReadError {
-            source,
-            path: ".".into(),
-        })?;
-
-        env::set_current_dir(&path).map_err(|source| DotaoError::UnableToEnterDirectory {
-            source,
-            path: path.clone(),
-        })?;
-
         // Recursively get all chidren from the directory path
-        let files = collect_files_from_current_directory(".")?;
+        let files = collect_files_from_current_directory(&path)?;
 
-        // Return to the directory
-        env::set_current_dir(&save_previous_dir).map_err(|source| {
-            DotaoError::UnableToEnterDirectory {
-                source,
-                path: save_previous_dir.into(),
-            }
-        })?;
-
-        let group = DotfileGroup::new(path, files);
+        let mut group = DotfileGroup::new(path, files);
+        group.trim_starting_path_from_files();
         Ok(group)
+    }
+
+    pub fn trim_starting_path_from_files(&mut self) {
+        let get_len_of_pathbuf = |path: &PathBuf| -> usize {
+            let mut len = 0;
+            for _ in path {
+                len += 1;
+            }
+            len
+        };
+
+        // Calculate length of PathBuf iterator
+        let len_to_trim = get_len_of_pathbuf(&self.starting_path);
+
+        let mut stack: Vec<&mut File> = vec![];
+        for file in self.files.as_mut_slice() {
+            stack.push(file);
+        }
+
+        // Use a stack to trim all files recursively
+        while let Some(file) = stack.pop() {
+            // Trim file.path
+            file.path = file.path.into_iter().skip(len_to_trim).collect();
+
+            // If it is a directory, push the other files too
+            if let FileType::Directory { children } = &mut file.file_type {
+                for child in children {
+                    stack.push(child);
+                }
+            }
+        }
     }
 }
