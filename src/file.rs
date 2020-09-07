@@ -42,7 +42,7 @@ impl FileType {
         let result = if metadata.is_file() {
             FileType::File
         } else if metadata.is_dir() {
-            let children = collect_files_from_directory_path(path)?;
+            let children = collect_files_from_current_directory(path)?;
             FileType::Directory { children }
         } else {
             let target_path = get_symlink_target_from_path(path)?;
@@ -75,7 +75,7 @@ impl FileType {
 }
 
 /// Fill a Vec with our own File struct
-pub fn collect_files_from_directory_path(path: impl AsRef<Path>) -> Result<Vec<File>> {
+pub fn collect_files_from_current_directory(path: impl AsRef<Path>) -> Result<Vec<File>> {
     if !get_symlink_metadata_from_path(&path)?.is_dir() {
         return Err(DotaoError::NotADirectory);
     }
