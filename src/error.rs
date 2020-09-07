@@ -6,6 +6,7 @@ pub type Result<T> = result::Result<T, DotaoError>;
 #[derive(Debug)]
 pub enum DotaoError {
     ReadError { path: PathBuf, source: io::Error },
+    UnableToEnterDirectory { path: PathBuf, source: io::Error },
     NotFoundInFilesystem,
     NotADirectory,
 }
@@ -15,7 +16,7 @@ use DotaoError::*;
 impl error::Error for DotaoError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            ReadError { source, .. } => Some(source),
+            ReadError { source, .. } | UnableToEnterDirectory { source, .. } => Some(source),
             _ => None,
         }
     }
@@ -25,6 +26,7 @@ impl fmt::Display for DotaoError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ReadError { source, .. } => source.fmt(f),
+            UnableToEnterDirectory { .. } => write!(f, "Unable to enter directory"),
             NotFoundInFilesystem => write!(f, "File not found"),
             NotADirectory => write!(f, "File is not a directory"),
         }
