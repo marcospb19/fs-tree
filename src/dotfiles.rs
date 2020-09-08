@@ -36,16 +36,8 @@ impl DotfileGroup {
     }
 
     pub fn trim_starting_path_from_files(&mut self) {
-        let get_len_of_pathbuf = |path: &PathBuf| -> usize {
-            let mut len = 0;
-            for _ in path {
-                len += 1;
-            }
-            len
-        };
-
         // Calculate length of PathBuf iterator
-        let len_to_trim = get_len_of_pathbuf(&self.starting_path);
+        let len_to_trim = self.starting_path.iter().count();
 
         let mut stack: Vec<&mut File> = vec![];
         for file in self.files.as_mut_slice() {
