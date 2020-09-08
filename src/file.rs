@@ -36,7 +36,7 @@ impl File {
 
 impl FileType {
     pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
-        let metadata = get_symlink_metadata_from_path(&path)?;
+        let metadata = get_metadata_from_path(&path, false)?;
 
         // Is file, directory, or symlink
         let result = if metadata.is_file() {
@@ -47,6 +47,24 @@ impl FileType {
         } else {
             let target_path = get_symlink_target_from_path(path)?;
             FileType::SymbolicLink { target_path }
+        };
+
+        Ok(result)
+    }
+
+    pub fn from_path_shallow(path: impl AsRef<Path>) -> Result<Self> {
+        let metadata = get_metadata_from_path(&path, false)?;
+
+        // Is file, directory, or symlink
+        let result = if metadata.is_file() {
+            FileType::File
+        } else if metadata.is_dir() {
+            // Empty vec
+            FileType::Directory { children: vec![] }
+        } else {
+            FileType::SymbolicLink {
+                target_path: PathBuf::new(),
+            }
         };
 
         Ok(result)
@@ -77,7 +95,7 @@ impl FileType {
 /// Fill a Vec with our own File struct
 pub fn collect_files_from_current_directory(path: impl AsRef<Path>) -> Result<Vec<File>> {
     let path = path.as_ref().to_path_buf();
-    if !get_symlink_metadata_from_path(&path)?.is_dir() {
+    if !FileType::from_path_shallow(&path)?.is_directory() {
         return Err(DotaoError::NotADirectory);
     }
 
@@ -115,7 +133,10 @@ pub fn get_symlink_target_from_path(path: impl AsRef<Path>) -> Result<PathBuf> {
 }
 
 /// Used by FileType and FlatFileType `from_path` function.
-pub fn get_symlink_metadata_from_path(path: impl AsRef<Path>) -> Result<fs::Metadata> {
+pub fn get_metadata_from_path(
+    path: impl AsRef<Path>,
+    follow_symlinks: bool,
+) -> Result<fs::Metadata> {
     let path = path.as_ref();
     if !path.exists() {
         return Err(DotaoError::NotFoundInFilesystem);

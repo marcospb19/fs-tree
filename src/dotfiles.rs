@@ -1,6 +1,6 @@
 use crate::{
     error::*,
-    file::{collect_files_from_current_directory, get_symlink_metadata_from_path, File, FileType},
+    file::{collect_files_from_current_directory, File, FileType},
 };
 
 use std::path::{Path, PathBuf};
@@ -23,7 +23,7 @@ impl DotfileGroup {
         let path = path.as_ref().to_path_buf();
         if !path.exists() {
             return Err(DotaoError::NotFoundInFilesystem);
-        } else if !get_symlink_metadata_from_path(&path)?.is_dir() {
+        } else if !FileType::from_path_shallow(&path)?.is_directory() {
             return Err(DotaoError::NotADirectory);
         }
 
