@@ -5,4 +5,4 @@ authors = ["João Marcos <marcospb19@hotmail.com>"]
 edition = "2018"
 
 [dependencies]
-clap = "2.3"
+clap = "2.33.1"
