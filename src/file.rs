@@ -25,8 +25,8 @@ impl File {
         File { path, file_type }
     }
 
-    pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
-        let file_type = FileType::from_path(&path)?;
+    pub fn from_path(path: impl AsRef<Path>, follow_symlinks: bool) -> Result<Self> {
+        let file_type = FileType::from_path(&path, follow_symlinks)?;
         let path = path.as_ref().to_path_buf();
         let result = File::new(path, file_type);
 
@@ -35,14 +35,14 @@ impl File {
 }
 
 impl FileType {
-    pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
-        let metadata = get_metadata_from_path(&path, false)?;
+    pub fn from_path(path: impl AsRef<Path>, follow_symlinks: bool) -> Result<Self> {
+        let metadata = get_metadata_from_path(&path, follow_symlinks)?;
 
         // Is file, directory, or symlink
         let result = if metadata.is_file() {
             FileType::File
         } else if metadata.is_dir() {
-            let children = collect_files_from_current_directory(&path)?;
+            let children = collect_files_from_current_directory(&path, follow_symlinks)?;
             FileType::Directory { children }
         } else {
             let target_path = get_symlink_target_from_path(path)?;
@@ -52,8 +52,8 @@ impl FileType {
         Ok(result)
     }
 
-    pub fn from_path_shallow(path: impl AsRef<Path>) -> Result<Self> {
-        let metadata = get_metadata_from_path(&path, false)?;
+    pub fn from_path_shallow(path: impl AsRef<Path>, follow_symlink: bool) -> Result<Self> {
+        let metadata = get_metadata_from_path(&path, follow_symlink)?;
 
         // Is file, directory, or symlink
         let result = if metadata.is_file() {
@@ -93,9 +93,12 @@ impl FileType {
 }
 
 /// Fill a Vec with our own File struct
-pub fn collect_files_from_current_directory(path: impl AsRef<Path>) -> Result<Vec<File>> {
+pub fn collect_files_from_current_directory(
+    path: impl AsRef<Path>,
+    follow_symlinks: bool,
+) -> Result<Vec<File>> {
     let path = path.as_ref().to_path_buf();
-    if !FileType::from_path_shallow(&path)?.is_directory() {
+    if !FileType::from_path_shallow(&path, follow_symlinks)?.is_directory() {
         return Err(DotaoError::NotADirectory);
     }
 
@@ -111,7 +114,7 @@ pub fn collect_files_from_current_directory(path: impl AsRef<Path>) -> Result<Ve
             source,
         })?;
 
-        let file = File::from_path(entry.path())?;
+        let file = File::from_path(entry.path(), follow_symlinks)?;
         children.push(file);
     }
     Ok(children)
@@ -135,14 +138,20 @@ pub fn get_symlink_target_from_path(path: impl AsRef<Path>) -> Result<PathBuf> {
 /// Used by FileType and FlatFileType `from_path` function.
 pub fn get_metadata_from_path(
     path: impl AsRef<Path>,
-    follow_symlinks: bool,
+    follow_symlink: bool,
 ) -> Result<fs::Metadata> {
     let path = path.as_ref();
     if !path.exists() {
         return Err(DotaoError::NotFoundInFilesystem);
     }
 
-    let metadata = path.metadata().map_err(|source| DotaoError::ReadError {
+    let metadata_function = if follow_symlink {
+        fs::metadata
+    } else {
+        fs::symlink_metadata
+    };
+
+    let metadata = metadata_function(path).map_err(|source| DotaoError::ReadError {
         path: path.to_path_buf(),
         source,
     })?;
