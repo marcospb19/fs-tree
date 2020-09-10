@@ -21,6 +21,7 @@ impl DotfileGroup {
 
     pub fn from_directory_path(path: impl AsRef<Path>, follow_symlinks: bool) -> Result<Self> {
         let path = path.as_ref().to_path_buf();
+
         if !path.exists() {
             return Err(DotaoError::NotFoundInFilesystem);
         } else if !FileType::from_path_shallow(&path, follow_symlinks)?.is_directory() {
@@ -29,8 +30,10 @@ impl DotfileGroup {
 
         // Recursively get all chidren from the directory path
         let files = collect_files_from_current_directory(&path, follow_symlinks)?;
-
         let mut group = DotfileGroup::new(path, files);
+
+        // Adjust all path for file tree, in a way that, considering a file from it:
+        // starting_path.join(file).exists()
         group.trim_starting_path_from_files();
         Ok(group)
     }

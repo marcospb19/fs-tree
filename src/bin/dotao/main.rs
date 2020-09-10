@@ -2,9 +2,10 @@ mod cli;
 
 use dotao::{dotfiles::DotfileGroup, error::*};
 
-use std::process;
+use std::{env, path::PathBuf, process};
 
 fn main() {
+    std::env::set_current_dir("/home/marcospb19/dotfiles").unwrap();
     let args = cli::parse_args();
 
     let mut groups: Vec<DotfileGroup> = vec![];
@@ -13,7 +14,8 @@ fn main() {
     // For each arg of GROUPS
     for group_path in args.values_of("GROUPS").unwrap() {
         // Try to transform into DotfileGroup
-        let group: Result<DotfileGroup> = DotfileGroup::from_directory_path(group_path, false);
+        // Symlinks in dotfiles work, so follow them
+        let group: Result<DotfileGroup> = DotfileGroup::from_directory_path(group_path, true);
 
         if let Ok(group) = group {
             groups.push(group);
@@ -37,5 +39,16 @@ fn main() {
     if error_occurred {
         process::exit(1);
     }
+
     println!("{:#?}", groups);
+
+    let home_path = env::var("HOME").unwrap_or_else(|err| {
+        eprintln!("Unable to read env variable HOME: {}", err);
+        process::exit(1);
+    });
+    let _home_path = PathBuf::from(home_path);
+
+    // for group in groups {
+    //     group.link(&home_path, Default::default()).unwrap();
+    // }
 }
