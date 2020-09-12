@@ -11,6 +11,7 @@ use std::{
     process,
 };
 
+/// TODO: document this
 #[derive(Debug, Default)]
 pub struct LinkBehavior {
     pub overwrite_files: bool,
@@ -26,10 +27,12 @@ impl LinkBehavior {
     }
 }
 
+/// Used to link dotfiles
 pub trait Link {
     fn link_to_home(&self, home_path: &PathBuf, link_behavior: &LinkBehavior) -> Result<u32>;
 }
 
+/// TODO: document this
 // TODO: permissions checks
 impl Link for DotfileGroup {
     fn link_to_home(&self, home_path: &PathBuf, link_behavior: &LinkBehavior) -> Result<u32> {
@@ -130,6 +133,7 @@ impl Link for DotfileGroup {
     }
 }
 
+/// TODO: document this
 /// Wrap std::os::unix::fs::symlink with Dotao's Result<()>, extra checks
 pub fn symlink_with_checks(src: impl AsRef<Path>, dest: impl AsRef<Path>) -> Result<()> {
     let (src, dest) = (src.as_ref(), dest.as_ref());

@@ -40,6 +40,7 @@ pub struct DotfileGroup {
 }
 
 impl DotfileGroup {
+    /// TODO: document this
     pub fn new(starting_path: PathBuf, files: Vec<File>) -> Self {
         DotfileGroup {
             starting_path,
@@ -47,6 +48,7 @@ impl DotfileGroup {
         }
     }
 
+    /// TODO: document this
     pub fn from_directory_path(path: impl AsRef<Path>, follow_symlinks: bool) -> Result<Self> {
         let path = path.as_ref().to_path_buf();
 
@@ -66,6 +68,7 @@ impl DotfileGroup {
         Ok(group)
     }
 
+    /// TODO: document this
     pub fn trim_starting_path_from_files(&mut self) {
         // Calculate length of PathBuf iterator
         let len_to_trim = self.starting_path.iter().count();
