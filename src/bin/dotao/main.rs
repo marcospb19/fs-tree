@@ -1,7 +1,11 @@
 /// Wraps `clap` CLI argparsing configuration.
 mod cli;
 
-use dotao::{dotfiles::DotfileGroup, error::*, link::Link};
+use dotao::{
+    dotfiles::DotfileGroup,
+    error::*,
+    link::{Link, LinkBehavior},
+};
 
 use std::{env, path::PathBuf, process};
 
@@ -47,7 +51,13 @@ fn main() {
     });
     let home_path = PathBuf::from(home_path);
 
+    let link_behavior = if args.is_present("overwrite") {
+        LinkBehavior::new(true, true)
+    } else {
+        Default::default()
+    };
+
     for group in groups {
-        group.link_to_home(&home_path).unwrap();
+        group.link_to_home(&home_path, &link_behavior).unwrap();
     }
 }

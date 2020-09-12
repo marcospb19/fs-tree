@@ -18,5 +18,11 @@ pub(super) fn parse_args() -> clap::ArgMatches<'static> {
                 .required(true)
                 .help("List of dotfile groups that will be linked the HOME directory."),
         )
+        .arg(
+            Arg::with_name("overwrite")
+                .long("overwrite")
+                .short("O")
+                .help("Overwrite files, directories and symlinks."),
+        )
         .get_matches()
 }

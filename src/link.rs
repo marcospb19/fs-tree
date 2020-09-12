@@ -4,15 +4,35 @@ use crate::{
     file::{File, FileType},
 };
 
-use std::{collections::VecDeque, os::unix::fs as unix_fs, path::PathBuf, process};
+use std::{
+    collections::VecDeque,
+    os::unix::fs as unix_fs,
+    path::{Path, PathBuf},
+    process,
+};
+
+#[derive(Debug, Default)]
+pub struct LinkBehavior {
+    pub overwrite_files: bool,
+    pub overwrite_symbolic_links: bool,
+}
+
+impl LinkBehavior {
+    pub fn new(overwrite_files: bool, overwrite_symbolic_links: bool) -> Self {
+        LinkBehavior {
+            overwrite_files,
+            overwrite_symbolic_links,
+        }
+    }
+}
 
 pub trait Link {
-    fn link_to_home(&self, home_path: &PathBuf) -> Result<()>;
+    fn link_to_home(&self, home_path: &PathBuf, link_behavior: &LinkBehavior) -> Result<u32>;
 }
 
 // TODO: permissions checks
 impl Link for DotfileGroup {
-    fn link_to_home(&self, home_path: &PathBuf) -> Result<()> {
+    fn link_to_home(&self, home_path: &PathBuf, link_behavior: &LinkBehavior) -> Result<u32> {
         // For this code we'll create a deque and a vec
         //
         // The deque will contain files left to check and pass to the vec
@@ -55,6 +75,10 @@ impl Link for DotfileGroup {
 
                     // Won't overwrite it, for now
                     (_, File) => {
+                        if link_behavior.overwrite_files {
+                            todo!();
+                        }
+
                         // Other than overwriting, we can check the size of the file, and then it's
                         // contents, to see if it is the exact same as the source one, if so, link
                         // if a custom option is already set yoooo
@@ -79,9 +103,11 @@ impl Link for DotfileGroup {
         // Check errors
         // if error...
 
+        let mut link_counter = 0;
+
         if paths_to_link.len() == 0 {
             println!("Nothing to do.");
-            return Ok(());
+            return Ok(link_counter);
         }
 
         println!("{:#?}", paths_to_link);
@@ -95,10 +121,27 @@ impl Link for DotfileGroup {
             let target_path = home_path.join(path);
             println!("source = {}", source_path.display());
             println!("target = {}", target_path.display());
-            let result = unix_fs::symlink(source_path, target_path);
+            let result = symlink_with_checks(source_path, target_path);
+            link_counter += 1;
             println!("{:#?}", result);
         }
 
-        Ok(())
+        Ok(link_counter)
     }
+}
+
+/// Wrap std::os::unix::fs::symlink with Dotao's Result<()>, extra checks
+pub fn symlink_with_checks(src: impl AsRef<Path>, dest: impl AsRef<Path>) -> Result<()> {
+    let (src, dest) = (src.as_ref(), dest.as_ref());
+    if !src.exists() || !dest.exists() {
+        return Err(DotaoError::NotFoundInFilesystem);
+    } else if true {
+        // Check permissions?
+    }
+
+    unix_fs::symlink(src, dest).map_err(|source| DotaoError::LinkError {
+        from: src.to_path_buf(),
+        to: dest.to_path_buf(),
+        source,
+    })
 }
