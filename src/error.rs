@@ -1,5 +1,6 @@
 use std::{error, fmt, io, path::PathBuf, result};
 
+/// Dotao's dotao::error::Result<T> = Result<T, DotaoError>
 pub type Result<T> = result::Result<T, DotaoError>;
 
 /// DotaoError covers all possible errors from this library
@@ -21,6 +22,8 @@ impl error::Error for DotaoError {
     }
 }
 
+/// Display ready for showing errors to users!
+/// Error format: "err: more details: more details"
 impl fmt::Display for DotaoError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {

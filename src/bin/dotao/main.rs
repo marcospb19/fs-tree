@@ -1,3 +1,4 @@
+/// Wraps `clap` CLI argparsing configuration.
 mod cli;
 
 use dotao::{dotfiles::DotfileGroup, error::*};
