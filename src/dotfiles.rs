@@ -5,6 +5,34 @@ use crate::{
 
 use std::path::{Path, PathBuf};
 
+/// `DotfileGroup` represents a folder with a list of files (dotfiles) inside of
+/// it.
+///
+/// These dotfiles can be files, or directories, and each directory is a tree,
+/// here is a example with `i3`.
+///
+/// ```sh
+/// cd ~/dotfiles
+/// dotao i3/
+/// ```
+///
+/// When the user types this in the terminal, we'll create:
+/// ```rust
+/// DotfileGroup {
+///     starting_path: "i3",
+///     files: vec![],
+/// }
+/// ```
+///
+/// Then the files will be filled with everything that is inside of the i3
+/// folder, recursively, following symlinks
+///
+/// So, the method that links the DotfileGroup will panic if you let a
+/// FileType::SymbolicLink inside of the file tree, this may change in the
+/// future, ok?
+///
+/// For now just keep in mind that it does not make sense to have a symlink
+/// there
 #[derive(Debug, Default)]
 pub struct DotfileGroup {
     pub starting_path: PathBuf,

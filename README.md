@@ -22,3 +22,6 @@ Now the files inside of the i3 group are linked in your user home.
 
 # Choices
 The whole behavior of the linking process will be customizable with flags and a .tree/.dotman-tree file, more on that later
+
+# Documentation
+Just to tell you, there's a lot left to document
