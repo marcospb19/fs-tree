@@ -1,11 +1,6 @@
-use crate::{
-    dotfiles::DotfileGroup,
-    error::*,
-    file::{File, FileType},
-};
+use crate::{dotfiles::DotfileGroup, error::*, file::FileType};
 
 use std::{
-    collections::VecDeque,
     os::unix::fs as unix_fs,
     path::{Path, PathBuf},
     process,
@@ -36,7 +31,8 @@ pub trait Link {
 // TODO: permissions checks
 impl Link for DotfileGroup {
     fn link_to_home(&self, home_path: &PathBuf, link_behavior: &LinkBehavior) -> Result<u32> {
-        // For this code we'll create a deque and a vec
+        // We'll create a deque and vec of &File, that we'll use to check each file
+        // entry.
         //
         // The deque will contain files left to check and pass to the vec
         //
@@ -45,16 +41,8 @@ impl Link for DotfileGroup {
         // The order of the deque is weirdly specific, like an DFS traversal that
         // sometimes prioritizes files over directories, the intent here is to make the
         // error messages more intuitive
-        let mut deque = VecDeque::<&File>::new();
+        let mut deque = self.deque_from_files();
         let mut paths_to_link: Vec<&PathBuf> = vec![];
-
-        for file in &self.files {
-            if file.file_type.is_directory() {
-                deque.push_back(&file);
-            } else {
-                deque.push_front(&file);
-            }
-        }
 
         // Please document this im so tired right now that I can't
         while let Some(file) = deque.pop_front() {
@@ -73,7 +61,7 @@ impl Link for DotfileGroup {
                     // Maybe this check shouldn't be here, but I wanna be 100% sure that this won't
                     // happen at this point it can't be a symlink O.o
                     (SymbolicLink { .. }, _) => {
-                        todo!();
+                        panic!("This should not be here!");
                     },
 
                     // Won't overwrite it, for now

@@ -3,7 +3,10 @@ use crate::{
     file::{collect_files_from_current_directory, File, FileType},
 };
 
-use std::path::{Path, PathBuf};
+use std::{
+    collections::VecDeque,
+    path::{Path, PathBuf},
+};
 
 /// `DotfileGroup` represents a folder with a list of files (dotfiles) inside of
 /// it.
@@ -90,5 +93,21 @@ impl DotfileGroup {
                 }
             }
         }
+    }
+
+    /// From DotfileGroup.files (Vec<File>) to Deque<&File>
+    /// WHy this order? marcospb19?
+    pub fn deque_from_files(&self) -> VecDeque<&File> {
+        let mut deque = VecDeque::new();
+
+        for file in &self.files {
+            if file.file_type.is_directory() {
+                deque.push_back(file);
+            } else {
+                deque.push_front(file);
+            }
+        }
+
+        deque
     }
 }
