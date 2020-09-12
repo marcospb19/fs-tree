@@ -1,7 +1,7 @@
 /// Wraps `clap` CLI argparsing configuration.
 mod cli;
 
-use dotao::{dotfiles::DotfileGroup, error::*};
+use dotao::{dotfiles::DotfileGroup, error::*, link::Link};
 
 use std::{env, path::PathBuf, process};
 
@@ -41,15 +41,13 @@ fn main() {
         process::exit(1);
     }
 
-    println!("{:#?}", groups);
-
     let home_path = env::var("HOME").unwrap_or_else(|err| {
         eprintln!("Unable to read env variable HOME: {}", err);
         process::exit(1);
     });
-    let _home_path = PathBuf::from(home_path);
+    let home_path = PathBuf::from(home_path);
 
-    // for group in groups {
-    //     group.link(&home_path, Default::default()).unwrap();
-    // }
+    for group in groups {
+        group.link_to_home(&home_path).unwrap();
+    }
 }
