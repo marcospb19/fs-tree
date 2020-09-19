@@ -20,7 +20,7 @@ use std::{
 /// ```
 ///
 /// When the user types this in the terminal, we'll create:
-/// ```rust
+/// ```ignore
 /// DotfileGroup {
 ///     starting_path: "i3",
 ///     files: vec![],
@@ -111,3 +111,39 @@ impl DotfileGroup {
         deque
     }
 }
+
+/*
+pub fn show(&self) {
+    let a = self.starting_path.file_name().unwrap().to_string_lossy();
+
+    println!("[{}]", a);
+    for file in &self.files {
+        DotfileGroup::show_rec(0, file);
+    }
+}
+
+fn show_rec(level: u32, file: &File) {
+    let a = &file.path /* .file_name().unwrap().to_string_lossy() */ ;
+
+    let mut b = String::new();
+    b.push_str("asjndasjnd");
+    // println!("{:?}", b);
+
+    for _ in 0..level {
+        print!("    ");
+    }
+    if let FileType::Directory { children } = &file.file_type {
+        println!("\"{}\": [", a.display());
+
+        for file in children {
+            DotfileGroup::show_rec(level + 1, &file);
+        }
+        for _ in 0..level {
+            print!("    ");
+        }
+        println!("]");
+    } else {
+        println!("\"{}\",", a.display());
+    }
+}
+*/

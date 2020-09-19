@@ -4,7 +4,7 @@ mod cli;
 use dotao::{
     dotfiles::DotfileGroup,
     error::*,
-    link::{Link, LinkBehavior},
+    link::{link_to_home, LinkBehavior},
 };
 
 use std::{env, path::PathBuf, process};
@@ -57,7 +57,9 @@ fn main() {
         Default::default()
     };
 
+    println!("{:#?}", link_behavior);
+
     for group in groups {
-        group.link_to_home(&home_path, &link_behavior).unwrap();
+        link_to_home(&group, &home_path, &link_behavior).unwrap();
     }
 }
