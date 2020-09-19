@@ -41,7 +41,7 @@ impl Link for DotfileGroup {
         // The order of the deque is weirdly specific, like an DFS traversal that
         // sometimes prioritizes files over directories, the intent here is to make the
         // error messages more intuitive
-        let mut deque = self.deque_from_files();
+        let mut deque = self.deque_from_file_references();
         let mut paths_to_link: Vec<&PathBuf> = vec![];
 
         // Please document this im so tired right now that I can't
@@ -56,6 +56,8 @@ impl Link for DotfileGroup {
                 let target_file_type = FileType::from_path_shallow(&target_path, false)?;
                 println!(" --- {} {:?}", &target_path.display(), target_file_type);
 
+                let can_be_deleted = can_i_delete_it(&target_path);
+
                 use FileType::*;
                 match (source_file_type, target_file_type) {
                     // Maybe this check shouldn't be here, but I wanna be 100% sure that this won't
@@ -68,15 +70,30 @@ impl Link for DotfileGroup {
                     (_, File) => {
                         if link_behavior.overwrite_files {
                             todo!();
+                        } else {
+                            // Other than overwriting, we can check the size of the file, and then
+                            // it's contents, to see if it is the exact
+                            // same as the source one, if so, link
+                            // if a custom option is already set yoooo
+
+                            eprintln!("Encountered a file at {}, exiting.", target_path.display());
+                            process::exit(1);
                         }
-
-                        // Other than overwriting, we can check the size of the file, and then it's
-                        // contents, to see if it is the exact same as the source one, if so, link
-                        // if a custom option is already set yoooo
-
-                        eprintln!("Encountered a file at {}, exiting.", target_path.display());
-                        process::exit(1);
                     },
+
+                    (_, SymbolicLink { .. }) => {
+                        if link_behavior.overwrite_symbolic_links {
+                            // Other than overwriting, we can check the size of the file, and then
+                            // it's contents, to see if it is the exact
+                            // same as the source one, if so, link
+                            // if a custom option is already set yoooo
+
+                            eprintln!("Encountered a file at {}, exiting.", target_path.display());
+                            process::exit(1);
+                        } else {
+                        }
+                    },
+
                     (Directory { children }, Directory { .. }) => {
                         for child in children {
                             deque.push_front(child);
@@ -125,9 +142,10 @@ impl Link for DotfileGroup {
 /// Wrap std::os::unix::fs::symlink with Dotao's Result<()>, extra checks
 pub fn symlink_with_checks(src: impl AsRef<Path>, dest: impl AsRef<Path>) -> Result<()> {
     let (src, dest) = (src.as_ref(), dest.as_ref());
-    if !src.exists() || !dest.exists() {
+    if !src.exists() {
         return Err(DotaoError::NotFoundInFilesystem);
     } else if true {
+        // Check if dest.exists()!!!!, overwrite???? vixe!
         // Check permissions?
     }
 
