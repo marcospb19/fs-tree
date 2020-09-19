@@ -17,8 +17,3 @@ pub mod error;
 pub mod file;
 /// Trait to link dotfiles, implemented for DotfileGroup
 pub mod link;
-
-/// temporaraysdabhsd
-pub(crate) mod permissions;
-
-pub(crate) mod util;

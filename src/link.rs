@@ -2,7 +2,6 @@ use crate::{
     dotfiles::DotfileGroup,
     error::*,
     file::{File, FileType},
-    util::can_i_delete_it,
 };
 
 use std::{
@@ -88,12 +87,13 @@ pub fn link_to_home(
         println!(" --- {} {:?}", &target_path.display(), target_file_type);
 
         // let files_to_delete = vec![];
-        let can_be_deleted =
-            can_i_delete_it(&target_path).map_err(|err| DotaoError::LinkError {
-                from: source_path,
-                to: target_path,
-                source: err,
-            })?;
+        // // This code was deleted!
+        // let can_be_deleted =
+        //     can_i_delete_it(&target_path).map_err(|err| DotaoError::LinkError {
+        //         from: source_path,
+        //         to: target_path,
+        //         source: err,
+        //     })?;
 
         use FileType::*;
 
