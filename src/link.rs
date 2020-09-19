@@ -1,4 +1,9 @@
-use crate::{dotfiles::DotfileGroup, error::*, file::FileType, util::can_i_delete_it};
+use crate::{
+    dotfiles::DotfileGroup,
+    error::*,
+    file::{File, FileType},
+    util::can_i_delete_it,
+};
 
 use std::{
     io,
@@ -22,11 +27,26 @@ impl LinkBehavior {
     }
 }
 
+struct LinkInformation<'a> {
+    pub files_to_delete: Vec<&'a File>,
+    pub files_to_link: Vec<&'a File>,
+}
+
+impl LinkInformation<'_> {
+    pub fn new() -> Self {
+        LinkInformation {
+            files_to_delete: vec![],
+            files_to_link: vec![],
+        }
+    }
+}
+
 /// Used to link dotfiles
 // pub trait Link {
 //     fn link_to_home(&self, home_path: &PathBuf, link_behavior: &LinkBehavior) -> Result<u32>;
 // }
 
+#[allow(unused_variables, unused_mut, unreachable_patterns)]
 /// TODO: document this
 // TODO: permissions checks
 // impl Link for DotfileGroup {
@@ -46,7 +66,7 @@ pub fn link_to_home(
     // sometimes prioritizes files over directories, the intent here is to make the
     // error messages more intuitive
     let mut deque = dotfile_group.deque_from_file_references();
-    let mut paths_to_link: Vec<&PathBuf> = vec![];
+    let mut link_information = LinkInformation::new();
 
     // Please document this im so tired right now that I can't
     while let Some(file) = deque.pop_front() {
@@ -55,10 +75,10 @@ pub fn link_to_home(
             .starting_path
             .join(&file.path)
             .canonicalize()
-            .expect("Error resolving path");
+            .expect("Error resolving path of file, should not fail!");
 
         if !target_path.exists() {
-            paths_to_link.push(&file.path);
+            link_information.files_to_link.push(&file);
             continue;
         }
 
@@ -76,116 +96,121 @@ pub fn link_to_home(
             })?;
 
         use FileType::*;
-        match (source_file_type, target_file_type) {
+
+        if let SymbolicLink { target_path } = target_file_type {
+            unimplemented!();
+        }
+
+        match source_file_type {
             // Maybe this check shouldn't be here, but I wanna be 100% sure that this won't
             // happen at this point it can't be a symlink O.o
-            (SymbolicLink { .. }, _) => {
+            SymbolicLink { .. } => {
                 panic!("DevErr: We shouldn't be trying to create symlinks of symlinks!");
             },
 
-            (File, other_file_type) => {
-                let result = check_link_for_regular_file(other_file_type).expect("expect");
+            File => {
+                let result = link_check_for_regular_file(&mut link_information, target_file_type)
+                    .expect("expect");
                 continue;
             },
 
-            (Directory { .. }, other_file_type) => {
-                let result = check_link_for_directory(other_file_type).expect("askndnajndjasd");
-                continue;
+            Directory { .. } => {
+                let result = link_check_for_directory(&mut link_information, target_file_type)
+                    .expect("askndnajndjasd");
+                 continue;
             },
-            (_, SymbolicLink { target_path }) => {
-                if true {
-                    // if temp_target == source_path {
-                    continue; // Ok, already in place
-                } else {
-                    // Now we need to deal with it
-                    if link_behavior.overwrite_symbolic_links {
-                        // files_to_delete.push(&file);
-                    } else {
-                        eprintln!(
-                            "Problem, we found this symlink, but it points to another place: '{}' \
-                             -> '{}'",
-                            target_path.display(),
-                            target_path /* temp_target */
-                                .display()
-                        );
-                    }
-                }
-                if link_behavior.overwrite_symbolic_links {}
-            }, /* Other than overwriting, we can check the size of the file, and then
-                * it's contents, to see if it is the exact
-                * same as the source one, if so, link
-                * if a custom option is already set yoooo */
+            // (_, SymbolicLink { target_path }) => {
+            //     if true {
+            //         // if temp_target == source_path {
+            //         continue; // Ok, already in place
+            //     } else {
+            //         // Now we need to deal with it
+            //         if link_behavior.overwrite_symbolic_links {
+            //             // files_to_delete.push(&file);
+            //         } else {
+            //             eprintln!(
+            //                 "Problem, we found this symlink, but it points to another place: '{}' \
+            //                  -> '{}'",
+            //                 target_path.display(),
+            //                 target_path /* temp_target */
+            //                     .display()
+            //             );
+            //         }
+            //     }
+            //     if link_behavior.overwrite_symbolic_links {}
+            // },
 
-               /*         eprintln!("Encountered a file at {}, exiting.",
-                * target_path.display());         process::exit(1);
-                *     } else {
-                *     }
-                * }, */
+            /* Other than overwriting, we can check the size of the file, and then
+             * it's contents, to see if it is the exact
+             * same as the source one, if so, link
+             * if a custom option is already set yoooo */
 
-               /* (_, File) => {
-                *     // Other than overwriting, we can check the size of the file, and then
-                *     // it's contents, to see if it is the exact
-                *     // same as the source one, if so, link
-                *     // if a custom option is already set yoooo */
+            /*         eprintln!("Encountered a file at {}, exiting.",
+             * target_path.display());         process::exit(1);
+             *     } else {
+             *     }
+             * }, */
 
-               /*     eprintln!("Encountered a file at {}, exiting.", target_path.display());
-                *     process::exit(1);
-                * }, */
+            /* (_, File) => {
+             *     // Other than overwriting, we can check the size of the file, and then
+             *     // it's contents, to see if it is the exact
+             *     // same as the source one, if so, link
+             *     // if a custom option is already set yoooo */
 
-               /* (Directory { .. }, File) => {
-                *     eprintln!(
-                *         "Found file instead of directory: '{}'",
-                *         target_path.display()
-                *     );
-                * }, */
+            /*     eprintln!("Encountered a file at {}, exiting.", target_path.display());
+             *     process::exit(1);
+             * }, */
 
-               /* (Directory { children }, Directory { .. }) => {
-                *     for child in children {
-                *         deque.push_front(child);
-                *     }
-                * }, */
-
-               /* // For now
-                * _ => {
-                *     todo!();
-                * }, */
-        }
-    }
+            /* (Directory { .. }, File) => {
+             *     eprintln!(
+             *         "Found file instead of directory: '{}'",
+             *         target_path.display()
+             *     );
+             * }, */
+        } // match
+    } // for
 
     // Check errors
     // if error...
 
     let mut link_counter = 0;
 
-    if paths_to_link.len() == 0 {
-        println!("Nothing to do.");
-        return Ok(link_counter);
-    }
+    // if paths_to_link.len() == 0 {
+    //     println!("Nothing to do.");
+    //     return Ok(link_counter);
+    // }
 
-    println!("{:#?}", paths_to_link);
+    // println!("{:#?}", paths_to_link);
 
-    for path in paths_to_link {
-        let source_path = dotfile_group
-            .starting_path
-            .join(path)
-            .canonicalize()
-            .expect("Error resolving path");
-        let target_path = home_path.join(path);
-        println!("source = {}", source_path.display());
-        println!("target = {}", target_path.display());
-        let result = symlink_with_checks(source_path, target_path);
-        link_counter += 1;
-        println!("{:#?}", result);
-    }
+    // for path in paths_to_link {
+    //     let source_path = dotfile_group
+    //         .starting_path
+    //         .join(path)
+    //         .canonicalize()
+    //         .expect("Error resolving path");
+    //     let target_path = home_path.join(path);
+    //     println!("source = {}", source_path.display());
+    //     println!("target = {}", target_path.display());
+    //     let result = symlink_with_checks(source_path, target_path);
+    //     link_counter += 1;
+    //     println!("{:#?}", result);
+    // }
 
     Ok(link_counter)
 }
 // }
 
-pub fn check_link_for_regular_file(target_file_type: FileType) -> io::Result<bool> {
+fn link_check_for_regular_file(
+    _link_information: &mut LinkInformation,
+    _target_file_type: FileType,
+) -> io::Result<bool> {
     Ok(false)
 }
-pub fn check_link_for_directory(target_file_type: FileType) -> io::Result<bool> {
+
+fn link_check_for_directory(
+    _link_information: &mut LinkInformation,
+    _target_file_type: FileType,
+) -> io::Result<bool> {
     Ok(false)
 }
 
