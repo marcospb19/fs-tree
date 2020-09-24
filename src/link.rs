@@ -35,9 +35,10 @@ impl LinkBehavior {
     }
 }
 
-struct LinkInformation<'a> {
+pub struct LinkInformation<'a> {
     pub files_to_delete: Vec<&'a File>,
     pub files_to_link: Vec<&'a File>,
+    // pub errors: Vec<&'a File>,
 }
 
 impl LinkInformation<'_> {
@@ -47,24 +48,29 @@ impl LinkInformation<'_> {
             files_to_link: vec![],
         }
     }
+
+    pub fn prepare_to_link(
+        &self,
+        _dotfile_group: &DotfileGroup,
+        _home_path: &PathBuf,
+        _link_behavior: &LinkBehavior,
+    ) -> Result<()> {
+        Ok(())
+    }
+
+    pub fn is_ready(&self) -> bool {
+        false
+    }
 }
 
-pub fn link_to_home(
-    _dotfile_group: &DotfileGroup,
-    _home_path: &PathBuf,
-    _link_behavior: &LinkBehavior,
-) -> Result<()> {
-    Ok(())
-}
-
-fn link_check_for_regular_file(
+fn _link_check_for_regular_file(
     _link_information: &mut LinkInformation,
     _target_file_type: FileType,
 ) -> io::Result<bool> {
     Ok(false)
 }
 
-fn link_check_for_directory(
+fn _link_check_for_directory(
     _link_information: &mut LinkInformation,
     _target_file_type: FileType,
 ) -> io::Result<bool> {

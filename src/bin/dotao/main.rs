@@ -1,7 +1,11 @@
 /// Wraps `clap` CLI argparsing configuration.
 mod cli;
 
-use dotao::{dotfiles::DotfileGroup, error::*};
+use dotao::{
+    dotfiles::DotfileGroup,
+    error::*,
+    link::{LinkBehavior, LinkInformation},
+};
 
 use std::{env, path::PathBuf, process};
 
@@ -45,17 +49,29 @@ fn main() {
         eprintln!("Unable to read env variable HOME: {}", err);
         process::exit(1);
     });
-    let _home_path = PathBuf::from(home_path);
+    let home_path = PathBuf::from(home_path);
 
-    // let link_behavior = if args.is_present("overwrite") {
-    //     LinkBehavior::new(true, true)
-    // } else {
-    //     Default::default()
-    // };
+    let link_behavior = if args.is_present("overwrite") {
+        LinkBehavior::new(true, true)
+    } else {
+        LinkBehavior::new(false, false)
+    };
 
-    // println!("{:#?}", link_behavior);
+    println!("{:#?}", link_behavior);
 
-    // for group in groups {
-    //     link_to_home(&group, &home_path, &link_behavior).unwrap();
-    // }
+    let mut link_information = LinkInformation::new();
+
+    for group in groups {
+        link_information
+            .prepare_to_link(&group, &home_path, &link_behavior)
+            .unwrap_or_else(|err| {
+                eprintln!(
+                    "Error trying to prepare linkage of group {:#?}: {}",
+                    group, err
+                );
+            });
+    }
+
+    let is_ready = link_information.is_ready();
+    println!("'we ready? {:?}", is_ready);
 }
