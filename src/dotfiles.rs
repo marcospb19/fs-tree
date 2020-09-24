@@ -1,6 +1,6 @@
 use crate::{
     error::*,
-    file::{collect_files_from_current_directory, File, FileType},
+    file::{collect_files_from_directory, File, FileType},
 };
 
 use std::{
@@ -43,7 +43,6 @@ pub struct DotfileGroup {
 }
 
 impl DotfileGroup {
-    /// TODO: document this
     pub fn new(starting_path: PathBuf, files: Vec<File>) -> Self {
         DotfileGroup {
             starting_path,
@@ -51,7 +50,6 @@ impl DotfileGroup {
         }
     }
 
-    /// TODO: document this
     pub fn from_directory_path(path: &impl AsRef<Path>, follow_symlinks: bool) -> Result<Self> {
         let path = path.as_ref().to_path_buf();
 
@@ -62,7 +60,7 @@ impl DotfileGroup {
         }
 
         // Recursively get all chidren from the directory path
-        let files = collect_files_from_current_directory(&path, follow_symlinks)?;
+        let files = collect_files_from_directory(&path, follow_symlinks)?;
         let mut group = DotfileGroup::new(path, files);
 
         // Adjust all path for file tree, in a way that, considering a file from it:
@@ -71,26 +69,21 @@ impl DotfileGroup {
         Ok(group)
     }
 
-    /// TODO: document this
     pub fn trim_starting_path_from_files(&mut self) {
-        // Calculate length of PathBuf iterator
+        // Calculate length of prefix to trim
         let len_to_trim = self.starting_path.iter().count();
 
-        let mut stack: Vec<&mut File> = vec![];
-        for file in self.files.as_mut_slice() {
-            stack.push(file);
-        }
+        let mut stack: Vec<&mut File> = self.files.iter_mut().collect();
 
-        // Use a stack to trim all files recursively
+        // Pop elements and trim them, if they are directory, push each child, because
+        // it also needs to be trimmed
         while let Some(file) = stack.pop() {
-            // Trim file.path
+            // Trimming file.path
             file.path = file.path.iter().skip(len_to_trim).collect();
 
-            // If it is a directory, push the other files too
+            // If it is a directory, push children
             if let FileType::Directory { children } = &mut file.file_type {
-                for child in children {
-                    stack.push(child);
-                }
+                stack.extend(children);
             }
         }
     }

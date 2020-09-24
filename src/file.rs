@@ -42,7 +42,7 @@ impl FileType {
         let result = if fs_file_type.is_file() {
             FileType::File
         } else if fs_file_type.is_dir() {
-            let children = collect_files_from_current_directory(&path, follow_symlinks)?;
+            let children = collect_files_from_directory(&path, follow_symlinks)?;
             FileType::Directory { children }
         } else if fs_file_type.is_symlink() {
             let target_path = get_symlink_target_from_path(path)?;
@@ -88,7 +88,7 @@ impl FileType {
 }
 
 /// Fill a Vec with our own File struct
-pub fn collect_files_from_current_directory(
+pub fn collect_files_from_directory(
     path: &impl AsRef<Path>,
     follow_symlinks: bool,
 ) -> Result<Vec<File>> {
