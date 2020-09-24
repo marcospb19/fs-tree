@@ -36,6 +36,7 @@ impl LinkBehavior {
 }
 
 pub struct LinkInformation<'a> {
+    pub link_behavior: LinkBehavior,
     pub files_to_delete: Vec<&'a File>,
     pub files_to_link: Vec<&'a File>,
     // pub errors: Vec<&'a File>,
@@ -44,6 +45,7 @@ pub struct LinkInformation<'a> {
 impl LinkInformation<'_> {
     pub fn new() -> Self {
         LinkInformation {
+            link_behavior: Default::default(),
             files_to_delete: vec![],
             files_to_link: vec![],
         }

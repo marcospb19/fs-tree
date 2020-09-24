@@ -97,10 +97,12 @@ impl DotfileGroup {
 
     /// From DotfileGroup.files (Vec<File>) to Deque<&File>
     /// WHy this order? marcospb19?
-    pub fn deque_from_file_references(&self) -> VecDeque<&File> {
+    pub fn pass_files_to_deque(&mut self) -> VecDeque<File> {
+        // Pass the values from self.files to vec
+
         let mut deque = VecDeque::new();
 
-        for file in &self.files {
+        while let Some(file) = self.files.pop() {
             if file.file_type.is_directory() {
                 deque.push_back(file);
             } else {
