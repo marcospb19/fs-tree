@@ -7,9 +7,13 @@ pub type Result<T> = result::Result<T, DotaoError>;
 #[derive(Debug)]
 pub enum DotaoError {
     LinkError {
-        from: PathBuf,
-        to: PathBuf,
+        source_path: PathBuf,
+        destination_path: PathBuf,
         source: io::Error,
+    },
+    LinkError2 {
+        source_path: PathBuf,
+        destination_path: PathBuf,
     },
     ReadError {
         path: PathBuf,
@@ -39,15 +43,29 @@ impl fmt::Display for DotaoError {
                 write!(f, "Read error: ")?;
                 source.fmt(f)
             },
-            LinkError { source, from, to } => {
+            LinkError {
+                source,
+                source_path,
+                destination_path,
+            } => {
                 write!(
                     f,
                     "Link error: from '{}' to '{}': ",
-                    from.display(),
-                    to.display()
+                    source_path.display(),
+                    destination_path.display()
                 )?;
                 source.fmt(f)
             },
+            LinkError2 {
+                source_path,
+                destination_path,
+            } => write!(
+                f,
+                "Link error: from '{}' to '{}': ",
+                source_path.display(),
+                destination_path.display()
+            ),
+
             NotFoundInFilesystem => write!(f, "File not found"),
             NotADirectory => write!(f, "File is not a directory"),
         }

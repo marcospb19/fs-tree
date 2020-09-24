@@ -6,14 +6,14 @@ use std::{
 };
 
 /// Dotao file representation, if it's a directory, then structures a tree.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct File {
     pub path: PathBuf,
     pub file_type: FileType,
 }
 
 /// Internal representation of a file type, simplified, only 3 variants.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FileType {
     File,
     Directory { children: Vec<File> },

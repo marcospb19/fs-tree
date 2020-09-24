@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct DotfileGroup {
     pub starting_path: PathBuf,
     pub files: Vec<File>,
@@ -33,6 +33,9 @@ impl DotfileGroup {
 
         // Recursively get all chidren from the directory path
         let files = collect_files_from_directory(&path, follow_symlinks)?;
+        if files.is_empty() {
+            panic!("This is empty"); // Later treat this without panic
+        }
         let mut group = DotfileGroup::new(path, files);
 
         // Adjust all path for file tree, in a way that, considering a file from it:
