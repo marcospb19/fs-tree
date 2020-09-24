@@ -20,7 +20,7 @@ fn main() {
     for group_path in args.values_of("GROUPS").unwrap() {
         // Try to transform into DotfileGroup
         // Symlinks in dotfiles work, so follow them
-        let group: Result<DotfileGroup> = DotfileGroup::from_directory_path(group_path, true);
+        let group: Result<DotfileGroup> = DotfileGroup::from_directory_path(&group_path, true);
 
         if let Ok(group) = group {
             groups.push(group);

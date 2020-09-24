@@ -216,7 +216,7 @@ fn link_check_for_directory(
 
 /// TODO: document this
 /// Wrap std::os::unix::fs::symlink with Dotao's Result<()>, extra checks
-pub fn symlink_with_checks(src: impl AsRef<Path>, dest: impl AsRef<Path>) -> Result<()> {
+pub fn symlink_with_checks(src: &impl AsRef<Path>, dest: &impl AsRef<Path>) -> Result<()> {
     let (src, dest) = (src.as_ref(), dest.as_ref());
     if !src.exists() {
         return Err(DotaoError::NotFoundInFilesystem);

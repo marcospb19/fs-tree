@@ -52,7 +52,7 @@ impl DotfileGroup {
     }
 
     /// TODO: document this
-    pub fn from_directory_path(path: impl AsRef<Path>, follow_symlinks: bool) -> Result<Self> {
+    pub fn from_directory_path(path: &impl AsRef<Path>, follow_symlinks: bool) -> Result<Self> {
         let path = path.as_ref().to_path_buf();
 
         if !path.exists() {
@@ -84,7 +84,7 @@ impl DotfileGroup {
         // Use a stack to trim all files recursively
         while let Some(file) = stack.pop() {
             // Trim file.path
-            file.path = file.path.into_iter().skip(len_to_trim).collect();
+            file.path = file.path.iter().skip(len_to_trim).collect();
 
             // If it is a directory, push the other files too
             if let FileType::Directory { children } = &mut file.file_type {
