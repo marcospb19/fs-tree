@@ -1,24 +1,9 @@
-// In this module we find all the implementation of the linking features
-//
-// We have LinkInformation, that keeps the steps needed to perform the linkage,
-// functions fill this struct until it's ready to be sent to the function that
-// actually links everything.
-#[allow(unused_imports)]
 use crate::{
     dotfiles::DotfileGroup,
-    error::*,
     file::{File, FileType},
 };
 
-#[allow(unused_imports)]
-use permissions::is_file_removable;
-
-#[allow(unused_imports)]
-use std::{
-    io,
-    os::unix::fs as unix_fs,
-    path::{Path, PathBuf},
-};
+use std::{io, path::PathBuf};
 
 #[derive(Debug, Default)]
 pub struct LinkBehavior {
@@ -35,63 +20,63 @@ impl LinkBehavior {
     }
 }
 
-pub struct LinkInformation<'a> {
+#[derive(Default)]
+pub struct LinkInformation {
+    pub groups: Vec<DotfileGroup>,
+    pub files_to_delete: Vec<File>,
+    pub files_to_link: Vec<File>,
     pub link_behavior: LinkBehavior,
-    pub files_to_delete: Vec<&'a File>,
-    pub files_to_link: Vec<&'a File>,
-    // pub errors: Vec<&'a File>,
+    pub errors: Vec<Box<dyn std::error::Error + 'static>>,
 }
 
-impl LinkInformation<'_> {
+impl LinkInformation {
     pub fn new() -> Self {
         LinkInformation {
-            link_behavior: Default::default(),
+            groups: vec![],
             files_to_delete: vec![],
             files_to_link: vec![],
+            link_behavior: LinkBehavior::default(),
+            errors: vec![],
         }
     }
 
-    pub fn prepare_to_link(
-        &self,
-        _dotfile_group: &DotfileGroup,
-        _home_path: &PathBuf,
-        _link_behavior: &LinkBehavior,
-    ) -> Result<()> {
-        Ok(())
+    pub fn prepare_linkage_to_home(&self, _home_path: &PathBuf) {
+        for group in &self.groups {
+            println!("{:#?}", group);
+            // link_information
+            //     .prepare_to_link(&group, &home_path)
+            //     .unwrap_or_else(|err| {
+            //         eprintln!(
+            //             "Error trying to prepare linkage of group {:#?}: {}",
+            //             group, err
+            //         );
+            //     });
+        }
     }
 
     pub fn is_ready(&self) -> bool {
         false
     }
+
+    pub fn configure_behavior(&mut self, link_behavior: LinkBehavior) {
+        self.link_behavior = link_behavior;
+    }
+
+    pub fn add_groups(&mut self, mut groups: Vec<DotfileGroup>) {
+        self.groups.append(&mut groups);
+    }
+
+    fn _link_check_for_regular_file(
+        _link_information: &mut LinkInformation,
+        _target_file_type: FileType,
+    ) -> io::Result<bool> {
+        Ok(false)
+    }
+
+    fn _link_check_for_directory(
+        _link_information: &mut LinkInformation,
+        _target_file_type: FileType,
+    ) -> io::Result<bool> {
+        Ok(false)
+    }
 }
-
-fn _link_check_for_regular_file(
-    _link_information: &mut LinkInformation,
-    _target_file_type: FileType,
-) -> io::Result<bool> {
-    Ok(false)
-}
-
-fn _link_check_for_directory(
-    _link_information: &mut LinkInformation,
-    _target_file_type: FileType,
-) -> io::Result<bool> {
-    Ok(false)
-}
-
-// /// Wrap std::os::unix::fs::symlink with Dotao's Result<()>, extra checks
-// pub fn symlink_with_checks(src: &impl AsRef<Path>, dest: &impl AsRef<Path>)
-// -> Result<()> {     let (src, dest) = (src.as_ref(), dest.as_ref());
-//     if !src.exists() {
-//         return Err(DotaoError::NotFoundInFilesystem);
-//     } else if true {
-//         // Check if dest.exists()!!!!, overwrite???? vixe!
-//         // Check permissions?
-//     }
-
-//     unix_fs::symlink(src, dest).map_err(|source| DotaoError::LinkError {
-//         from: src.to_path_buf(),
-//         to: dest.to_path_buf(),
-//         source,
-//     })
-// }

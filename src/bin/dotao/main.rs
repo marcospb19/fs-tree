@@ -57,20 +57,13 @@ fn main() {
         LinkBehavior::new(false, false)
     };
 
-    println!("{:#?}", link_behavior);
+    // println!("{:#?}", link_behavior);
 
     let mut link_information = LinkInformation::new();
 
-    for group in groups {
-        link_information
-            .prepare_to_link(&group, &home_path, &link_behavior)
-            .unwrap_or_else(|err| {
-                eprintln!(
-                    "Error trying to prepare linkage of group {:#?}: {}",
-                    group, err
-                );
-            });
-    }
+    link_information.configure_behavior(link_behavior);
+    link_information.add_groups(groups);
+    link_information.prepare_linkage_to_home(&home_path);
 
     let is_ready = link_information.is_ready();
     println!("'we ready? {:?}", is_ready);

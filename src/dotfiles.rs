@@ -8,34 +8,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// `DotfileGroup` represents a folder with a list of files (dotfiles) inside of
-/// it.
-///
-/// These dotfiles can be files, or directories, and each directory is a tree,
-/// here is a example with `i3`.
-///
-/// ```sh
-/// cd ~/dotfiles
-/// dotao i3/
-/// ```
-///
-/// When the user types this in the terminal, we'll create:
-/// ```ignore
-/// DotfileGroup {
-///     starting_path: "i3",
-///     files: vec![],
-/// }
-/// ```
-///
-/// Then the files will be filled with everything that is inside of the i3
-/// folder, recursively, following symlinks
-///
-/// So, the method that links the DotfileGroup will panic if you let a
-/// FileType::SymbolicLink inside of the file tree, this may change in the
-/// future, ok?
-///
-/// For now just keep in mind that it does not make sense to have a symlink
-/// there
 #[derive(Debug, Default)]
 pub struct DotfileGroup {
     pub starting_path: PathBuf,
@@ -88,11 +60,7 @@ impl DotfileGroup {
         }
     }
 
-    /// From DotfileGroup.files (Vec<File>) to Deque<&File>
-    /// WHy this order? marcospb19?
-    pub fn pass_files_to_deque(&mut self) -> VecDeque<File> {
-        // Pass the values from self.files to vec
-
+    pub fn files_into_queue(&mut self) -> VecDeque<File> {
         let mut deque = VecDeque::new();
 
         while let Some(file) = self.files.pop() {
@@ -106,39 +74,3 @@ impl DotfileGroup {
         deque
     }
 }
-
-/*
-pub fn show(&self) {
-    let a = self.starting_path.file_name().unwrap().to_string_lossy();
-
-    println!("[{}]", a);
-    for file in &self.files {
-        DotfileGroup::show_rec(0, file);
-    }
-}
-
-fn show_rec(level: u32, file: &File) {
-    let a = &file.path /* .file_name().unwrap().to_string_lossy() */ ;
-
-    let mut b = String::new();
-    b.push_str("asjndasjnd");
-    // println!("{:?}", b);
-
-    for _ in 0..level {
-        print!("    ");
-    }
-    if let FileType::Directory { children } = &file.file_type {
-        println!("\"{}\": [", a.display());
-
-        for file in children {
-            DotfileGroup::show_rec(level + 1, &file);
-        }
-        for _ in 0..level {
-            print!("    ");
-        }
-        println!("]");
-    } else {
-        println!("\"{}\",", a.display());
-    }
-}
-*/
