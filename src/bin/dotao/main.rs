@@ -1,11 +1,7 @@
 /// Wraps `clap` CLI argparsing configuration.
 mod cli;
 
-use dotao::{
-    dotfiles::DotfileGroup,
-    error::*,
-    link::{link_to_home, LinkBehavior},
-};
+use dotao::{dotfiles::DotfileGroup, error::*};
 
 use std::{env, path::PathBuf, process};
 
@@ -49,17 +45,17 @@ fn main() {
         eprintln!("Unable to read env variable HOME: {}", err);
         process::exit(1);
     });
-    let home_path = PathBuf::from(home_path);
+    let _home_path = PathBuf::from(home_path);
 
-    let link_behavior = if args.is_present("overwrite") {
-        LinkBehavior::new(true, true)
-    } else {
-        Default::default()
-    };
+    // let link_behavior = if args.is_present("overwrite") {
+    //     LinkBehavior::new(true, true)
+    // } else {
+    //     Default::default()
+    // };
 
-    println!("{:#?}", link_behavior);
+    // println!("{:#?}", link_behavior);
 
-    for group in groups {
-        link_to_home(&group, &home_path, &link_behavior).unwrap();
-    }
+    // for group in groups {
+    //     link_to_home(&group, &home_path, &link_behavior).unwrap();
+    // }
 }
