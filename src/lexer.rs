@@ -165,7 +165,7 @@ fn tokenize_from_string(mut string: Vec<char>) -> Result<Vec<Token>, LexerError>
                     // else
                     _ => {
                         return Err(LexerError::UnexpectedCharacter {
-                            position: pos.clone(),
+                            position: pos,
                             value: c.to_string(),
                         })
                     }
