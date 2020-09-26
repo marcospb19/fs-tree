@@ -117,5 +117,6 @@ fn main() {
         });
     }
 
-    println!("{:#?}", link_information);
+    println!("{:#?}", link_information.link_behavior);
+    println!("{:#?}", link_information.payload);
 }

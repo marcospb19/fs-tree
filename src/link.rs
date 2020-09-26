@@ -6,7 +6,7 @@ use crate::{
 
 use std::{
     collections::VecDeque,
-    io,
+    fs, io,
     os::unix::fs::symlink,
     path::{Path, PathBuf},
 };
@@ -69,12 +69,20 @@ impl LinkInformation {
             // println!("{:#?}", deque);
 
             while let Some(file) = deque.pop_front() {
+                // Debug
+                // println!("{:#?}", file.path);
+                // println!("{:#?}", file);
+
                 // We have source and destination
 
                 // Symlink source_path needs to be absolute
                 let source_path = group.starting_path.join(&file.path).canonicalize()?;
-                let destination_path = home_path.join(&file.path);
+                if !source_path.exists() {
+                    panic!("This should exist");
+                }
 
+                let destination_path = home_path.join(&file.path);
+                // No file there, just link it
                 if !destination_path.exists() {
                     self.payload
                         .links
@@ -83,16 +91,12 @@ impl LinkInformation {
                 }
 
                 let source_file_type = file.file_type;
-                let destination_file_type = FileType::from_path_shallow(&destination_path, false)?;
-
                 if let FileType::SymbolicLink { .. } = source_file_type {
                     panic!("No symlinks allowed in source");
                 }
 
-                if !source_path.exists() {
-                    panic!("This should exist");
-                }
-
+                // THIS IS SHALLOW!
+                let destination_file_type = FileType::from_path_shallow(&destination_path, false)?;
                 match destination_file_type {
                     FileType::File => {
                         self.link_check_for_regular_file(
@@ -103,15 +107,21 @@ impl LinkInformation {
                         )
                         .unwrap();
                     },
-                    FileType::Directory { children } => {
-                        let should_add_children =
-                            self.link_check_for_directory(source_path, destination_path);
-
-                        if should_add_children.unwrap() {
-                            for child in children.clone().into_iter() {
-                                deque.push_back(child);
-                            }
+                    FileType::Directory { .. } => {
+                        match source_file_type {
+                            FileType::File => panic!("Cannot delete directory to link file."),
+                            FileType::Directory { children } => {
+                                for child in children.iter() {
+                                    deque.push_back(child.clone());
+                                }
+                                //
+                                //
+                            },
+                            FileType::SymbolicLink { .. } => unreachable!(),
                         }
+                        // let should_add_children =
+                        //     self.link_check_for_directory(source_path,
+                        // destination_path);
                     },
                     FileType::SymbolicLink { target_path } => {
                         self.link_check_for_symlink(
@@ -152,46 +162,54 @@ impl LinkInformation {
         Ok(())
     }
 
-    #[allow(unreachable_code)]
-    fn link_check_for_directory(
-        &mut self,
-        source_path: PathBuf,
-        destination_path: PathBuf,
-        // _source_file_type: FileType,
-    ) -> io::Result<bool> {
-        /* if self.link_behavior.overwrite_directories */
-        println!("Deleting directory at '{}'?", destination_path.display());
-        self.payload
-            .deletes
-            .push((destination_path.clone(), FileType::Directory {
-                children: vec![],
-            }));
-        self.payload.links.push((source_path, destination_path));
-        unimplemented!();
-        Ok(true)
+    // fn link_check_for_directory(
+    //     &mut self,
+    //     _source_path: PathBuf,
+    //     _destination_path: PathBuf,
+    //     // _source_file_type: FileType,
+    // ) -> io::Result<bool> {
+    //     if false {
+    //         // Se o tree-file ta obrigando que isso daqui seja um diretório
+    // linkado memo         // memo, caso caso
+    //         unimplemented!();
+    //     } else {
+    //         Ok(true)
+    //     }
+    // println!("Meu deus {}", destination_path.display());
+    // std::process::exit(123);
+    /* if self.link_behavior.overwrite_directories */
+    // println!("Deleting directory at '{}'?", destination_path.display());
+    // self.payload
+    //     .deletes
+    //     .push((destination_path.clone(), FileType::Directory {
+    //         children: vec![],
+    //     }));
+    // self.payload.links.push((source_path, destination_path));
+    // unimplemented!();
+    // Ok(true)
 
-        // if false {
-        //     println!("Deleting directory at '{}'?",
-        // destination_path.display());     self.payload
-        //         .deletes
-        //         .push((destination_path.clone(), FileType::Directory {
-        //             children: vec![],
-        //         }));
-        //     self.payload.links.push((source_path, destination_path));
-        //     return Ok(false);
-        // } else {
-        //     println!(
-        //         "Error deleting directory at '{}'?",
-        //         destination_path.display()
-        //     );
-        //     self.conflicts.push(Box::new(DotaoError::LinkError2 {
-        //         file_type: FileType::from_path_shallow(&destination_path,
-        // false).unwrap(),         source_path,
-        //         destination_path,
-        //     }))
-        // }
-        // Ok(true)
-    }
+    // if false {
+    //     println!("Deleting directory at '{}'?",
+    // destination_path.display());     self.payload
+    //         .deletes
+    //         .push((destination_path.clone(), FileType::Directory {
+    //             children: vec![],
+    //         }));
+    //     self.payload.links.push((source_path, destination_path));
+    //     return Ok(false);
+    // } else {
+    //     println!(
+    //         "Error deleting directory at '{}'?",
+    //         destination_path.display()
+    //     );
+    //     self.conflicts.push(Box::new(DotaoError::LinkError2 {
+    //         file_type: FileType::from_path_shallow(&destination_path,
+    // false).unwrap(),         source_path,
+    //         destination_path,
+    //     }))
+    // }
+    // Ok(true)
+    // }
 
     fn link_check_for_symlink(
         &mut self,
@@ -234,6 +252,13 @@ impl LinkInformation {
     }
 
     pub fn proceed_and_link(&self) -> Result<()> {
+        for (path, file_type) in &self.payload.deletes {
+            match file_type {
+                FileType::File => fs::remove_file(path)?,
+                _ => unimplemented!(),
+            }
+        }
+
         for (source, dest) in &self.payload.links {
             symlink_with_checks(source, dest)?;
         }
