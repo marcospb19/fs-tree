@@ -1,7 +1,7 @@
 use crate::error::*;
 
 use std::{
-    fs,
+    fmt, fs,
     path::{Path, PathBuf},
 };
 
@@ -157,5 +157,15 @@ pub fn fs_filetype_from_path(
 impl Default for FileType {
     fn default() -> Self {
         FileType::File
+    }
+}
+
+impl fmt::Display for FileType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            FileType::File => write!(f, "File"),
+            FileType::Directory { .. } => write!(f, "Directory"),
+            FileType::SymbolicLink { .. } => write!(f, "Symbolic Link"),
+        }
     }
 }

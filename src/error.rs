@@ -1,3 +1,5 @@
+use crate::file::FileType;
+
 use std::{error, fmt, io, path::PathBuf, result};
 
 /// Dotao's dotao::error::Result<T> = Result<T, DotaoError>
@@ -14,6 +16,7 @@ pub enum DotaoError {
     LinkError2 {
         source_path: PathBuf,
         destination_path: PathBuf,
+        file_type: FileType,
     },
     ReadError {
         path: PathBuf,
@@ -21,6 +24,7 @@ pub enum DotaoError {
     },
     NotFoundInFilesystem,
     NotADirectory,
+    IoError(io::Error),
 }
 
 use DotaoError::*;
@@ -59,15 +63,23 @@ impl fmt::Display for DotaoError {
             LinkError2 {
                 source_path,
                 destination_path,
+                file_type,
             } => write!(
                 f,
-                "Link error: from '{}' to '{}': ",
+                "Link error: failed to link {}, from '{}' to '{}'.",
+                file_type,
                 source_path.display(),
                 destination_path.display()
             ),
-
             NotFoundInFilesystem => write!(f, "File not found"),
             NotADirectory => write!(f, "File is not a directory"),
+            IoError(err) => err.fmt(f),
         }
+    }
+}
+
+impl From<io::Error> for DotaoError {
+    fn from(err: io::Error) -> Self {
+        DotaoError::IoError(err)
     }
 }

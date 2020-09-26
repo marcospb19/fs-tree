@@ -4,7 +4,12 @@ use crate::{
     file::{File, FileType},
 };
 
-use std::{collections::VecDeque, io, path::PathBuf};
+use std::{
+    collections::VecDeque,
+    io,
+    os::unix::fs::symlink,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct LinkBehavior {
@@ -21,15 +26,16 @@ impl LinkBehavior {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct LinkInformation {
     pub groups: Vec<DotfileGroup>,
     pub payload: LinkPayload,
     pub link_behavior: LinkBehavior,
+    pub errors: Vec<Box<dyn std::error::Error + 'static>>,
     pub conflicts: Vec<Box<dyn std::error::Error + 'static>>,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct LinkPayload {
     links: Vec<(PathBuf, PathBuf)>,
     deletes: Vec<(PathBuf, FileType)>,
@@ -38,6 +44,7 @@ pub struct LinkPayload {
 impl LinkInformation {
     pub fn new() -> Self {
         LinkInformation {
+            errors: vec![],
             groups: vec![],
             payload: LinkPayload::default(),
             link_behavior: LinkBehavior::default(),
@@ -55,8 +62,16 @@ impl LinkInformation {
             while let Some(file) = deque.pop_front() {
                 // We have source and destination
 
-                let source_path = group.starting_path.join(&file.path);
+                // Symlink source_path needs to be absolute
+                let source_path = group.starting_path.join(&file.path).canonicalize()?;
                 let destination_path = home_path.join(&file.path);
+
+                if !destination_path.exists() {
+                    self.payload
+                        .links
+                        .push((source_path.clone(), destination_path.clone()));
+                    continue;
+                }
 
                 let source_file_type = file.file_type;
                 let destination_file_type = FileType::from_path_shallow(&destination_path, false)?;
@@ -67,13 +82,6 @@ impl LinkInformation {
 
                 if !source_path.exists() {
                     panic!("This should exist");
-                }
-
-                // Ok
-                if !destination_path.exists() {
-                    let link_payload = (source_path, destination_path);
-                    self.payload.links.push(link_payload);
-                    continue;
                 }
 
                 match destination_file_type {
@@ -127,6 +135,7 @@ impl LinkInformation {
         } else {
             println!("Error deleting file at '{}'?", destination_path.display());
             self.conflicts.push(Box::new(DotaoError::LinkError2 {
+                file_type: FileType::from_path_shallow(&destination_path, false).unwrap(),
                 source_path,
                 destination_path,
             }))
@@ -134,6 +143,7 @@ impl LinkInformation {
         Ok(())
     }
 
+    #[allow(unreachable_code)]
     fn link_check_for_directory(
         &mut self,
         source_path: PathBuf,
@@ -141,26 +151,37 @@ impl LinkInformation {
         // _source_file_type: FileType,
     ) -> io::Result<bool> {
         /* if self.link_behavior.overwrite_directories */
-        if false {
-            println!("Deleting directory at '{}'?", destination_path.display());
-            self.payload
-                .deletes
-                .push((destination_path.clone(), FileType::Directory {
-                    children: vec![],
-                }));
-            self.payload.links.push((source_path, destination_path));
-            return Ok(false);
-        } else {
-            println!(
-                "Error deleting directory at '{}'?",
-                destination_path.display()
-            );
-            self.conflicts.push(Box::new(DotaoError::LinkError2 {
-                source_path,
-                destination_path,
-            }))
-        }
+        println!("Deleting directory at '{}'?", destination_path.display());
+        self.payload
+            .deletes
+            .push((destination_path.clone(), FileType::Directory {
+                children: vec![],
+            }));
+        self.payload.links.push((source_path, destination_path));
+        unimplemented!();
         Ok(true)
+
+        // if false {
+        //     println!("Deleting directory at '{}'?",
+        // destination_path.display());     self.payload
+        //         .deletes
+        //         .push((destination_path.clone(), FileType::Directory {
+        //             children: vec![],
+        //         }));
+        //     self.payload.links.push((source_path, destination_path));
+        //     return Ok(false);
+        // } else {
+        //     println!(
+        //         "Error deleting directory at '{}'?",
+        //         destination_path.display()
+        //     );
+        //     self.conflicts.push(Box::new(DotaoError::LinkError2 {
+        //         file_type: FileType::from_path_shallow(&destination_path,
+        // false).unwrap(),         source_path,
+        //         destination_path,
+        //     }))
+        // }
+        // Ok(true)
     }
 
     fn link_check_for_symlink(
@@ -184,19 +205,47 @@ impl LinkInformation {
         Ok(())
     }
 
-    pub fn is_ready(&self) -> bool {
-        for (i, error) in self.conflicts.iter().enumerate() {
-            println!("{} - {:#?}", i, error);
-        }
-
-        self.conflicts.is_empty()
-    }
-
     pub fn configure_behavior(&mut self, link_behavior: LinkBehavior) {
         self.link_behavior = link_behavior;
     }
 
-    pub fn add_groups(&mut self, mut groups: Vec<DotfileGroup>) {
-        self.groups.append(&mut groups);
+    pub fn add_group(&mut self, group: DotfileGroup) {
+        self.groups.push(group);
     }
+
+    pub fn critical_error_occurred(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    pub fn show_errors(&self) {
+        eprintln!("List of errors:");
+        for error in &self.errors {
+            eprintln!("{:#?}", error);
+        }
+    }
+
+    pub fn proceed_and_link(&self) -> Result<()> {
+        for (source, dest) in &self.payload.links {
+            symlink_with_checks(source, dest)?;
+        }
+
+        Ok(())
+    }
+}
+
+/// Wrap std::os::unix::fs::symlink with Dotao's Result<()>, extra checks
+pub fn symlink_with_checks(src: &impl AsRef<Path>, dest: &impl AsRef<Path>) -> Result<()> {
+    let (src, dest) = (src.as_ref(), dest.as_ref());
+    if !src.exists() {
+        return Err(DotaoError::NotFoundInFilesystem);
+    } else if true {
+        // Check if dest.exists()!!!!, overwrite???? vixe!
+        // Check permissions?
+    }
+
+    symlink(src, dest).map_err(|source| DotaoError::LinkError {
+        source_path: src.to_path_buf(),
+        destination_path: dest.to_path_buf(),
+        source,
+    })
 }
