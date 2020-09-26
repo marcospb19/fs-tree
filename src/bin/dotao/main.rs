@@ -7,10 +7,31 @@ use dotao::{
     link::{LinkBehavior, LinkInformation},
 };
 
-use std::{env, path::PathBuf, process};
+use toml::{map::Map as TomlMap, Value as TomlValue};
+
+use std::{env, fs, path::PathBuf, process};
+
+fn get_config_from_file() -> Option<TomlValue> {
+    let config_file_path = PathBuf::from("dotao.toml");
+    if config_file_path.exists() {
+        let text =
+            fs::read_to_string(config_file_path).expect("Error while trying to read config file.");
+        let toml = text
+            .parse::<TomlValue>()
+            .expect("Failing trying to parse TOML config file.");
+        // let toml = toml
+        //     .as_table()
+        //     .expect("Failed to get config file as a table.");
+        Some(toml)
+    } else {
+        None
+    }
+}
 
 fn main() {
-    std::env::set_current_dir("/home/marcospb19/dotfiles").unwrap();
+    let toml_config_file = get_config_from_file();
+
+    let config = std::env::set_current_dir("/home/marcospb19/dotfiles").unwrap();
     let args = cli::parse_args();
 
     let mut groups: Vec<DotfileGroup> = vec![];
