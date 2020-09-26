@@ -13,14 +13,23 @@ use std::{
 
 #[derive(Debug, Default, Clone)]
 pub struct LinkBehavior {
+    pub interactive_mode: bool,
     pub overwrite_files: bool,
+    pub overwrite_directories: bool,
     pub overwrite_symbolic_links: bool,
 }
 
 impl LinkBehavior {
-    pub fn new(overwrite_files: bool, overwrite_symbolic_links: bool) -> Self {
+    pub fn new(
+        interactive_mode: bool,
+        overwrite_files: bool,
+        overwrite_directories: bool,
+        overwrite_symbolic_links: bool,
+    ) -> Self {
         LinkBehavior {
+            interactive_mode,
             overwrite_files,
+            overwrite_directories,
             overwrite_symbolic_links,
         }
     }

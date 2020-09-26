@@ -51,11 +51,17 @@ fn main() {
     });
     let home_path = PathBuf::from(home_path);
 
-    let link_behavior = if args.is_present("overwrite") {
-        LinkBehavior::new(true, true)
-    } else {
-        LinkBehavior::new(false, false)
-    };
+    let interactive_mode = args.is_present("interactive_mode");
+    let overwrite_file = args.is_present("overwrite_file");
+    let overwrite_directory = args.is_present("overwrite_directory");
+    let overwrite_symlink = args.is_present("overwrite_symlink");
+
+    let link_behavior = LinkBehavior::new(
+        interactive_mode,
+        overwrite_file,
+        overwrite_directory,
+        overwrite_symlink,
+    );
 
     let fake_run = args.is_present("fake-run");
     if fake_run {
