@@ -24,5 +24,11 @@ pub(super) fn parse_args() -> clap::ArgMatches<'static> {
                 .short("O")
                 .help("Overwrite files, directories and symlinks."),
         )
+        .arg(
+            Arg::with_name("fake-run")
+                .long("fake-run")
+                .aliases(&["fake", "dry-run", "dry"])
+                .help("Prepare everything but don't actually run it."),
+        )
         .get_matches()
 }
