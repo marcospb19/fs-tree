@@ -1,0 +1,15 @@
+// [top]
+// - ".toprc"
+(polybridge)
+".config": [
+    "polybridge": [
+        "folder": [
+            "file1" -> "asd",
+            "file2"
+        ]
+        "launch.sh"
+        "config"
+    ]
+]
+ //
+
