@@ -1,9 +1,7 @@
 use logos::Logos;
 
-use std::fs;
-
 #[derive(Logos, Debug, PartialEq)]
-enum Token {
+pub enum Token {
     // A group is escaped like a string, but using () instead
     #[regex(r"\(([^\)\\]|\\t|\\u|\\n|\\\))*\)")]
     Group,
@@ -35,35 +33,35 @@ enum Token {
     Error,
 }
 
-pub fn parse_tree_from_file_logos(_file_path: &str) {
-    let text = fs::read_to_string("/home/marcospb19/dotao.tree").expect("dotao.tree expected.");
-    let mut lex = Token::lexer(&text);
+// pub fn parse_tree_from_file_logos(_file_path: &str) {
+//     let text = fs::read_to_string("/home/marcospb19/dotao.tree").expect("dotao.tree expected.");
+//     let mut lex = Token::lexer(&text);
 
-    let mut vec: Vec<&str> = vec![];
+//     let mut vec: Vec<&str> = vec![];
 
-    loop {
-        let next = lex.next();
+//     loop {
+//         let next = lex.next();
 
-        if let None = next {
-            break;
-        }
+//         if let None = next {
+//             break;
+//         }
 
-        let range = lex.span();
-        let range = &text[range];
-        vec.push(range);
-        // let range = next.slice();
-        // println!("{:#?}  ", range);
+//         let range = lex.span();
+//         let range = &text[range];
+//         vec.push(range);
+//         // let range = next.slice();
+//         // println!("{:#?}  ", range);
 
-        // if let Some(Token::Error) = next {
-        //     eprintln!("error!");
-        //     break;
-        // }
+//         // if let Some(Token::Error) = next {
+//         //     eprintln!("error!");
+//         //     break;
+//         // }
 
-        // println!("{:#?}", lex.slice());
-    }
+//         // println!("{:#?}", lex.slice());
+//     }
 
-    println!("{:#?}", vec);
-}
+//     println!("{:#?}", vec);
+// }
 
 // pub fn parse_tree_from_file(file_path: &str) {
 //     let string: Vec<char> = fs::read_to_string(file_path)
@@ -284,21 +282,21 @@ pub fn parse_tree_from_file_logos(_file_path: &str) {
 //     }
 // }
 
-#[cfg(test)]
-mod tests {
-    // #[test]
-    // fn test_1() {
-    //     use super::*;
-    //     let tree = parse_tree_from_file("/home/marcospb19/dotao.tree");
-    //     println!("{:#?}", tree);
-    //     assert!(true);
-    // }
+// #[cfg(test)]
+// mod tests {
+//     // #[test]
+//     // fn test_1() {
+//     //     use super::*;
+//     //     let tree = parse_tree_from_file("/home/marcospb19/dotao.tree");
+//     //     println!("{:#?}", tree);
+//     //     assert!(true);
+//     // }
 
-    #[test]
-    fn test_logos() {
-        use super::*;
-        let tree = parse_tree_from_file_logos("/home/marcospb19/dotao.tree");
-        println!("{:#?}", tree);
-        assert!(true);
-    }
-}
+//     #[test]
+//     fn test_logos() {
+//         use super::*;
+//         let tree = parse_tree_from_file_logos("/home/marcospb19/dotao.tree");
+//         println!("{:#?}", tree);
+//         assert!(true);
+//     }
+// }
