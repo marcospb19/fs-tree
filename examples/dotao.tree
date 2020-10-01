@@ -4,8 +4,9 @@
 ".config": [
     "polybridge": [
         "folder": [
-            "file1" -> "asd",
+            "file1" -> "asd"
             "file2"
+            "empty_folder": []
         ]
         "launch.sh"
         "config"
