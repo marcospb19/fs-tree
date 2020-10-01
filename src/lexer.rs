@@ -218,3 +218,14 @@ fn tokenize_from_string(mut string: Vec<char>) -> Result<Vec<Token>, LexerError>
         Err(LexerError::UnfinishedParse { token_type: state })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_1() {
+        use super::*;
+        let tree = parse_tree_from_file("/home/marcospb19/dotao.tree");
+        println!("{:#?}", tree);
+        assert!(true);
+    }
+}
