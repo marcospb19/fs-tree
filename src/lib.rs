@@ -17,6 +17,7 @@
 pub mod error;
 mod file;
 mod file_type;
+mod iter;
 pub mod util;
 
-pub use crate::{file::*, file_type::*};
+pub use crate::{file::*, file_type::*, iter::*};
