@@ -1,4 +1,8 @@
-use crate::{collect_directory_children, error::*, fs_filetype_from_path, symlink_target, File};
+use crate::{
+    error::*,
+    util::{collect_directory_children, fs_filetype_from_path, symlink_target},
+    File,
+};
 
 use std::{
     fmt,

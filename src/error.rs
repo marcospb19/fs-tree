@@ -1,23 +1,37 @@
 use std::{error, fmt, io, path::PathBuf, result};
 
-pub type Result<T> = result::Result<T, FileStructureError>;
+pub type Result<T> = result::Result<T, FSError>;
 
 #[derive(Debug)]
-pub enum FileStructureError {
-    ReadError { source: io::Error },
-    WriteError { source: io::Error },
-    NotFoundError { path: PathBuf },
-    NotADirectoryError { path: PathBuf },
-    NotASymlinkError { path: PathBuf },
-    IoError(io::Error),
+pub enum FSError {
+    ReadError {
+        path: PathBuf,
+        source: io::Error,
+        context: &'static str,
+    },
+    WriteError {
+        path: PathBuf,
+        source: io::Error,
+        context: &'static str,
+    },
+    NotFoundError {
+        path: PathBuf,
+    },
+    NotADirectoryError {
+        path: PathBuf,
+    },
+    NotASymlinkError {
+        path: PathBuf,
+    },
+    // IoError(io::Error),
 }
 
-use FileStructureError::*;
+use FSError::*;
 
-impl error::Error for FileStructureError {
+impl error::Error for FSError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            ReadError { source } | WriteError { source } => Some(source),
+            ReadError { source, .. } | WriteError { source, .. } => Some(source),
             _ => None,
         }
     }
@@ -26,14 +40,14 @@ impl error::Error for FileStructureError {
 /// Ready for displaying errors to end users!
 /// Format:
 ///     "error name: more details: more details"
-impl fmt::Display for FileStructureError {
+impl fmt::Display for FSError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ReadError { source } => {
+            ReadError { source, .. } => {
                 write!(f, "Read error: ")?;
                 source.fmt(f)
             },
-            WriteError { source } => {
+            WriteError { source, .. } => {
                 write!(f, "Write error: ")?;
                 source.fmt(f)
             },
@@ -49,13 +63,12 @@ impl fmt::Display for FileStructureError {
                 write!(f, "error: ")?;
                 path.display().fmt(f)
             },
-            IoError(err) => err.fmt(f), // NotFoundInFilesystem => write!(f, "File not found"),
         }
     }
 }
 
-impl From<io::Error> for FileStructureError {
-    fn from(err: io::Error) -> Self {
-        FileStructureError::IoError(err)
-    }
-}
+// impl From<io::Error> for FSError {
+//     fn from(err: io::Error) -> Self {
+//         FSError::IoError(err)
+//     }
+// }
