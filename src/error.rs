@@ -3,67 +3,75 @@ use std::{error, fmt, io, path::PathBuf, result};
 pub type Result<T> = result::Result<T, FSError>;
 
 #[derive(Debug)]
-pub enum FSError {
-    ReadError {
-        path: PathBuf,
-        source: io::Error,
-        context: &'static str,
-    },
-    WriteError {
-        path: PathBuf,
-        source: io::Error,
-        context: &'static str,
-    },
-    NotFoundError {
-        path: PathBuf,
-    },
-    NotADirectoryError {
-        path: PathBuf,
-    },
-    NotASymlinkError {
-        path: PathBuf,
-    },
-    // IoError(io::Error),
+pub struct FSError {
+    context: &'static str, // Optional aditional context for debugging purposes, can be empty
+    kind: FSErrorKind,
+    path: PathBuf,
 }
 
-use FSError::*;
+impl FSError {
+    pub(crate) fn new(kind: FSErrorKind, path: PathBuf, context: &'static str) -> Self {
+        Self {
+            context,
+            kind,
+            path,
+        }
+    }
+
+    pub fn context(&self) -> &'static str {
+        self.context
+    }
+
+    pub fn kind(&self) -> &FSErrorKind {
+        &self.kind
+    }
+
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+}
+
+#[derive(Debug)]
+pub enum FSErrorKind {
+    ReadError(io::Error),
+    WriteError(io::Error),
+    NotFoundError,
+    NotADirectoryError,
+    NotASymlinkError,
+}
+
+use FSErrorKind::*;
 
 impl error::Error for FSError {
+    // Should this return Option<&io::Error> instead? nope, let's keep it like this
+    // while there's no logistic link error...
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        match self {
-            ReadError { source, .. } | WriteError { source, .. } => Some(source),
+        match &self.kind {
+            ReadError(io_source) | WriteError(io_source) => Some(io_source),
             _ => None,
         }
     }
 }
 
 /// Ready for displaying errors to end users!
-/// Format:
-///     "error name: more details: more details"
+///
+/// ## Format:
+///     `Read error: Unable to read directory content: 'path/to/file'`
 impl fmt::Display for FSError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ReadError { source, .. } => {
-                write!(f, "Read error: ")?;
-                source.fmt(f)
-            },
-            WriteError { source, .. } => {
-                write!(f, "Write error: ")?;
-                source.fmt(f)
-            },
-            NotFoundError { path } => {
-                write!(f, "error: ")?;
-                path.display().fmt(f)
-            },
-            NotADirectoryError { path } => {
-                write!(f, "error: ")?;
-                path.display().fmt(f)
-            },
-            NotASymlinkError { path } => {
-                write!(f, "error: ")?;
-                path.display().fmt(f)
-            },
+        match self.kind {
+            ReadError(_) => write!(f, "Read error: "),
+            WriteError(_) => write!(f, "Write error: "),
+            NotFoundError => write!(f, "Error: file not found: "),
+            NotADirectoryError => write!(f, "Error: not a directory: "),
+            NotASymlinkError => write!(f, "Error: not a symlink: "),
+        }?;
+
+        if self.context.len() > 0 {
+            write!(f, "{}: ", self.context)?;
         }
+
+        write!(f, "from '{}'.", self.path.display())
     }
 }
 

@@ -11,22 +11,40 @@ pub fn collect_directory_children(
     follow_symlinks: bool,
 ) -> Result<Vec<File>> {
     let path = path.as_ref();
-    if !FileType::from_path_shallow(&path, follow_symlinks)?.is_dir() {
-        return Err(FSError::NotADirectoryError { path: path.into() });
+
+    if !path.exists() {
+        return Err(FSError::new(
+            FSErrorKind::NotFoundError,
+            path.into(),
+            "while trying to read directory content",
+        ));
     }
 
-    let dirs = fs::read_dir(&path).map_err(|source| FSError::ReadError {
-        path: path.into(),
-        source,
-        context: "Unable to read directory content",
+    if !FileType::from_path_shallow(&path, follow_symlinks)?.is_dir() {
+        return Err(FSError::new(
+            FSErrorKind::NotADirectoryError,
+            path.into(),
+            "while trying to read directory content",
+        ));
+    }
+
+    let dirs = fs::read_dir(&path);
+    let dirs = dirs.map_err(|source| {
+        FSError::new(
+            FSErrorKind::ReadError(source),
+            path.into(),
+            "while trying to read directory content",
+        )
     })?;
 
     let mut children = vec![];
     for entry in dirs {
-        let entry = entry.map_err(|source| FSError::ReadError {
-            path: path.into(),
-            source,
-            context: "error while reading directory content at entry",
+        let entry = entry.map_err(|source| {
+            FSError::new(
+                FSErrorKind::ReadError(source),
+                path.into(),
+                "error while reading directory for specific entry",
+            )
         })?;
 
         let file = File::from_path(&entry.path(), follow_symlinks)?;
@@ -39,13 +57,28 @@ pub fn collect_directory_children(
 pub fn symlink_target(path: impl AsRef<Path>) -> Result<PathBuf> {
     let path = path.as_ref();
     if !path.exists() {
-        return Err(FSError::NotFoundError { path: path.into() });
+        return Err(FSError::new(
+            FSErrorKind::NotFoundError,
+            path.into(),
+            "while trying to read symlink target path",
+        ));
     }
 
-    let target = fs::read_link(&path).map_err(|source| FSError::ReadError {
-        path: path.into(),
-        source,
-        context: "Unable to read link target path",
+    if !FileType::from_path_shallow(path, false)?.is_symlink() {
+        return Err(FSError::new(
+            FSErrorKind::NotASymlinkError,
+            path.into(),
+            "while trying to read symlink target path",
+        ));
+    }
+
+    let target = fs::read_link(&path);
+    let target = target.map_err(|source| {
+        FSError::new(
+            FSErrorKind::ReadError(source),
+            path.into(),
+            "while trying to read symlink target path",
+        )
     })?;
 
     Ok(target)
@@ -56,7 +89,7 @@ pub fn fs_filetype_from_path(path: impl AsRef<Path>, follow_symlink: bool) -> Re
     let path = path.as_ref();
 
     if !path.exists() {
-        return Err(FSError::NotFoundError { path: path.into() });
+        return Err(FSError::new(FSErrorKind::NotFoundError, path.into(), ""));
     }
 
     let metadata_function = if follow_symlink {
@@ -65,10 +98,13 @@ pub fn fs_filetype_from_path(path: impl AsRef<Path>, follow_symlink: bool) -> Re
         fs::symlink_metadata
     };
 
-    let metadata = metadata_function(path).map_err(|source| FSError::ReadError {
-        path: path.to_path_buf(),
-        source,
-        context: "Unable to gather type information of file at",
+    let metadata = metadata_function(path);
+    let metadata = metadata.map_err(|source| {
+        FSError::new(
+            FSErrorKind::ReadError(source),
+            path.to_path_buf(),
+            "Unable to gather type information of file at",
+        )
     })?;
 
     Ok(metadata.file_type())
