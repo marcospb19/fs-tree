@@ -3,16 +3,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
-type Result<T> = Result<T, io::Error>;
+type Result<T> = std::result::Result<T, io::Error>;
 
-/// Dotao file representation, if it's a directory, then structures a tree.
 #[derive(Debug, Default, Clone)]
 pub struct File {
     pub path: PathBuf,
     pub file_type: FileType,
 }
 
-/// Internal representation of a file type, simplified, only 3 variants.
 #[derive(Debug, Clone)]
 pub enum FileType {
     File,
@@ -93,21 +91,21 @@ pub fn collect_files_from_directory(
     follow_symlinks: bool,
 ) -> Result<Vec<File>> {
     let path = path.as_ref().to_path_buf();
-    if !FileType::from_path_shallow(&path, follow_symlinks)?.is_directory() {
-        return Err(DotaoError::NotADirectory);
-    }
+    // if !FileType::from_path_shallow(&path, follow_symlinks)?.is_directory() {
+    //     return Err(DotaoError::NotADirectory);
+    // }
 
-    let dirs = fs::read_dir(&path).map_err(|source| DotaoError::ReadError {
+    let dirs = fs::read_dir(&path)/*.map_err(|source| DotaoError::ReadError {
         path: path.clone(),
         source,
-    })?;
+    })*/?;
 
     let mut children = vec![];
     for entry in dirs {
-        let entry = entry.map_err(|source| DotaoError::ReadError {
+        let entry = entry/*.map_err(|source| DotaoError::ReadError {
             path: path.clone(),
             source,
-        })?;
+        })*/?;
 
         let file = File::from_path(&entry.path(), follow_symlinks)?;
         children.push(file);
@@ -118,14 +116,14 @@ pub fn collect_files_from_directory(
 /// Follow symlink one level
 pub fn get_symlink_target_from_path(path: &impl AsRef<Path>) -> Result<PathBuf> {
     let path = path.as_ref();
-    if !path.exists() {
-        return Err(DotaoError::NotFoundInFilesystem);
-    }
+    // if !path.exists() {
+    //     return Err(DotaoError::NotFoundInFilesystem);
+    // }
 
-    let target = fs::read_link(&path).map_err(|source| DotaoError::ReadError {
+    let target = fs::read_link(&path)/*.map_err(|source| DotaoError::ReadError {
         path: path.to_path_buf(),
         source,
-    })?;
+    })*/?;
 
     Ok(target)
 }
@@ -136,9 +134,9 @@ pub fn fs_filetype_from_path(
     follow_symlink: bool,
 ) -> Result<fs::FileType> {
     let path = path.as_ref();
-    if !path.exists() {
-        return Err(DotaoError::NotFoundInFilesystem);
-    }
+    // if !path.exists() {
+    //     return Err(DotaoError::NotFoundInFilesystem);
+    // }
 
     let metadata_function = if follow_symlink {
         fs::metadata
@@ -146,10 +144,10 @@ pub fn fs_filetype_from_path(
         fs::symlink_metadata
     };
 
-    let metadata = metadata_function(path).map_err(|source| DotaoError::ReadError {
+    let metadata = metadata_function(path)/*.map_err(|source| DotaoError::ReadError {
         path: path.to_path_buf(),
         source,
-    })?;
+    })*/?;
 
     Ok(metadata.file_type())
 }
