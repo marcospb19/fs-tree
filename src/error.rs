@@ -6,9 +6,9 @@ pub type Result<T> = result::Result<T, FileStructureError>;
 pub enum FileStructureError {
     ReadError { source: io::Error },
     WriteError { source: io::Error },
-    FileNotFound { path: PathBuf },
-    IsNotADirectory { path: PathBuf },
-    IsNotASymlink { path: PathBuf },
+    NotFoundError { path: PathBuf },
+    NotADirectoryError { path: PathBuf },
+    NotASymlinkError { path: PathBuf },
     IoError(io::Error),
 }
 
@@ -37,21 +37,19 @@ impl fmt::Display for FileStructureError {
                 write!(f, "Write error: ")?;
                 source.fmt(f)
             },
-            FileNotFound { path } => {
+            NotFoundError { path } => {
                 write!(f, "error: ")?;
                 path.display().fmt(f)
             },
-            IsNotADirectory { path } => {
+            NotADirectoryError { path } => {
                 write!(f, "error: ")?;
                 path.display().fmt(f)
             },
-            IsNotASymlink { path } => {
+            NotASymlinkError { path } => {
                 write!(f, "error: ")?;
                 path.display().fmt(f)
             },
-            IoError(err) => err.fmt(f)
-            // NotFoundInFilesystem => write!(f, "File not found"),
-            // NotADirectory => write!(f, "File is not a directory"),
+            IoError(err) => err.fmt(f), // NotFoundInFilesystem => write!(f, "File not found"),
         }
     }
 }
