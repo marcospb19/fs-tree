@@ -1,8 +1,11 @@
 [package]
-name = "file-type"
+name = "file-structure"
 version = "0.0.1"
 authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
 edition = "2018"
+description = "Representation of directory/file structure in filesystem, use directly to create, delete or link."
+repository = "https://github.com/marcospb19/file-structure"
+license = "MIT"
 
 [dependencies]
 libc = "0.2"
