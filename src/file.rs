@@ -16,7 +16,7 @@ impl File {
         File { path, file_type }
     }
 
-    pub fn from_path(path: &impl AsRef<Path>, follow_symlinks: bool) -> Result<Self> {
+    pub fn from_path(path: impl AsRef<Path>, follow_symlinks: bool) -> Result<Self> {
         let file_type = FileType::from_path(&path, follow_symlinks)?;
         let path = path.as_ref().to_path_buf();
         let result = File::new(path, file_type);

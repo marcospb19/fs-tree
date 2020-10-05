@@ -10,7 +10,7 @@ pub enum FileType {
 }
 
 impl FileType {
-    pub fn from_path(path: &impl AsRef<Path>, follow_symlinks: bool) -> Result<Self> {
+    pub fn from_path(path: impl AsRef<Path>, follow_symlinks: bool) -> Result<Self> {
         let fs_file_type = fs_filetype_from_path(&path, follow_symlinks)?;
 
         // Is file, directory, or symlink
@@ -29,7 +29,7 @@ impl FileType {
         Ok(result)
     }
 
-    pub fn from_path_shallow(path: &impl AsRef<Path>, follow_symlink: bool) -> Result<Self> {
+    pub fn from_path_shallow(path: impl AsRef<Path>, follow_symlink: bool) -> Result<Self> {
         let fs_file_type = fs_filetype_from_path(&path, follow_symlink)?;
 
         // Is file, directory, or symlink

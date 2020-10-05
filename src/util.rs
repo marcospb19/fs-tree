@@ -7,7 +7,7 @@ use std::{
 
 /// Fill a Vec with our own File struct
 pub fn collect_directory_chidren(
-    path: &impl AsRef<Path>,
+    path: impl AsRef<Path>,
     follow_symlinks: bool,
 ) -> Result<Vec<File>> {
     let path = path.as_ref().to_path_buf();
@@ -34,7 +34,7 @@ pub fn collect_directory_chidren(
 }
 
 /// Follow symlink one level
-pub fn symlink_target(path: &impl AsRef<Path>) -> Result<PathBuf> {
+pub fn symlink_target(path: impl AsRef<Path>) -> Result<PathBuf> {
     let path = path.as_ref();
     // if !path.exists() {
     //     return Err(DotaoError::NotFoundInFilesystem);
@@ -49,10 +49,7 @@ pub fn symlink_target(path: &impl AsRef<Path>) -> Result<PathBuf> {
 }
 
 /// Used by FileType `from_path*` function.
-pub fn fs_filetype_from_path(
-    path: &impl AsRef<Path>,
-    follow_symlink: bool,
-) -> Result<fs::FileType> {
+pub fn fs_filetype_from_path(path: impl AsRef<Path>, follow_symlink: bool) -> Result<fs::FileType> {
     let path = path.as_ref();
     // if !path.exists() {
     //     return Err(DotaoError::NotFoundInFilesystem);
