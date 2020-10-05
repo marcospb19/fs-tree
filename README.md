@@ -1,3 +1,10 @@
-# file-type
+# file-structure
 
-Rust crate to be documented
+Representation of directory/file structure in filesystem to create, delete
+or link.
+
+This crate is in a early development stage, we can only read file structures
+for now.
+
+Yet to be documented... see `File` and `FileType` structs, and the `from*`
+methods they suply.
