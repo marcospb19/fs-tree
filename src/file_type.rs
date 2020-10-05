@@ -1,4 +1,4 @@
-use crate::{collect_directory_chidren, error::*, fs_filetype_from_path, symlink_target, File};
+use crate::{collect_directory_children, error::*, fs_filetype_from_path, symlink_target, File};
 
 use std::{
     fmt,
@@ -20,7 +20,7 @@ impl FileType {
         let result = if fs_file_type.is_file() {
             FileType::File
         } else if fs_file_type.is_dir() {
-            let children = collect_directory_chidren(&path, follow_symlinks)?;
+            let children = collect_directory_children(&path, follow_symlinks)?;
             FileType::Directory { children }
         } else if fs_file_type.is_symlink() {
             let target_path = symlink_target(path)?;

@@ -6,7 +6,7 @@ use std::{
 };
 
 /// Fill a Vec with our own File struct
-pub fn collect_directory_chidren(
+pub fn collect_directory_children(
     path: impl AsRef<Path>,
     follow_symlinks: bool,
 ) -> Result<Vec<File>> {
