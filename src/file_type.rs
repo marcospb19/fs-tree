@@ -1,8 +1,11 @@
 use crate::{collect_directory_chidren, error::*, fs_filetype_from_path, symlink_target, File};
 
-use std::path::{Path, PathBuf};
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FileType {
     File,
     Directory { children: Vec<File> },
@@ -59,5 +62,21 @@ impl FileType {
 
     pub fn is_symlink(&self) -> bool {
         matches!(self, FileType::Symlink { .. })
+    }
+}
+
+impl Default for FileType {
+    fn default() -> Self {
+        Self::File
+    }
+}
+
+impl fmt::Display for FileType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            FileType::File => write!(f, "file"),
+            FileType::Directory { .. } => write!(f, "directory"),
+            FileType::Symlink { .. } => write!(f, "symbolic link"),
+        }
     }
 }

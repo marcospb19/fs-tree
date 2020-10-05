@@ -1,11 +1,8 @@
 use crate::{error::*, file_type::FileType};
 
-use std::{
-    fmt,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct File {
     pub path: PathBuf,
     pub file_type: FileType,
@@ -22,21 +19,5 @@ impl File {
         let result = File::new(path, file_type);
 
         Ok(result)
-    }
-}
-
-impl Default for FileType {
-    fn default() -> Self {
-        FileType::File
-    }
-}
-
-impl fmt::Display for FileType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            FileType::File => write!(f, "file"),
-            FileType::Directory { .. } => write!(f, "directory"),
-            FileType::Symlink { .. } => write!(f, "symbolic link"),
-        }
     }
 }
