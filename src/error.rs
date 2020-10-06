@@ -55,19 +55,27 @@ impl error::Error for FSError {
 
 /// Ready for displaying errors to end users!
 ///
-/// ## Format:
-///     `Read error: Unable to read directory content: 'path/to/file'`
+/// # Format:
+/// ```ignore
+/// Read error: Unable to read directory content: 'path/to/file'
+/// ```
 impl fmt::Display for FSError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind {
-            ReadError(_) => write!(f, "Read error: "),
-            WriteError(_) => write!(f, "Write error: "),
+            ReadError(ref io_err) => {
+                write!(f, "Read error: ")?;
+                io_err.fmt(f)
+            },
+            WriteError(ref io_err) => {
+                write!(f, "Write error: ")?;
+                io_err.fmt(f)
+            },
             NotFoundError => write!(f, "Error: file not found: "),
             NotADirectoryError => write!(f, "Error: not a directory: "),
             NotASymlinkError => write!(f, "Error: not a symlink: "),
         }?;
 
-        if self.context.len() > 0 {
+        if !self.context.is_empty() {
             write!(f, "{}: ", self.context)?;
         }
 
