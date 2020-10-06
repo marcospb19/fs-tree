@@ -44,22 +44,22 @@ impl<'a> File {
 }
 
 impl FileIter<'_> {
-    pub fn files_before_directories(mut self, arg: bool) -> Self {
+    pub fn files_before_directories(&mut self, arg: bool) -> &mut Self {
         self.files_before_directories = arg;
         self
     }
 
-    pub fn skip_dirs(mut self, arg: bool) -> Self {
+    pub fn skip_dirs(&mut self, arg: bool) -> &mut Self {
         self.skip_dirs = arg;
         self
     }
 
-    pub fn skip_regular_files(mut self, arg: bool) -> Self {
+    pub fn skip_regular_files(&mut self, arg: bool) -> &mut Self {
         self.skip_regular_files = arg;
         self
     }
 
-    pub fn skip_symlinks(mut self, arg: bool) -> Self {
+    pub fn skip_symlinks(&mut self, arg: bool) -> &mut Self {
         self.skip_symlinks = arg;
         self
     }
