@@ -14,10 +14,13 @@
 //! This crate has no intent to be the fastest one, but to be very usable, we
 //! will make excessive checks upfront to try to give a better error treatment
 
-pub mod error;
+// Itens inside are exposed
 mod file;
 mod file_type;
 mod iter;
-pub mod util;
 
 pub use crate::{file::*, file_type::*, iter::*};
+/// `FSError` and `FSErrorKind`
+pub mod error;
+/// Exposed functions used by our modules
+pub mod util;
