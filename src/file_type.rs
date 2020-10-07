@@ -11,9 +11,9 @@ use std::{
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FileType {
-    File,
-    Directory { children: Vec<File> },
-    Symlink { target_path: PathBuf },
+    Regular,
+    Directory(Vec<File>),
+    Symlink(PathBuf),
 }
 
 impl FileType {
@@ -22,13 +22,13 @@ impl FileType {
 
         // Is file, directory, or symlink
         let result = if fs_file_type.is_file() {
-            FileType::File
+            FileType::Regular
         } else if fs_file_type.is_dir() {
             let children = collect_directory_children(&path, follow_symlinks)?;
-            FileType::Directory { children }
+            FileType::Directory(children)
         } else if fs_file_type.is_symlink() {
             let target_path = symlink_target(path)?;
-            FileType::Symlink { target_path }
+            FileType::Symlink(target_path)
         } else {
             todo!("Other file types.")
         };
@@ -42,13 +42,11 @@ impl FileType {
         // Is file, directory, or symlink
         let result = {
             if fs_file_type.is_file() {
-                FileType::File
+                FileType::Regular
             } else if fs_file_type.is_dir() {
-                FileType::Directory { children: vec![] }
+                FileType::Directory(vec![])
             } else if fs_file_type.is_symlink() {
-                FileType::Symlink {
-                    target_path: PathBuf::new(),
-                }
+                FileType::Symlink(PathBuf::new())
             } else {
                 todo!("Other file types.")
             }
@@ -57,7 +55,7 @@ impl FileType {
     }
 
     pub fn is_file(&self) -> bool {
-        matches!(self, FileType::File)
+        matches!(self, FileType::Regular)
     }
 
     pub fn is_dir(&self) -> bool {
@@ -71,14 +69,14 @@ impl FileType {
 
 impl Default for FileType {
     fn default() -> Self {
-        Self::File
+        Self::Regular
     }
 }
 
 impl fmt::Display for FileType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            FileType::File => write!(f, "file"),
+            FileType::Regular => write!(f, "file"),
             FileType::Directory { .. } => write!(f, "directory"),
             FileType::Symlink { .. } => write!(f, "symbolic link"),
         }
