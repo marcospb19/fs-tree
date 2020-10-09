@@ -9,6 +9,14 @@ pub struct FSError {
     path: PathBuf,
 }
 
+/// Ready for displaying errors to end users!
+///
+/// ### Format:
+/// ```txt
+/// Read error: Unable to read directory content: 'path/to/file'
+/// ```
+///
+/// Note that all our functions execute excessive checks before
 impl FSError {
     pub(crate) fn new(kind: FSErrorKind, path: PathBuf, context: &'static str) -> Self {
         Self {
@@ -53,12 +61,6 @@ impl error::Error for FSError {
     }
 }
 
-/// Ready for displaying errors to end users!
-///
-/// # Format:
-/// ```ignore
-/// Read error: Unable to read directory content: 'path/to/file'
-/// ```
 impl fmt::Display for FSError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind {
