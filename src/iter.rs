@@ -1,6 +1,6 @@
 use crate::{File, FileType};
 
-use std::{cmp::Ordering, collections::VecDeque, path::PathBuf};
+use std::{collections::VecDeque, path::PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct FilesIter<'a> {
@@ -108,6 +108,9 @@ impl<'a> Iterator for FilesIter<'a> {
         }
         .unwrap();
 
+        // Update current_depth, useful for .depth() method and PathsIter
+        self.current_depth = depth;
+
         // If directory, add children, and check for `self.skip_dirs`
         if let FileType::Directory(ref children) = &file.file_type {
             // Reversed, because late nodes stay at the tip
@@ -154,7 +157,7 @@ impl<'a> PathsIter<'a> {
             file_iter,
             last_depth: 0,
             current_path: PathBuf::new(),
-            only_show_last_segment: true,
+            only_show_last_segment: false,
         }
     }
 
@@ -162,44 +165,43 @@ impl<'a> PathsIter<'a> {
         self.only_show_last_segment = arg;
         self
     }
+
+    pub fn depth(&self) -> usize {
+        self.file_iter.depth()
+    }
 }
 
-impl<'a> Iterator for PathsIter<'a, '_> {
-    type Item = &'a PathBuf;
+impl Iterator for PathsIter<'_> {
+    type Item = PathBuf;
 
     fn next(&mut self) -> Option<Self::Item> {
         let file = self.file_iter.next()?;
         let current_depth = self.file_iter.depth();
 
-        // Comentado porque tá dando erro
-        // let result: &'a PathBuf = if self.only_show_last_segment {
-        //     unimplemented!()
-        // // &file.path
-        // } else {
-        //     // Let's prepare self.current_path based on depths change and file.path
-        //     // About `self.current_path.pop` and `self.current_path.push(&file.path)`
-        //     //
-        //     // Based on the depth difference between last run and this one:
-        //     // < , pop twice, and push once
-        //     // ==, pop and push once
-        //     // > , push once
+        let result: &PathBuf = if self.only_show_last_segment {
+            &file.path
+        } else {
+            // Let's prepare self.current_path based on depths change and file.path
+            // About `self.current_path.pop` and `self.current_path.push(&file.path)`
+            //
+            // Based on the depth difference between last run and this one:
+            // < , pop twice, and push once
+            // ==, pop and push once
+            // > , push once
 
-        //     if current_depth < self.last_depth {
-        //         self.current_path.pop();
-        //     }
-        //     if current_depth <= self.last_depth {
-        //         self.current_path.pop();
-        //     }
-        //     self.current_path.push(&file.path);
-        //     &self.current_path
-        // };
-
-        // Tentando straight forward aqui
-        let result: &'a PathBuf = &self.current_path;
+            if current_depth < self.last_depth {
+                self.current_path.pop();
+            }
+            if current_depth <= self.last_depth {
+                self.current_path.pop();
+            }
+            self.current_path.push(&file.path);
+            &self.current_path
+        };
 
         // Update last_depth before returning
         self.last_depth = current_depth;
-        Some(&result)
+        Some(result.clone())
     }
 }
 
@@ -317,31 +319,29 @@ mod tests {
         assert_eq!(it.next(), Some(refs[8])); // .config/outerfile1
         assert_eq!(it.next(), Some(refs[9])); // .config/outerfile2
 
-        // ---------------------
-        //
         // Paths iterator testing
         let mut it = root.paths();
-        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/"));                  // [0]
-        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/"));               // [1]
-        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/dir/"));           // [4]
-        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/dir/innerfile1")); // [5]
-        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/dir/innerfile2")); // [6]
-        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/file1"));          // [2]
-        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/file2"));          // [3]
-        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/file3"));          // [7]
-        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/outerfile1"));        // [8]
-        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/outerfile2"));        // [9]
+        assert_eq!(it.next().unwrap(), PathBuf::from(".config/"));                  // [0]
+        assert_eq!(it.next().unwrap(), PathBuf::from(".config/i3/"));               // [1]
+        assert_eq!(it.next().unwrap(), PathBuf::from(".config/i3/dir/"));           // [4]
+        assert_eq!(it.next().unwrap(), PathBuf::from(".config/i3/dir/innerfile1")); // [5]
+        assert_eq!(it.next().unwrap(), PathBuf::from(".config/i3/dir/innerfile2")); // [6]
+        assert_eq!(it.next().unwrap(), PathBuf::from(".config/i3/file1"));          // [2]
+        assert_eq!(it.next().unwrap(), PathBuf::from(".config/i3/file2"));          // [3]
+        assert_eq!(it.next().unwrap(), PathBuf::from(".config/i3/file3"));          // [7]
+        assert_eq!(it.next().unwrap(), PathBuf::from(".config/outerfile1"));        // [8]
+        assert_eq!(it.next().unwrap(), PathBuf::from(".config/outerfile2"));        // [9]
 
         let mut it = root.paths().only_show_last_segment(true);
-        assert_eq!(it.next(), Some(&refs[0].path)); // ".config/"
-        assert_eq!(it.next(), Some(&refs[1].path)); // "i3/"
-        assert_eq!(it.next(), Some(&refs[4].path)); // "dir/"
-        assert_eq!(it.next(), Some(&refs[5].path)); // "innerfile1"
-        assert_eq!(it.next(), Some(&refs[6].path)); // "innerfile2"
-        assert_eq!(it.next(), Some(&refs[2].path)); // "file1"
-        assert_eq!(it.next(), Some(&refs[3].path)); // "file2"
-        assert_eq!(it.next(), Some(&refs[7].path)); // "file3"
-        assert_eq!(it.next(), Some(&refs[8].path)); // "outerfile1"
-        assert_eq!(it.next(), Some(&refs[9].path)); // "outerfile2"
+        assert_eq!(it.next().unwrap(), PathBuf::from(".config/"));   // [0]
+        assert_eq!(it.next().unwrap(), PathBuf::from("i3/"));        // [1]
+        assert_eq!(it.next().unwrap(), PathBuf::from("dir/"));       // [4]
+        assert_eq!(it.next().unwrap(), PathBuf::from("innerfile1")); // [5]
+        assert_eq!(it.next().unwrap(), PathBuf::from("innerfile2")); // [6]
+        assert_eq!(it.next().unwrap(), PathBuf::from("file1"));      // [2]
+        assert_eq!(it.next().unwrap(), PathBuf::from("file2"));      // [3]
+        assert_eq!(it.next().unwrap(), PathBuf::from("file3"));      // [7]
+        assert_eq!(it.next().unwrap(), PathBuf::from("outerfile1")); // [8]
+        assert_eq!(it.next().unwrap(), PathBuf::from("outerfile2")); // [9]
     }
 }
