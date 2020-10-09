@@ -9,7 +9,7 @@ use std::{
 pub fn collect_directory_children(
     path: impl AsRef<Path>,
     follow_symlinks: bool,
-) -> Result<Vec<File>> {
+) -> FSResult<Vec<File>> {
     let path = path.as_ref();
 
     if !path.exists() {
@@ -53,8 +53,8 @@ pub fn collect_directory_children(
     Ok(children)
 }
 
-/// Follow symlink one level
-pub fn symlink_target(path: impl AsRef<Path>) -> Result<PathBuf> {
+/// Follow symlink only one level
+pub fn symlink_target(path: impl AsRef<Path>) -> FSResult<PathBuf> {
     let path = path.as_ref();
     if !path.exists() {
         return Err(FSError::new(
@@ -84,8 +84,11 @@ pub fn symlink_target(path: impl AsRef<Path>) -> Result<PathBuf> {
     Ok(target)
 }
 
-/// Used by FileType `from_path*` function.
-pub fn fs_filetype_from_path(path: impl AsRef<Path>, follow_symlink: bool) -> Result<fs::FileType> {
+/// Used by FileType `from_path*` function
+pub fn fs_filetype_from_path(
+    path: impl AsRef<Path>,
+    follow_symlink: bool,
+) -> FSResult<fs::FileType> {
     let path = path.as_ref();
 
     if !path.exists() {

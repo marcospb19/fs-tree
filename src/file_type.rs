@@ -21,9 +21,9 @@ impl FileType {
     ///
     /// # Example
     /// ```
-    /// use file_structure::{FileType, Error};
+    /// use file_structure::{FileType, FSError};
     ///
-    /// fn main() -> Result<(), Error> {
+    /// fn main() -> Result<(), FSError> {
     ///     let file_type = FileType::from_path("src/", true)?;
     ///
     ///     if let FileType::Directory(ref children) = file_type {
@@ -73,9 +73,9 @@ impl FileType {
     ///
     /// # Example:
     /// ```
-    /// use file_structure::{FileType, Error};
+    /// use file_structure::{FileType, FSError};
     ///
-    /// fn main() -> Result<(), Error> {
+    /// fn main() -> Result<(), FSError> {
     ///     let file_type = FileType::from_path_shallow("/sbin/", true)?;
     ///
     ///     if !file_type.is_dir() {

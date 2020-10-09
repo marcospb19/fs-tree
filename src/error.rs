@@ -1,6 +1,6 @@
-use std::{error, fmt, io, path::PathBuf, result};
+use std::{error, fmt, io, path::PathBuf};
 
-pub type Result<T> = result::Result<T, FSError>;
+pub type FSResult<T> = Result<T, FSError>;
 
 #[derive(Debug)]
 pub struct FSError {
