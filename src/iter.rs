@@ -1,31 +1,54 @@
 use crate::{File, FileType};
 
-use std::{collections::VecDeque, path::PathBuf};
+use std::{cmp::Ordering, collections::VecDeque, path::PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct FilesIter<'a> {
     // Directories go at the back, files at the front
     // Has a aditional field for keeping track of depth
-    pub(crate) file_deque: VecDeque<(&'a File, usize)>,
+    file_deque: VecDeque<(&'a File, usize)>,
+    // Accessed by `depth` method
+    current_depth: usize,
     // Options
-    pub(crate) files_before_directories: bool,
-    pub(crate) skip_dirs: bool,
-    pub(crate) skip_regular_files: bool,
-    pub(crate) skip_symlinks: bool,
-    pub(crate) min_depth: usize,
-    pub(crate) max_depth: usize,
+    files_before_directories: bool,
+    skip_dirs: bool,
+    skip_regular_files: bool,
+    skip_symlinks: bool,
+    min_depth: usize,
+    max_depth: usize,
 }
 
 impl<'a> FilesIter<'a> {
-    pub fn paths(self) -> PathsIter<'a> {
-        PathsIter {
-            file_iter: self,
-            current_path: PathBuf::new(),
-            show_full_relative_path: true,
+    // file_deque is a
+    pub(crate) fn new(start_file: &'a File) -> Self {
+        let mut file_deque = VecDeque::new();
+        // Start a deque from `start_file`, at depth 0, which can increase for each file
+        // if self is a directory
+        file_deque.push_back((start_file, 0));
+
+        Self {
+            file_deque,
+            // Default start
+            current_depth: 0,
+            files_before_directories: false,
+            skip_dirs: false,
+            skip_regular_files: false,
+            skip_symlinks: false,
+            min_depth: usize::MIN,
+            max_depth: usize::MAX,
         }
     }
 
-    // -- from here, only filters --
+    /// Access depth of last element, starts at 0 (root has no depth).
+    pub fn depth(&self) -> usize {
+        self.current_depth
+    }
+
+    pub fn paths(self) -> PathsIter<'a> {
+        PathsIter::new(self)
+    }
+
+    // Applying filters
     pub fn files_before_directories(mut self, arg: bool) -> Self {
         self.files_before_directories = arg;
         self
@@ -54,20 +77,6 @@ impl<'a> FilesIter<'a> {
     pub fn max_depth(mut self, max: usize) -> Self {
         self.max_depth = max;
         self
-    }
-
-    // The only way to implement Default without exposing to public API:
-    pub(crate) fn default() -> Self {
-        FilesIter {
-            file_deque: VecDeque::new(),
-            // Options
-            files_before_directories: false,
-            skip_dirs: false,
-            skip_regular_files: false,
-            skip_symlinks: false,
-            min_depth: usize::MIN,
-            max_depth: usize::MAX,
-        }
     }
 }
 
@@ -133,30 +142,64 @@ impl<'a> Iterator for FilesIter<'a> {
 pub struct PathsIter<'a> {
     // We will make a lot of pushs and pops in this path from each segment of path
     current_path: PathBuf,
+    last_depth: usize,
     file_iter: FilesIter<'a>,
     // options
-    show_full_relative_path: bool,
+    only_show_last_segment: bool,
 }
 
-impl PathsIter<'_> {
-    pub fn show_full_relative_path(mut self, arg: bool) -> Self {
-        self.show_full_relative_path = arg;
+impl<'a> PathsIter<'a> {
+    pub fn new(file_iter: FilesIter<'a>) -> Self {
+        Self {
+            file_iter,
+            last_depth: 0,
+            current_path: PathBuf::new(),
+            only_show_last_segment: true,
+        }
+    }
+
+    pub fn only_show_last_segment(mut self, arg: bool) -> Self {
+        self.only_show_last_segment = arg;
         self
     }
 }
 
-impl<'a> Iterator for PathsIter<'a> {
+impl<'a> Iterator for PathsIter<'a, '_> {
     type Item = &'a PathBuf;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let next = self.file_iter.next()?;
+        let file = self.file_iter.next()?;
+        let current_depth = self.file_iter.depth();
 
-        if self.show_full_relative_path {
-            Some(&next.path)
-        } else {
-            // Some(&next.path)
-            None
-        }
+        // Comentado porque tá dando erro
+        // let result: &'a PathBuf = if self.only_show_last_segment {
+        //     unimplemented!()
+        // // &file.path
+        // } else {
+        //     // Let's prepare self.current_path based on depths change and file.path
+        //     // About `self.current_path.pop` and `self.current_path.push(&file.path)`
+        //     //
+        //     // Based on the depth difference between last run and this one:
+        //     // < , pop twice, and push once
+        //     // ==, pop and push once
+        //     // > , push once
+
+        //     if current_depth < self.last_depth {
+        //         self.current_path.pop();
+        //     }
+        //     if current_depth <= self.last_depth {
+        //         self.current_path.pop();
+        //     }
+        //     self.current_path.push(&file.path);
+        //     &self.current_path
+        // };
+
+        // Tentando straight forward aqui
+        let result: &'a PathBuf = &self.current_path;
+
+        // Update last_depth before returning
+        self.last_depth = current_depth;
+        Some(&result)
     }
 }
 
@@ -165,6 +208,7 @@ mod tests {
     #[test] // Huge test ahead
     #[rustfmt::skip]
     fn testing_files_and_paths_iters() {
+        use std::path::PathBuf;
         use crate::{File, FileType::*};
 
         // Implementing a syntax sugar util to make tests readable
@@ -277,15 +321,27 @@ mod tests {
         //
         // Paths iterator testing
         let mut it = root.paths();
+        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/"));                  // [0]
+        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/"));               // [1]
+        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/dir/"));           // [4]
+        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/dir/innerfile1")); // [5]
+        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/dir/innerfile2")); // [6]
+        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/file1"));          // [2]
+        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/file2"));          // [3]
+        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/i3/file3"));          // [7]
+        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/outerfile1"));        // [8]
+        assert_eq!(it.next().unwrap().clone(), PathBuf::from(".config/outerfile2"));        // [9]
+
+        let mut it = root.paths().only_show_last_segment(true);
         assert_eq!(it.next(), Some(&refs[0].path)); // ".config/"
-        assert_eq!(it.next(), Some(&refs[1].path)); // ".config/i3/"
-        assert_eq!(it.next(), Some(&refs[4].path)); // ".config/i3/dir/"
-        assert_eq!(it.next(), Some(&refs[5].path)); // ".config/i3/dir/innerfile1"
-        assert_eq!(it.next(), Some(&refs[6].path)); // ".config/i3/dir/innerfile2"
-        assert_eq!(it.next(), Some(&refs[2].path)); // ".config/i3/file1"
-        assert_eq!(it.next(), Some(&refs[3].path)); // ".config/i3/file2"
-        assert_eq!(it.next(), Some(&refs[7].path)); // ".config/i3/file3"
-        assert_eq!(it.next(), Some(&refs[8].path)); // ".config/outerfile1"
-        assert_eq!(it.next(), Some(&refs[9].path)); // ".config/outerfile2"
+        assert_eq!(it.next(), Some(&refs[1].path)); // "i3/"
+        assert_eq!(it.next(), Some(&refs[4].path)); // "dir/"
+        assert_eq!(it.next(), Some(&refs[5].path)); // "innerfile1"
+        assert_eq!(it.next(), Some(&refs[6].path)); // "innerfile2"
+        assert_eq!(it.next(), Some(&refs[2].path)); // "file1"
+        assert_eq!(it.next(), Some(&refs[3].path)); // "file2"
+        assert_eq!(it.next(), Some(&refs[7].path)); // "file3"
+        assert_eq!(it.next(), Some(&refs[8].path)); // "outerfile1"
+        assert_eq!(it.next(), Some(&refs[9].path)); // "outerfile2"
     }
 }
