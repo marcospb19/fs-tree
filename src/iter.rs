@@ -1,6 +1,10 @@
 use crate::{File, FileType};
 
-use std::{collections::VecDeque, path::PathBuf};
+use std::{
+    collections::VecDeque,
+    ffi::OsStr,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug, Clone)]
 pub struct FilesIter<'a> {
@@ -143,9 +147,6 @@ impl<'a> Iterator for FilesIter<'a> {
 
 #[derive(Debug, Clone)]
 pub struct PathsIter<'a> {
-    // We will make a lot of pushs and pops in this path from each segment of path
-    current_path: PathBuf,
-    last_depth: usize,
     file_iter: FilesIter<'a>,
     // options
     only_show_last_segment: bool,
@@ -155,8 +156,6 @@ impl<'a> PathsIter<'a> {
     pub fn new(file_iter: FilesIter<'a>) -> Self {
         Self {
             file_iter,
-            last_depth: 0,
-            current_path: PathBuf::new(),
             only_show_last_segment: false,
         }
     }
@@ -169,39 +168,25 @@ impl<'a> PathsIter<'a> {
     pub fn depth(&self) -> usize {
         self.file_iter.depth()
     }
+
+    /// True implementation of `Iterator` for `PathsIter`, without `.clone()`
+    pub fn next_ref(&mut self) -> Option<&Path> {
+        let file = self.file_iter.next()?;
+
+        if self.only_show_last_segment {
+            file.path.file_name().map(OsStr::as_ref)
+        } else {
+            Some(&file.path)
+        }
+    }
 }
 
 impl Iterator for PathsIter<'_> {
     type Item = PathBuf;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let file = self.file_iter.next()?;
-        let current_depth = self.file_iter.depth();
-
-        let result: &PathBuf = if self.only_show_last_segment {
-            &file.path
-        } else {
-            // Let's prepare self.current_path based on depths change and file.path
-            // About `self.current_path.pop` and `self.current_path.push(&file.path)`
-            //
-            // Based on the depth difference between last run and this one:
-            // < , pop twice, and push once
-            // ==, pop and push once
-            // > , push once
-
-            if current_depth < self.last_depth {
-                self.current_path.pop();
-            }
-            if current_depth <= self.last_depth {
-                self.current_path.pop();
-            }
-            self.current_path.push(&file.path);
-            &self.current_path
-        };
-
-        // Update last_depth before returning
-        self.last_depth = current_depth;
-        Some(result.clone())
+        let path_buf = self.next_ref()?.to_path_buf();
+        Some(path_buf)
     }
 }
 
@@ -237,18 +222,18 @@ mod tests {
 
         // Create the strucutre
         #[rustfmt::skip]
-        let root = File::new(".config", Directory(vec![
-            File::new("i3", Directory(vec![
-                File::new("file1", Regular),
-                File::new("file2", Regular),
-                File::new("dir", Directory(vec![
-                    File::new("innerfile1", Regular),
-                    File::new("innerfile2", Regular)
+        let root = File::new(".config/", Directory(vec![
+            File::new(".config/i3/", Directory(vec![
+                File::new(".config/i3/file1", Regular),
+                File::new(".config/i3/file2", Regular),
+                File::new(".config/i3/dir/", Directory(vec![
+                    File::new(".config/i3/dir/innerfile1", Regular),
+                    File::new(".config/i3/dir/innerfile2", Regular)
                 ])),
-                File::new("file3", Regular),
+                File::new(".config/i3/file3", Regular),
             ])),
-            File::new("outerfile1", Regular),
-            File::new("outerfile2", Regular)
+            File::new(".config/outerfile1", Regular),
+            File::new(".config/outerfile2", Regular)
         ]));
 
         #[rustfmt::skip]
