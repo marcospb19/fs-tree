@@ -1,16 +1,19 @@
+
 // [top]
 // - ".toprc"
-(polybridge)
+- [polybar]
 ".config": [
-    "polybridge": [
+    (p, a) "polybar": [
         "folder": [
-            "file1" -> "asd"
-            "file2"
+            (follow) "symlink_path" -> "target_path"
+            (dont_follow) "file2"
             "empty_folder": []
         ]
         "launch.sh"
         "config"
     ]
 ]
- //
+//
+
+"you_can_one_line_too": ["1", "2", "3"]
 

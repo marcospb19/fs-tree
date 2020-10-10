@@ -6,8 +6,6 @@ fn main() {
     let path = "examples/simple.tree";
     let text = fs::read_to_string(path).expect("Should succeed");
 
-    //
-
     let groups_map = tree_file::GroupsMap::from_text(text);
 
     // You can assume that the group "main" is always present
