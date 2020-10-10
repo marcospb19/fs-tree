@@ -47,7 +47,7 @@ pub fn collect_directory_children(
             )
         })?;
 
-        let file = File::from_path(&entry.path(), follow_symlinks)?;
+        let file = File::new_from_path(&entry.path(), follow_symlinks)?;
         children.push(file);
     }
     Ok(children)

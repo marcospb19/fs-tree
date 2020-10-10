@@ -28,6 +28,10 @@ impl FileType {
     ///
     ///     if let FileType::Directory(ref children) = file_type {
     ///         println!("We found {} files!", children.len()); // vec.len()
+    ///
+    ///         for child in children {
+    ///             println!("{:#?}", child);
+    ///         }
     ///     }
     ///     Ok(())
     /// }
@@ -76,10 +80,10 @@ impl FileType {
     /// use file_structure::{FileType, FSError};
     ///
     /// fn main() -> Result<(), FSError> {
-    ///     let file_type = FileType::from_path_shallow("/sbin/", true)?;
+    ///     let file_type = FileType::from_path_shallow("/sbin", true)?;
     ///
     ///     if !file_type.is_dir() {
-    ///         println!("There's something wrong with our filesystem.");
+    ///         println!("There's something wrong with our file system.");
     ///     }
     ///     Ok(())
     /// }
