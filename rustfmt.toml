@@ -11,3 +11,4 @@ edition = "2018"
 unstable_features = true
 format_strings = true
 wrap_comments = true
+normalize_comments = true
