@@ -32,3 +32,5 @@
 
 //     // println!("{:#?}", lex.next());
 // }
+
+fn main() {}

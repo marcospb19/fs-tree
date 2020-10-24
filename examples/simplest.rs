@@ -1,6 +1,6 @@
-use tree_file::Groups;
+// use tree_file::Groups;
 
-use std::{fs, io};
+// use std::{fs, io};
 
 // struct Groups {
 // map: BTreeMap<Group>,
@@ -11,18 +11,19 @@ use std::{fs, io};
 // order: Vec<String>,
 // }
 
-fn main() -> io::Result<()> {
-    let path = "examples/simplest.tree";
-    let text = fs::read_to_string(path)?;
+fn main() {
+    // fn main() -> io::Result<()> {
+    // let path = "examples/simplest.tree";
+    // let text = fs::read_to_string(path)?;
 
-    // May panic for now
-    let groups = Groups::from_text(text);
+    // // May panic for now
+    // let groups = Groups::from_text(text);
 
-    println!("{:?}", groups.info());
+    // println!("{:?}", groups.info());
 
-    // You can assume that the group "main" is always present
-    let main_group = groups.map.get("main").unwrap();
-    println!("{:#?}", main_group);
+    // // You can assume that the group "main" is always present
+    // let main_group = groups.map.get("main").unwrap();
+    // println!("{:#?}", main_group);
 
-    Ok(())
+    // Ok(())
 }

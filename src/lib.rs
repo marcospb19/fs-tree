@@ -10,5 +10,6 @@ pub use value::Value;
 
 use std::{collections::BTreeMap, ops};
 
+#[allow(dead_code)]
 pub(crate) type Range = ops::Range<usize>;
 pub(crate) type GroupsMap = BTreeMap<String, Vec<Value>>;
