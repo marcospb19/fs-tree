@@ -5,7 +5,7 @@
         "config"
         "scripts": [
             "volumescript"
-            "voluemutescript"
+            "mutescript"
             "brightnessscript"
         ]
     ]

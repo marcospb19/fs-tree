@@ -1,6 +1,7 @@
 
 // [top]
 // - ".toprc"
+(dotfiles)
 - [polybar]
 ".config": [
     (p, a) "polybar": [

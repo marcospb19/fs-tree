@@ -1,13 +1,28 @@
-use tree_file::{self, De, ValueType};
+use tree_file::Groups;
 
-use std::fs;
+use std::{fs, io};
 
-fn main() {
-    let path = "examples/simple.tree";
-    let text = fs::read_to_string(path).expect("Should succeed");
+// struct Groups {
+// map: BTreeMap<Group>,
+// info: GroupsInformation,
+// }
 
-    let groups_map = tree_file::GroupsMap::from_text(text);
+// struct GroupsInformation {
+// order: Vec<String>,
+// }
+
+fn main() -> io::Result<()> {
+    let path = "examples/simplest.tree";
+    let text = fs::read_to_string(path)?;
+
+    // May panic for now
+    let groups = Groups::from_text(text);
+
+    println!("{:?}", groups.info());
 
     // You can assume that the group "main" is always present
-    let main_group = groups_map.get("main").unwrap();
+    let main_group = groups.map.get("main").unwrap();
+    println!("{:#?}", main_group);
+
+    Ok(())
 }
