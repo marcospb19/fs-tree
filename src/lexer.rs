@@ -1,6 +1,5 @@
 use logos::Logos;
 
-#[rustfmt::skip]
 #[derive(Logos, Debug, PartialEq)]
 pub enum Token {
     // Groups
@@ -56,17 +55,16 @@ pub enum Token {
     // New line or comma
     #[regex("(\\n|,)")]
     Separator,
-
-    // Ignore whitespace
-    #[regex(" \\t", logos::skip)]
-
     // // // Ignore whitespace
     // #[regex(r"[ \t\n\f]+", logos::skip)]
-    // // Ignore comments, they start with two slashes
-    // #[regex(r"//[^\n]*\n", logos::skip)]
+
+    // Ignore whitespace
+    #[regex("( |\\t)+", logos::skip)]
+    // Ignore comments, they start with two slashes
+    #[regex(r"//[^\n]*\n", logos::skip)]
     // // Anything unexpected
     #[error]
-    Error,
+    LexError,
 }
 
 #[cfg(test)]
@@ -93,5 +91,33 @@ mod lexer_tests {
     fn separator_regex() {
         tl("\n", Separator);
         tl(",", Separator);
+    }
+
+    #[test]
+    fn no_errors_check() {
+        let files = [
+            "examples/simplest.tree",
+            "examples/simple.tree",
+            // "examples/dotao.tree", // Need flags feature
+        ];
+
+        let mut should_panic = false;
+
+        for file in &files {
+            let text = std::fs::read_to_string(file).unwrap();
+            let mut lex = Token::lexer(&text);
+            while let Some(token) = lex.next() {
+                if matches!(token, Token::LexError) {
+                    eprintln!("{:?}", file);
+                    eprintln!("{:?}", &text[lex.span()]);
+                    eprintln!("{:#?}", lex.span());
+                    should_panic = true;
+                }
+            }
+        }
+
+        if should_panic {
+            panic!();
+        }
     }
 }
