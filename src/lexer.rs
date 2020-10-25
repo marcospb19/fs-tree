@@ -1,7 +1,11 @@
 use logos::Logos;
 
+use std::ops;
+
+pub(crate) type SpannedLexToken = (LexToken, ops::Range<usize>);
+
 #[derive(Logos, Debug, PartialEq)]
-pub enum Token {
+pub enum LexToken {
     // Groups
     // Examples:
     //   - [group_name]
@@ -53,8 +57,14 @@ pub enum Token {
     SymlinkArrow,
 
     // New line or comma
-    #[regex("(\\n|,)")]
-    Separator,
+    #[regex("(\\n|,)" , |lex| {
+        let c = lex.slice().chars().next().unwrap();
+        if c != '\n' && c != ',' {
+            unreachable!()
+        }
+        c
+    })]
+    Separator(char),
     // // // Ignore whitespace
     // #[regex(r"[ \t\n\f]+", logos::skip)]
 
@@ -67,16 +77,20 @@ pub enum Token {
     LexError,
 }
 
+pub fn run_lexer(input_text: &str) -> Vec<SpannedLexToken> {
+    LexToken::lexer(input_text).spanned().collect()
+}
+
 #[cfg(test)]
 mod lexer_tests {
     use super::{
-        Token::{self, *},
+        LexToken::{self, *},
         *,
     };
 
     // Test lexer
-    fn tl(text: &str, expected: Token) {
-        let mut lex = Token::lexer(text);
+    fn tl(text: &str, expected: LexToken) {
+        let mut lex = LexToken::lexer(text);
         assert_eq!(lex.next().unwrap(), expected)
     }
 
@@ -89,8 +103,8 @@ mod lexer_tests {
 
     #[test]
     fn separator_regex() {
-        tl("\n", Separator);
-        tl(",", Separator);
+        tl("\n", Separator('\n'));
+        tl(",", Separator(','));
     }
 
     #[test]
@@ -105,12 +119,9 @@ mod lexer_tests {
 
         for file in &files {
             let text = std::fs::read_to_string(file).unwrap();
-            let mut lex = Token::lexer(&text);
+            let mut lex = LexToken::lexer(&text);
             while let Some(token) = lex.next() {
-                if matches!(token, Token::LexError) {
-                    eprintln!("{:?}", file);
-                    eprintln!("{:?}", &text[lex.span()]);
-                    eprintln!("{:#?}", lex.span());
+                if matches!(token, LexToken::LexError) {
                     should_panic = true;
                 }
             }
