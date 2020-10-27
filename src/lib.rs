@@ -31,7 +31,7 @@
 //! FileType -> mode_t
 
 // All items inside are `pub use`d
-mod file;
+pub mod file;
 mod file_type;
 mod iter;
 
@@ -41,4 +41,9 @@ pub mod error;
 /// Exposed functions used by our modules
 pub mod util;
 
-pub use crate::{error::*, file::*, file_type::*, iter::*};
+pub use crate::error::*;
+
+pub type File = file::File<()>;
+pub type FileType = file_type::FileType<()>;
+pub type PathsIter<'a> = iter::PathsIter<'a, ()>;
+pub type FilesIter<'a> = iter::FilesIter<'a, ()>;

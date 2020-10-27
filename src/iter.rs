@@ -1,4 +1,4 @@
-use crate::{File, FileType};
+use crate::{file::File, file_type::FileType};
 
 use std::{
     collections::VecDeque,
@@ -7,10 +7,10 @@ use std::{
 };
 
 #[derive(Debug, Clone)]
-pub struct FilesIter<'a> {
+pub struct FilesIter<'a, T: Default> {
     // Directories go at the back, files at the front
     // Has a aditional field for keeping track of depth
-    file_deque: VecDeque<(&'a File, usize)>,
+    file_deque: VecDeque<(&'a File<T>, usize)>,
     // Accessed by `depth` method
     current_depth: usize,
     // Options
@@ -22,9 +22,9 @@ pub struct FilesIter<'a> {
     max_depth: usize,
 }
 
-impl<'a> FilesIter<'a> {
+impl<'a, T: Default> FilesIter<'a, T> {
     // file_deque is a
-    pub(crate) fn new(start_file: &'a File) -> Self {
+    pub(crate) fn new(start_file: &'a File<T>) -> Self {
         let mut file_deque = VecDeque::new();
         // Start a deque from `start_file`, at depth 0, which can increase for each file
         // if self is a directory
@@ -48,7 +48,7 @@ impl<'a> FilesIter<'a> {
         self.current_depth
     }
 
-    pub fn paths(self) -> PathsIter<'a> {
+    pub fn paths(self) -> PathsIter<'a, T> {
         PathsIter::new(self)
     }
 
@@ -84,8 +84,8 @@ impl<'a> FilesIter<'a> {
     }
 }
 
-impl<'a> Iterator for FilesIter<'a> {
-    type Item = &'a File;
+impl<'a, T: Default> Iterator for FilesIter<'a, T> {
+    type Item = &'a File<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.file_deque.is_empty() {
@@ -146,14 +146,14 @@ impl<'a> Iterator for FilesIter<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct PathsIter<'a> {
-    file_iter: FilesIter<'a>,
+pub struct PathsIter<'a, T: Default> {
+    file_iter: FilesIter<'a, T>,
     // options
     only_show_last_segment: bool,
 }
 
-impl<'a> PathsIter<'a> {
-    pub fn new(file_iter: FilesIter<'a>) -> Self {
+impl<'a, T: Default> PathsIter<'a, T> {
+    pub fn new(file_iter: FilesIter<'a, T>) -> Self {
         Self {
             file_iter,
             only_show_last_segment: false,
@@ -181,7 +181,7 @@ impl<'a> PathsIter<'a> {
     }
 }
 
-impl Iterator for PathsIter<'_> {
+impl<T: Default> Iterator for PathsIter<'_, T> {
     type Item = PathBuf;
 
     fn next(&mut self) -> Option<Self::Item> {

@@ -1,7 +1,7 @@
 use crate::{
     error::*,
+    file::File,
     util::{collect_directory_children, fs_filetype_from_path, symlink_target},
-    File,
 };
 
 use std::{
@@ -10,13 +10,13 @@ use std::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum FileType {
+pub enum FileType<T: Default> {
     Regular,
-    Directory(Vec<File>),
+    Directory(Vec<File<T>>),
     Symlink(PathBuf),
 }
 
-impl FileType {
+impl<T: Default> FileType<T> {
     /// Recursively creates `FileType` from path.
     ///
     /// # Example
@@ -98,7 +98,7 @@ impl FileType {
             } else if fs_file_type.is_dir() {
                 FileType::Directory(vec![])
             } else if fs_file_type.is_symlink() {
-                FileType::Symlink(symlink_target(path)?)
+                FileType::Symlink(symlink_target::<T, &Path>(path.as_ref())?)
             } else {
                 todo!("Other file types.")
             }
@@ -122,7 +122,7 @@ impl FileType {
     }
 
     /// Shorthand for unpacking `FileType::Directory(ref children)`
-    pub fn children(&self) -> Option<&Vec<File>> {
+    pub fn children(&self) -> Option<&Vec<File<T>>> {
         match self {
             FileType::Directory(ref children) => Some(children),
             _ => None,
@@ -130,13 +130,13 @@ impl FileType {
     }
 }
 
-impl Default for FileType {
+impl<T: Default> Default for FileType<T> {
     fn default() -> Self {
         Self::Regular
     }
 }
 
-impl fmt::Display for FileType {
+impl<T: Default> fmt::Display for FileType<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             FileType::Regular => write!(f, "file"),

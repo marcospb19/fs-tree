@@ -1,4 +1,4 @@
-use crate::{error::*, File, FileType};
+use crate::{error::*, file::File, file_type::FileType};
 
 use std::{
     fs,
@@ -6,10 +6,10 @@ use std::{
 };
 
 /// Fill a Vec with our own File struct
-pub fn collect_directory_children(
+pub fn collect_directory_children<T: Default>(
     path: impl AsRef<Path>,
     follow_symlinks: bool,
-) -> FSResult<Vec<File>> {
+) -> FSResult<Vec<File<T>>> {
     let path = path.as_ref();
 
     if !path.exists() {
@@ -20,7 +20,7 @@ pub fn collect_directory_children(
         ));
     }
 
-    if !FileType::from_path_shallow(&path, follow_symlinks)?.is_dir() {
+    if !FileType::<T>::from_path_shallow(&path, follow_symlinks)?.is_dir() {
         return Err(FSError::new(
             FSErrorKind::NotADirectoryError,
             path.into(),
@@ -54,7 +54,7 @@ pub fn collect_directory_children(
 }
 
 /// Follow symlink only one level
-pub fn symlink_target(path: impl AsRef<Path>) -> FSResult<PathBuf> {
+pub fn symlink_target<T: Default, P: AsRef<Path>>(path: P) -> FSResult<PathBuf> {
     let path = path.as_ref();
     if !path.exists() {
         return Err(FSError::new(
@@ -64,7 +64,8 @@ pub fn symlink_target(path: impl AsRef<Path>) -> FSResult<PathBuf> {
         ));
     }
 
-    if !FileType::from_path_shallow(path, false)?.is_symlink() {
+    //
+    if !FileType::<T>::from_path_shallow(path, false)?.is_symlink() {
         return Err(FSError::new(
             FSErrorKind::NotASymlinkError,
             path.into(),

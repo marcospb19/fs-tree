@@ -1,21 +1,30 @@
-use crate::{error::*, file_type::FileType, FilesIter, PathsIter};
+use crate::{
+    error::*,
+    file_type::FileType,
+    iter::{FilesIter, PathsIter},
+};
 
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct File {
+pub struct File<T: Default> {
     pub path: PathBuf,
-    pub file_type: FileType,
+    pub file_type: FileType<T>,
+    pub extra: Option<T>,
 }
 
-impl<'a> File {
+impl<'a, T: Default> File<T> {
     /// Create `File` from arguments
     ///
     /// This function will panic if you pass a path with multiple components to
     /// it, because it breaks iterators functionality.
-    pub fn new(path: impl AsRef<Path>, file_type: FileType) -> Self {
+    pub fn new(path: impl AsRef<Path>, file_type: FileType<T>) -> Self {
         let path = path.as_ref().to_path_buf();
-        File { path, file_type }
+        File {
+            path,
+            file_type,
+            extra: None,
+        }
     }
 
     /// Create `File` reading from the `path`
@@ -27,16 +36,16 @@ impl<'a> File {
     }
 
     /// Iterator of all `File`s in the structure
-    pub fn files(&'a self) -> FilesIter<'a> {
+    pub fn files(&'a self) -> FilesIter<'a, T> {
         FilesIter::new(self)
     }
 
     /// Shorthand for `self.files().paths()`, see link to `.paths()` method
-    pub fn paths(&'a self) -> PathsIter<'a> {
+    pub fn paths(&'a self) -> PathsIter<'a, T> {
         self.files().paths()
     }
 
-    pub fn children(&self) -> Option<&Vec<File>> {
+    pub fn children(&self) -> Option<&Vec<File<T>>> {
         self.file_type.children()
     }
 }
