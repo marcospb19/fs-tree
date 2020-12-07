@@ -1,4 +1,16 @@
 // A folder with a file in the group "main"
 "folder": [
-    "file"
+    "file": [
+        "aksdmkasmdkamsdjnasjdn"
+    ]
 ]
+
+
+
+"1": [
+    "2"
+        [
+        "3"["4"["5"]]
+    ]
+]
+

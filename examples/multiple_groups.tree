@@ -1,0 +1,8 @@
+//
+"config"
+
+- [polybar]
+"volumescript"
+
+- [rust]
+"rustfmt.toml"
