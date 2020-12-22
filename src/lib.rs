@@ -30,20 +30,24 @@
 //! .merge() method for File
 //! FileType -> mode_t
 
-// All items inside are `pub use`d
 pub mod file;
-mod file_type;
-mod iter;
+pub mod file_type;
+pub mod iter;
 
-// This pub is redundant (as time of writing, because we already export each)
-/// `FSError`, `FSErrorKind` and `FSResult`
-pub mod error;
-/// Exposed functions used by our modules
+pub use file::File;
+pub use file_type::FileType;
+pub use iter::{FilesIter, PathsIter};
+
+// // This don't work as expected
+// pub type File<T = ()> = file::File<T>;
+// pub type FileType<T = ()> = file_type::FileType<T>;
+// pub type PathsIter<'a, T = ()> = iter::PathsIter<'a, T>;
+// pub type FilesIter<'a, T = ()> = iter::FilesIter<'a, T>;
+
+/// Exposed functions that are used internally by this crate
 pub mod util;
 
+// Exposing error module and everything inside of it, redundantly
+/// `FSError`, `FSErrorKind` and `FSResult`
+pub mod error;
 pub use crate::error::*;
-
-pub type File = file::File<()>;
-pub type FileType = file_type::FileType<()>;
-pub type PathsIter<'a> = iter::PathsIter<'a, ()>;
-pub type FilesIter<'a> = iter::FilesIter<'a, ()>;
