@@ -29,7 +29,7 @@ representation.
 
 TODO:
 fix Pathsiter
-.next_ref() method on PathsIter
 .from_text() method for File
 .merge() method for File
 FileType -> mode_t
+improve fmt::Debug on File and FileType recursive display
