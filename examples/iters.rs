@@ -2,12 +2,12 @@ use file_structure::{FSError, File, FileType};
 
 #[allow(unused_variables)]
 fn main() -> Result<(), FSError> {
-    let examples_folder = File::new_from_path("examples/", true)?;
+    let examples_folder = File::<()>::new_from_path("examples/", true)?;
 
     // Recursive iterator that starts at file `examples_folder`
     // See documentation to see how to apply filters to this FilesIter
     for file in examples_folder.files() {
-        // println!("{:#?}", file);
+        println!("{:#?}", file);
     }
 
     // Same, but using PathsIter
