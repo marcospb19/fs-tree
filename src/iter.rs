@@ -7,7 +7,7 @@ use std::{
 };
 
 #[derive(Debug, Clone)]
-pub struct FilesIter<'a, T: Default> {
+pub struct FilesIter<'a, T> {
     // Directories go at the back, files at the front
     // Has a aditional field for keeping track of depth
     file_deque: VecDeque<(&'a File<T>, usize)>,
@@ -22,7 +22,7 @@ pub struct FilesIter<'a, T: Default> {
     max_depth: usize,
 }
 
-impl<'a, T: Default> FilesIter<'a, T> {
+impl<'a, T> FilesIter<'a, T> {
     // file_deque is a
     pub(crate) fn new(start_file: &'a File<T>) -> Self {
         let mut file_deque = VecDeque::new();
@@ -84,7 +84,7 @@ impl<'a, T: Default> FilesIter<'a, T> {
     }
 }
 
-impl<'a, T: Default> Iterator for FilesIter<'a, T> {
+impl<'a, T> Iterator for FilesIter<'a, T> {
     type Item = &'a File<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -146,13 +146,13 @@ impl<'a, T: Default> Iterator for FilesIter<'a, T> {
 }
 
 #[derive(Debug, Clone)]
-pub struct PathsIter<'a, T: Default> {
+pub struct PathsIter<'a, T> {
     file_iter: FilesIter<'a, T>,
     // options
     only_show_last_segment: bool,
 }
 
-impl<'a, T: Default> PathsIter<'a, T> {
+impl<'a, T> PathsIter<'a, T> {
     pub fn new(file_iter: FilesIter<'a, T>) -> Self {
         Self {
             file_iter,
@@ -181,7 +181,7 @@ impl<'a, T: Default> PathsIter<'a, T> {
     }
 }
 
-impl<T: Default> Iterator for PathsIter<'_, T> {
+impl<T> Iterator for PathsIter<'_, T> {
     type Item = PathBuf;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -192,11 +192,14 @@ impl<T: Default> Iterator for PathsIter<'_, T> {
 
 #[cfg(test)]
 mod tests {
-    #[test] // Huge test ahead
+    #[test]
     #[rustfmt::skip]
     fn testing_files_and_paths_iters() {
         use std::path::PathBuf;
-        use crate::{File, FileType::*};
+        use crate::file_type::FileType::*;
+
+        use crate::File as File_;
+        type File = File_<()>;
 
         // Implementing a syntax sugar util to make tests readable
         impl File {

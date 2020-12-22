@@ -10,17 +10,17 @@ use std::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum FileType<T: Default> {
+pub enum FileType<T> {
     Regular,
     Directory(Vec<File<T>>),
     Symlink(PathBuf),
 }
 
-impl<T: Default> FileType<T> {
+impl<T> FileType<T> {
     /// Recursively creates `FileType` from path.
     ///
     /// # Example
-    /// ```
+    /// ```norun
     /// use file_structure::{FileType, FSError};
     ///
     /// fn main() -> Result<(), FSError> {
@@ -76,7 +76,7 @@ impl<T: Default> FileType<T> {
     /// of time.
     ///
     /// # Example:
-    /// ```
+    /// ```norun
     /// use file_structure::{FileType, FSError};
     ///
     /// fn main() -> Result<(), FSError> {
@@ -130,13 +130,13 @@ impl<T: Default> FileType<T> {
     }
 }
 
-impl<T: Default> Default for FileType<T> {
+impl<T> Default for FileType<T> {
     fn default() -> Self {
         Self::Regular
     }
 }
 
-impl<T: Default> fmt::Display for FileType<T> {
+impl<T> fmt::Display for FileType<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             FileType::Regular => write!(f, "file"),

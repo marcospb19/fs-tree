@@ -6,14 +6,14 @@ use crate::{
 
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct File<T: Default> {
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct File<T> {
     pub path: PathBuf,
     pub file_type: FileType<T>,
     pub extra: Option<T>,
 }
 
-impl<'a, T: Default> File<T> {
+impl<'a, T> File<T> {
     /// Create `File` from arguments
     ///
     /// This function will panic if you pass a path with multiple components to
@@ -47,5 +47,15 @@ impl<'a, T: Default> File<T> {
 
     pub fn children(&self) -> Option<&Vec<File<T>>> {
         self.file_type.children()
+    }
+}
+
+impl<T: Default> Default for File<T> {
+    fn default() -> Self {
+        File {
+            path: Default::default(),
+            file_type: Default::default(),
+            extra: Default::default(),
+        }
     }
 }

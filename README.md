@@ -29,6 +29,7 @@ representation.
 
 TODO:
 fix Pathsiter
+enable all tests in rustdocs
 .from_text() method for File
 .merge() method for File
 FileType -> mode_t
