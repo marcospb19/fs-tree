@@ -59,7 +59,7 @@ impl<T> FileType<T> {
     /// For each directory, call the function recursively.
     ///
     /// See also `from_path_shallow`.
-    pub fn from_path(path: impl AsRef<Path>, follow_symlinks: bool) -> FsResult<Self> {
+    pub fn from_path<P: AsRef<Path>>(path: P, follow_symlinks: bool) -> FsResult<Self> {
         // Reuse code from `from_path_shallow`
         //
         // If FileType::Directory, populate with it's children, else, do nothing
@@ -84,19 +84,19 @@ impl<T> FileType<T> {
     /// of time.
     ///
     /// # Example:
-    /// ```no_run
+    /// ```
     /// use file_structure::{FileType, FsError};
     ///
-    /// // fn main() -> Result<(), FsError> {
-    /// //     let file_type = FileType::from_path_shallow("/sbin", true)?;
+    /// fn main() -> Result<(), FsError> {
+    ///     let file_type = FileType::<()>::from_path_shallow::<&str>("/sbin", true)?;
     ///
-    /// //     if !file_type.is_dir() {
-    /// //         println!("There's something wrong with our file system.");
-    /// //     }
-    /// //     Ok(())
-    /// // }
+    ///     if !file_type.is_dir() {
+    ///         println!("There's something wrong with our file system.");
+    ///     }
+    ///     Ok(())
+    /// }
     /// ```
-    pub fn from_path_shallow(path: impl AsRef<Path>, follow_symlink: bool) -> FsResult<Self> {
+    pub fn from_path_shallow<P: AsRef<Path>>(path: P, follow_symlink: bool) -> FsResult<Self> {
         let fs_file_type = fs_filetype_from_path(&path, follow_symlink)?;
 
         // From the `fs::FileType` check if it is regular file, directory, or symlink
@@ -106,7 +106,7 @@ impl<T> FileType<T> {
             } else if fs_file_type.is_dir() {
                 FileType::Directory(vec![])
             } else if fs_file_type.is_symlink() {
-                FileType::Symlink(symlink_target::<T, &Path>(path.as_ref())?)
+                FileType::Symlink(symlink_target(path)?)
             } else {
                 todo!("Other file types.")
             }

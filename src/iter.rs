@@ -61,6 +61,7 @@ impl<'a, T> FilesIter<'a, T> {
     ///
     /// Example:
     /// ```no_run
+    /// //// This was commented out because we don't have nice macros to make this example convenient
     /// // let mut it = root.files().files_before_directories(true);
     /// // assert_eq!(it.next(), Some(refs[0])); // .config/
     /// // assert_eq!(it.next(), Some(refs[8])); // .config/outerfile1
@@ -73,6 +74,11 @@ impl<'a, T> FilesIter<'a, T> {
     /// // assert_eq!(it.next(), Some(refs[5])); // .config/i3/dir/innerfile1
     /// // assert_eq!(it.next(), Some(refs[6])); // .config/i3/dir/innerfile2
     /// ```
+    ///
+    /// Se above that when we enter a directory, first we go into the files in
+    /// that directory, and then in the files of that directory, this guarantees
+    /// that when we see depth of `X`, we can only see depth of `X` or `X + 1`
+    /// for the next call.
     pub fn files_before_directories(mut self, arg: bool) -> Self {
         self.files_before_directories = arg;
         self

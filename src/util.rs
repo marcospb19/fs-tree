@@ -6,8 +6,8 @@ use std::{
 };
 
 /// Fill a Vec with our own File struct
-pub fn collect_directory_children<T>(
-    path: impl AsRef<Path>,
+pub fn collect_directory_children<T, P: AsRef<Path>>(
+    path: P,
     follow_symlinks: bool,
 ) -> FsResult<Vec<File<T>>> {
     let path = path.as_ref();
@@ -54,7 +54,7 @@ pub fn collect_directory_children<T>(
 }
 
 /// Follow symlink only one level
-pub fn symlink_target<T, P: AsRef<Path>>(path: P) -> FsResult<PathBuf> {
+pub fn symlink_target<P: AsRef<Path>>(path: P) -> FsResult<PathBuf> {
     let path = path.as_ref();
     if !path.exists() {
         return Err(FsError::new(
@@ -65,7 +65,7 @@ pub fn symlink_target<T, P: AsRef<Path>>(path: P) -> FsResult<PathBuf> {
     }
 
     // wait wat
-    if !FileType::<T>::from_path_shallow(path, false)?.is_symlink() {
+    if !FileType::<()>::from_path_shallow(path, false)?.is_symlink() {
         return Err(FsError::new(
             FsErrorKind::NotASymlinkError,
             path.into(),

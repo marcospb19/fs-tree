@@ -43,6 +43,10 @@ impl<T> File<T> {
     /// Create `File` from arguments
     ///
     /// Should be unsafe?
+    ///
+    /// # Safety
+    /// The behavior might be undefined if the `path` has more than one
+    /// `component`
     pub unsafe fn new_unchecked(path: impl AsRef<Path>, file_type: FileType<T>) -> Self {
         File {
             path: path.as_ref().to_path_buf(),
