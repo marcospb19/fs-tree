@@ -78,26 +78,31 @@ impl<'a, T> FilesIter<'a, T> {
         self
     }
 
+    /// Filter out all directories
     pub fn skip_dirs(mut self, arg: bool) -> Self {
         self.skip_dirs = arg;
         self
     }
 
+    /// Filter out all regular files
     pub fn skip_regular_files(mut self, arg: bool) -> Self {
         self.skip_regular_files = arg;
         self
     }
 
+    /// Filter out all symlinks
     pub fn skip_symlinks(mut self, arg: bool) -> Self {
         self.skip_symlinks = arg;
         self
     }
 
+    /// Filter out all the next entries that are below a minimum depth
     pub fn min_depth(mut self, min: usize) -> Self {
         self.min_depth = min;
         self
     }
 
+    /// Filter out all the next entries that are above a maximum depth
     pub fn max_depth(mut self, max: usize) -> Self {
         self.max_depth = max;
         self
@@ -165,6 +170,7 @@ impl<'a, T> Iterator for FilesIter<'a, T> {
     }
 }
 
+/// Iterator for each path inside of the recursive struct
 #[derive(Debug, Clone)]
 pub struct PathsIter<'a, T> {
     file_iter: FilesIter<'a, T>,
@@ -173,18 +179,24 @@ pub struct PathsIter<'a, T> {
 }
 
 impl<'a, T> PathsIter<'a, T> {
-    pub fn new(file_iter: FilesIter<'a, T>) -> Self {
+    // Used by `FilesIter::paths(self)`
+    fn new(file_iter: FilesIter<'a, T>) -> Self {
         Self {
             file_iter,
             only_show_last_segment: false,
         }
     }
 
+    /// Apply `Path::file_name` to each iteration
     pub fn only_show_last_segment(mut self, arg: bool) -> Self {
         self.only_show_last_segment = arg;
         self
     }
 
+    /// Query for depth of the last element
+    ///
+    /// Depth is 1 for the first one, so it is 0 before any `.next()` call, and
+    /// 0 after reaching the end of the iterator.
     pub fn depth(&self) -> usize {
         self.file_iter.depth()
     }
