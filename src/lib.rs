@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+
 //! Representation of directory/file structure in file system to create, delete
 //! or link.
 //!
@@ -30,8 +32,11 @@
 //! .merge() method for File
 //! FileType -> mode_t
 
+/// `File` struct.
 pub mod file;
+/// `FileType` struct.
 pub mod file_type;
+/// Iterators for `File`: `FilesIter` and `PathsIter`
 pub mod iter;
 
 pub use file::File;
@@ -48,6 +53,6 @@ pub use iter::{FilesIter, PathsIter};
 pub mod util;
 
 // Exposing error module and everything inside of it, redundantly
-/// `FSError`, `FSErrorKind` and `FSResult`
+/// `FsError`, `FsErrorKind` and `FsResult`
 pub mod error;
 pub use crate::error::*;

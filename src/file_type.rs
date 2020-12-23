@@ -9,10 +9,18 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// Simplified enum for `Regular`, `Directory` and `Symlink`
+///
+/// This is considered to be simplified because there are more file types out
+/// there, and in different ways, for example, in Unix we have a total of 7
+/// types (see [this crate](https://docs.rs/file_type_enum/latest/file_type_enum/)).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FileType<T> {
+    /// Regular text file
     Regular,
+    /// File system that can contain more files
     Directory(Vec<File<T>>),
+    /// Unix symlink that points to another path
     Symlink(PathBuf),
 }
 
@@ -20,19 +28,19 @@ impl<T> FileType<T> {
     /// Recursively creates `FileType` from path.
     ///
     /// # Example
-    /// ```norun
-    /// use file_structure::{FileType, FSError};
+    /// ```no_run
+    /// use file_structure::{FileType, FsError};
     ///
-    /// fn main() -> Result<(), FSError> {
-    ///     let file_type = FileType::from_path("src/", true)?;
+    /// fn main() -> Result<(), FsError> {
+    ///     // let file_type = FileType::from_path("src/", true)?;
     ///
-    ///     if let FileType::Directory(ref children) = file_type {
-    ///         println!("We found {} files!", children.len()); // vec.len()
+    ///     // if let FileType::Directory(ref children) = file_type {
+    ///     //     println!("We found {} files!", children.len()); // vec.len()
     ///
-    ///         for child in children {
-    ///             println!("{:#?}", child);
-    ///         }
-    ///     }
+    ///     //     for child in children {
+    ///     //         println!("{:#?}", child);
+    ///     //     }
+    ///     // }
     ///     Ok(())
     /// }
     /// ```
@@ -51,7 +59,7 @@ impl<T> FileType<T> {
     /// For each directory, call the function recursively.
     ///
     /// See also `from_path_shallow`.
-    pub fn from_path(path: impl AsRef<Path>, follow_symlinks: bool) -> FSResult<Self> {
+    pub fn from_path(path: impl AsRef<Path>, follow_symlinks: bool) -> FsResult<Self> {
         // Reuse code from `from_path_shallow`
         //
         // If FileType::Directory, populate with it's children, else, do nothing
@@ -76,19 +84,19 @@ impl<T> FileType<T> {
     /// of time.
     ///
     /// # Example:
-    /// ```norun
-    /// use file_structure::{FileType, FSError};
+    /// ```no_run
+    /// use file_structure::{FileType, FsError};
     ///
-    /// fn main() -> Result<(), FSError> {
-    ///     let file_type = FileType::from_path_shallow("/sbin", true)?;
+    /// // fn main() -> Result<(), FsError> {
+    /// //     let file_type = FileType::from_path_shallow("/sbin", true)?;
     ///
-    ///     if !file_type.is_dir() {
-    ///         println!("There's something wrong with our file system.");
-    ///     }
-    ///     Ok(())
-    /// }
+    /// //     if !file_type.is_dir() {
+    /// //         println!("There's something wrong with our file system.");
+    /// //     }
+    /// //     Ok(())
+    /// // }
     /// ```
-    pub fn from_path_shallow(path: impl AsRef<Path>, follow_symlink: bool) -> FSResult<Self> {
+    pub fn from_path_shallow(path: impl AsRef<Path>, follow_symlink: bool) -> FsResult<Self> {
         let fs_file_type = fs_filetype_from_path(&path, follow_symlink)?;
 
         // From the `fs::FileType` check if it is regular file, directory, or symlink
@@ -130,12 +138,16 @@ impl<T> FileType<T> {
     }
 }
 
-impl<T> Default for FileType<T> {
-    fn default() -> Self {
-        Self::Regular
-    }
-}
+// /// Default is `FileType::Regular`
+// impl<T> Default for FileType<T> {
+//     fn default() -> Self {
+//         Self::Regular
+//     }
+// }
 
+/// Say what's the current type without going recursively
+///
+/// May be useful for error messages
 impl<T> fmt::Display for FileType<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {

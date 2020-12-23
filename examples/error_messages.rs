@@ -1,9 +1,9 @@
-use file_structure::{util::*, FSResult, File};
+use file_structure::{util::*, File, FsResult};
 
 fn main() {
     let path = "src/ex.rs";
 
-    let temp: FSResult<Vec<File<()>>> = collect_directory_children(path, false);
+    let temp: FsResult<Vec<File<()>>> = collect_directory_children(path, false);
 
     if let Err(err) = temp {
         eprintln!("{}", err);

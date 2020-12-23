@@ -1,11 +1,13 @@
 use std::{error, fmt, io, path::PathBuf};
 
-pub type FSResult<T> = Result<T, FSError>;
+/// The only `Result` used in the public API of this crate
+pub type FsResult<T> = Result<T, FsError>;
 
+/// The error type for this crate
 #[derive(Debug)]
-pub struct FSError {
+pub struct FsError {
     context: &'static str, // Optional aditional context for debugging purposes, can be empty
-    kind: FSErrorKind,
+    kind: FsErrorKind,
     path: PathBuf,
 }
 
@@ -17,8 +19,8 @@ pub struct FSError {
 /// ```
 ///
 /// Note that all our functions execute excessive checks before
-impl FSError {
-    pub(crate) fn new(kind: FSErrorKind, path: PathBuf, context: &'static str) -> Self {
+impl FsError {
+    pub(crate) fn new(kind: FsErrorKind, path: PathBuf, context: &'static str) -> Self {
         Self {
             context,
             kind,
@@ -26,31 +28,40 @@ impl FSError {
         }
     }
 
+    /// Description of the error
     pub fn context(&self) -> &'static str {
         self.context
     }
 
-    pub fn kind(&self) -> &FSErrorKind {
+    /// Enum with all possible error variants
+    pub fn kind(&self) -> &FsErrorKind {
         &self.kind
     }
 
+    /// Path to where the error occurred
     pub fn path(&self) -> &PathBuf {
         &self.path
     }
 }
 
+/// A list of possible error reasons
 #[derive(Debug)]
-pub enum FSErrorKind {
+pub enum FsErrorKind {
+    /// Any error regarding `io::Result` read operations that failed
     ReadError(io::Error),
+    /// Any error regarding `io::Result` write operations that failed
     WriteError(io::Error),
+    /// The file was not found
     NotFoundError,
+    /// Expected a FileType::Directory, found something else
     NotADirectoryError,
+    /// Expected a FileType::Symlink, found something else
     NotASymlinkError,
 }
 
-use FSErrorKind::*;
+use FsErrorKind::*;
 
-impl error::Error for FSError {
+impl error::Error for FsError {
     // Should this return Option<&io::Error> instead? nope, let's keep it like this
     // while there's no logistic link error...
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
@@ -61,7 +72,7 @@ impl error::Error for FSError {
     }
 }
 
-impl fmt::Display for FSError {
+impl fmt::Display for FsError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind {
             ReadError(ref io_err) => {
@@ -85,8 +96,8 @@ impl fmt::Display for FSError {
     }
 }
 
-// impl From<io::Error> for FSError {
+// impl From<io::Error> for FsError {
 //     fn from(err: io::Error) -> Self {
-//         FSError::IoError(err)
+//         FsError::IoError(err)
 //     }
 // }

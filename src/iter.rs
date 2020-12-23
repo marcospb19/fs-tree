@@ -6,6 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// An iterator over all `File` inside of the recursive struct
 #[derive(Debug, Clone)]
 pub struct FilesIter<'a, T> {
     // Directories go at the back, files at the front
@@ -48,11 +49,30 @@ impl<'a, T> FilesIter<'a, T> {
         self.current_depth
     }
 
+    /// Consume this `File` iterator into a `Path` iterator
     pub fn paths(self) -> PathsIter<'a, T> {
         PathsIter::new(self)
     }
 
-    // Applying filters
+    /// Retrieve files before the directories when possible
+    ///
+    /// If true, when reading files inside a directory, put it in the start or
+    /// end of the VecDeque in a way that is deterministic
+    ///
+    /// Example:
+    /// ```no_run
+    /// // let mut it = root.files().files_before_directories(true);
+    /// // assert_eq!(it.next(), Some(refs[0])); // .config/
+    /// // assert_eq!(it.next(), Some(refs[8])); // .config/outerfile1
+    /// // assert_eq!(it.next(), Some(refs[9])); // .config/outerfile2
+    /// // assert_eq!(it.next(), Some(refs[1])); // .config/i3/
+    /// // assert_eq!(it.next(), Some(refs[2])); // .config/i3/file1
+    /// // assert_eq!(it.next(), Some(refs[3])); // .config/i3/file2
+    /// // assert_eq!(it.next(), Some(refs[7])); // .config/i3/file3
+    /// // assert_eq!(it.next(), Some(refs[4])); // .config/i3/dir/
+    /// // assert_eq!(it.next(), Some(refs[5])); // .config/i3/dir/innerfile1
+    /// // assert_eq!(it.next(), Some(refs[6])); // .config/i3/dir/innerfile2
+    /// ```
     pub fn files_before_directories(mut self, arg: bool) -> Self {
         self.files_before_directories = arg;
         self
@@ -169,7 +189,8 @@ impl<'a, T> PathsIter<'a, T> {
         self.file_iter.depth()
     }
 
-    /// True implementation of `Iterator` for `PathsIter`, without `.clone()`
+    /// Underlying implementation of `Iterator` for `PathsIter`, without any
+    /// `.clone()`
     pub fn next_ref(&mut self) -> Option<&Path> {
         let file = self.file_iter.next()?;
 
@@ -225,19 +246,20 @@ mod tests {
 
         // Create the strucutre
         #[rustfmt::skip]
-        let root = File::new(".config/", Directory(vec![
-            File::new(".config/i3/", Directory(vec![
-                File::new(".config/i3/file1", Regular),
-                File::new(".config/i3/file2", Regular),
-                File::new(".config/i3/dir/", Directory(vec![
-                    File::new(".config/i3/dir/innerfile1", Regular),
-                    File::new(".config/i3/dir/innerfile2", Regular)
+        let root = unsafe {
+            File::new_unchecked(".config/", Directory(vec![
+            File::new_unchecked(".config/i3/", Directory(vec![
+                File::new_unchecked(".config/i3/file1", Regular),
+                File::new_unchecked(".config/i3/file2", Regular),
+                File::new_unchecked(".config/i3/dir/", Directory(vec![
+                    File::new_unchecked(".config/i3/dir/innerfile1", Regular),
+                    File::new_unchecked(".config/i3/dir/innerfile2", Regular)
                 ])),
-                File::new(".config/i3/file3", Regular),
+                File::new_unchecked(".config/i3/file3", Regular),
             ])),
-            File::new(".config/outerfile1", Regular),
-            File::new(".config/outerfile2", Regular)
-        ]));
+            File::new_unchecked(".config/outerfile1", Regular),
+            File::new_unchecked(".config/outerfile2", Regular)
+        ]))};
 
         #[rustfmt::skip]
         // Get the references in line order, from top to bottom

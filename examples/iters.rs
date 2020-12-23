@@ -1,7 +1,7 @@
-use file_structure::{FSError, File, FileType};
+use file_structure::{File, FileType, FsError};
 
 #[allow(unused_variables)]
-fn main() -> Result<(), FSError> {
+fn main() -> Result<(), FsError> {
     let examples_folder = File::<()>::new_from_path("examples/", true)?;
 
     // Recursive iterator that starts at file `examples_folder`
