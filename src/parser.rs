@@ -8,8 +8,7 @@
 // supported inside of it
 //
 // After groups we expect line break!!!!
-use crate::{lexer::SpannedLexToken, GroupsMap, LexToken};
-use file_structure::{File, FileType};
+use crate::{lexer::SpannedLexToken, File, FileType, GroupsMap, LexToken};
 use std::{fmt, path::PathBuf, result};
 
 type Stack<T> = Vec<T>;
@@ -34,6 +33,7 @@ impl ParserError {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum ParserErrorKind {
     BracketUnclosed,

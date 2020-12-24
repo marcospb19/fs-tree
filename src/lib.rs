@@ -12,4 +12,6 @@ pub use lexer::LexToken;
 use std::collections::BTreeMap;
 
 pub(crate) type File = file_structure::File<()>;
+pub(crate) use file_structure::FileType;
+
 pub(crate) type GroupsMap = BTreeMap<String, Vec<File>>;
