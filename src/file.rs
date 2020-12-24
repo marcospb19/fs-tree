@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 /// ```txt
 /// "a": [
 ///     "b",
-///     "c"
+///     "c",
 /// ]
 /// ```
 ///
@@ -35,7 +35,10 @@ impl<T> File<T> {
     /// it, because it breaks iterators functionality.
     pub fn new(path: impl AsRef<Path>, file_type: FileType<T>) -> Self {
         // Todo: remove this and update docs!
-        assert_eq!(1, path.as_ref().components().count(), "Only one component");
+        if !file_type.is_dir() && path.as_ref().components().count() > 1 {
+            panic!("Not a directory and has more than one component");
+            // return Err(FsError::NotADirectory);
+        }
 
         unsafe { File::new_unchecked(path, file_type) }
     }
@@ -56,11 +59,43 @@ impl<T> File<T> {
     }
 
     /// Create `File` reading from the `path`
-    pub fn new_from_path(path: impl AsRef<Path>, follow_symlinks: bool) -> FsResult<Self> {
+    ///
+    /// Accesses the filesystem to build it up
+    pub fn from_path(path: impl AsRef<Path>, follow_symlinks: bool) -> FsResult<Self> {
         let file_type = FileType::from_path(&path, follow_symlinks)?;
         let result = File::new(path, file_type);
 
         Ok(result)
+    }
+
+    /// Create `File` structure from text passed
+    ///
+    /// This is made up from the text in the `path` argument
+    ///
+    /// Examples:
+    /// ```
+    /// use std::path::PathBuf;
+    /// use file_structure::File;
+    ///
+    /// // Makes directory "a" with directory "b" with file "c"
+    /// let file = File::<()>::from_text("a/b/c");
+    /// assert!(file.is_dir());
+    /// assert_eq!(file.children().unwrap().len(), 1);
+    /// assert_eq!(file.children().unwrap()[0].path, PathBuf::from("b"));
+    /// ```
+    pub fn from_text(path: impl AsRef<Path>) -> Self {
+        let path = path.as_ref();
+
+        if path.iter().count() <= 1 {
+            File::new(path, FileType::Regular)
+        } else {
+            let mut components = path.iter();
+            let (first, rest): (PathBuf, PathBuf) =
+                (components.next().unwrap().into(), components.collect());
+
+            let child = File::from_text(rest);
+            File::new(first, FileType::Directory(vec![child]))
+        }
     }
 
     /// Iterator of all `File`s in the structure
@@ -77,14 +112,31 @@ impl<T> File<T> {
     pub fn children(&self) -> Option<&Vec<File<T>>> {
         self.file_type.children()
     }
+
+    /// Shorthand for `file.file_type.is_regular()`
+    pub fn is_regular(&self) -> bool {
+        self.file_type.is_regular()
+    }
+
+    /// Shorthand for `file.file_type.is_dir()`
+    pub fn is_dir(&self) -> bool {
+        self.file_type.is_dir()
+    }
+
+    /// Shorthand for `file.file_type.is_symlink()`
+    pub fn is_symlink(&self) -> bool {
+        self.file_type.is_symlink()
+    }
 }
 
-// impl<T: Default> Default for File<T> {
-//     fn default() -> Self {
-//         File {
-//             path: Default::default(),
-//             file_type: FileType::Regular,
-//             extra: Default::default(),
-//         }
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn fail_test_regular_file_with_multiple_components() {
+        // Should use `File::from_text()` instead
+        let _ = File::<()>::new("a/b", FileType::Regular);
+    }
+}
