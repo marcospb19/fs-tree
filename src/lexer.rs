@@ -11,8 +11,8 @@ pub enum LexToken {
     //   - [group_name]
     //   -[spacing_is_optional]
     #[regex(" *- *\\[ *[^\\] ]+ *\\]", |lex| {
-        let start = lex.slice().find("[").unwrap();
-        let end = lex.slice().rfind("]").unwrap();
+        let start = lex.slice().find('[').unwrap();
+        let end = lex.slice().rfind(']').unwrap();
 
         let slice: &str = &lex.slice()[start + 1..end].trim();
 
@@ -35,8 +35,8 @@ pub enum LexToken {
 
     // Value token delimited by ""
     #[regex("\"[^\"]+\"", |lex| {
-        let start = lex.slice().find("\"").unwrap();
-        let end = lex.slice().rfind("\"").unwrap();
+        let start = lex.slice().find('\"').unwrap();
+        let end = lex.slice().rfind('\"').unwrap();
 
         let slice: &str = &lex.slice()[start + 1..end];
 
