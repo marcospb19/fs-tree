@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 logos = "0.11.4"
-file-structure = "0.0.2"
+file-structure = { path = "../file-structure" }
