@@ -4,7 +4,10 @@ use crate::{
     iter::{FilesIter, PathsIter},
 };
 
-use std::path::{Path, PathBuf};
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+};
 
 /// Recursive file representation that supports a generic extra field
 ///
@@ -18,7 +21,7 @@ use std::path::{Path, PathBuf};
 /// ```
 ///
 /// The inner files path is "a/b" and "a/c" instead of just "b" or "c"
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct File<T> {
     /// Relative path to File
     pub path: PathBuf,
@@ -36,7 +39,7 @@ impl<T> File<T> {
     pub fn new(path: impl AsRef<Path>, file_type: FileType<T>) -> Self {
         // Todo: remove this and update docs!
         if !file_type.is_dir() && path.as_ref().components().count() > 1 {
-            panic!("Not a directory and has more than one component");
+            // panic!("Not a directory and has more than one component");
             // return Err(FsError::NotADirectory);
         }
 
@@ -129,14 +132,26 @@ impl<T> File<T> {
     }
 }
 
+impl<T: fmt::Debug> fmt::Debug for File<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut ds = f.debug_struct("File");
+        ds.field("path", &self.path);
+        ds.field("file_type", &self.file_type);
+        if std::mem::size_of::<T>() != 0 {
+            ds.field("extra", &self.extra);
+        }
+        ds.finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // use super::*;
 
-    #[test]
-    #[should_panic]
-    fn fail_test_regular_file_with_multiple_components() {
-        // Should use `File::from_text()` instead
-        let _ = File::<()>::new("a/b", FileType::Regular);
-    }
+    // #[test]
+    // #[should_panic]
+    // fn fail_test_regular_file_with_multiple_components() {
+    //     // Should use `File::from_text()` instead
+    //     let _ = File::<()>::new("a/b", FileType::Regular);
+    // }
 }
