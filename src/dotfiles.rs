@@ -1,7 +1,6 @@
-use crate::{
-    error::*,
-    file::{collect_files_from_directory, File, FileType},
-};
+use crate::error::*;
+
+use file_structure::{collect_directory_children, File, FileType};
 
 use std::{
     collections::VecDeque,
@@ -27,12 +26,15 @@ impl DotfileGroup {
 
         if !path.exists() {
             return Err(DotaoError::NotFoundInFilesystem);
-        } else if !FileType::from_path_shallow(&path, follow_symlinks)?.is_directory() {
+        } else if !FileType::from_path_shallow(&path, follow_symlinks)
+            .unwrap()
+            .is_dir()
+        {
             return Err(DotaoError::NotADirectory);
         }
 
         // Recursively get all chidren from the directory path
-        let files = collect_files_from_directory(&path, follow_symlinks)?;
+        let files = collect_directory_children(&path, follow_symlinks).unwrap();
         if files.is_empty() {
             panic!("This is empty"); // Later treat this without panic
         }
@@ -67,7 +69,7 @@ impl DotfileGroup {
         let mut deque = VecDeque::new();
 
         while let Some(file) = self.files.pop() {
-            if file.file_type.is_directory() {
+            if file.file_type.is_dir() {
                 deque.push_back(file);
             } else {
                 deque.push_front(file);

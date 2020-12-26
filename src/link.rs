@@ -1,8 +1,6 @@
-use crate::{
-    dotfiles::DotfileGroup,
-    error::*,
-    file::{File, FileType},
-};
+use crate::{dotfiles::DotfileGroup, error::*};
+
+use file_structure::{File, FileType};
 
 use std::{
     collections::VecDeque,
@@ -91,12 +89,13 @@ impl LinkInformation {
                 }
 
                 let source_file_type = file.file_type;
-                if let FileType::SymbolicLink { .. } = source_file_type {
+                if let FileType::Symlink { .. } = source_file_type {
                     panic!("No symlinks allowed in source");
                 }
 
                 // THIS IS SHALLOW!
-                let destination_file_type = FileType::from_path_shallow(&destination_path, false)?;
+                let destination_file_type =
+                    FileType::from_path_shallow(&destination_path, false).unwrap();
                 match destination_file_type {
                     FileType::File => {
                         self.link_check_for_regular_file(
@@ -117,13 +116,13 @@ impl LinkInformation {
                                 //
                                 //
                             },
-                            FileType::SymbolicLink { .. } => unreachable!(),
+                            FileType::Symlink { .. } => unreachable!(),
                         }
                         // let should_add_children =
                         //     self.link_check_for_directory(source_path,
                         // destination_path);
                     },
-                    FileType::SymbolicLink { target_path } => {
+                    FileType::Symlink { target_path } => {
                         self.link_check_for_symlink(
                             source_path,
                             destination_path,
@@ -161,55 +160,6 @@ impl LinkInformation {
         }
         Ok(())
     }
-
-    // fn link_check_for_directory(
-    //     &mut self,
-    //     _source_path: PathBuf,
-    //     _destination_path: PathBuf,
-    //     // _source_file_type: FileType,
-    // ) -> io::Result<bool> {
-    //     if false {
-    //         // Se o tree-file ta obrigando que isso daqui seja um diretório
-    // linkado memo         // memo, caso caso
-    //         unimplemented!();
-    //     } else {
-    //         Ok(true)
-    //     }
-    // println!("Meu deus {}", destination_path.display());
-    // std::process::exit(123);
-    /* if self.link_behavior.overwrite_directories */
-    // println!("Deleting directory at '{}'?", destination_path.display());
-    // self.payload
-    //     .deletes
-    //     .push((destination_path.clone(), FileType::Directory {
-    //         children: vec![],
-    //     }));
-    // self.payload.links.push((source_path, destination_path));
-    // unimplemented!();
-    // Ok(true)
-
-    // if false {
-    //     println!("Deleting directory at '{}'?",
-    // destination_path.display());     self.payload
-    //         .deletes
-    //         .push((destination_path.clone(), FileType::Directory {
-    //             children: vec![],
-    //         }));
-    //     self.payload.links.push((source_path, destination_path));
-    //     return Ok(false);
-    // } else {
-    //     println!(
-    //         "Error deleting directory at '{}'?",
-    //         destination_path.display()
-    //     );
-    //     self.conflicts.push(Box::new(DotaoError::LinkError2 {
-    //         file_type: FileType::from_path_shallow(&destination_path,
-    // false).unwrap(),         source_path,
-    //         destination_path,
-    //     }))
-    // }
-    // Ok(true)
-    // }
 
     fn link_check_for_symlink(
         &mut self,
