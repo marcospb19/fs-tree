@@ -1,5 +1,2 @@
-target/
+target
 Cargo.lock
-
-# Rustfmt
-**/*.rs.bk
