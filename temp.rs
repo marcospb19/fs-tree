@@ -170,7 +170,7 @@
 /// folder, recursively, following symlinks
 ///
 /// So, the method that links the DotfileGroup will panic if you let a
-/// FileType::SymbolicLink inside of the file tree, this may change in the
+/// FileType::Symlink inside of the file tree, this may change in the
 /// future, ok?
 ///
 /// For now just keep in mind that it does not make sense to have a symlink
