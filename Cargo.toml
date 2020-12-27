@@ -1,3 +1,6 @@
+# Dotao's repository has a workspace with a top-level crate and
+# other crates in divided into other folders
+
 [package]
 name = "dotao"
 version = "0.1.0"
@@ -10,15 +13,12 @@ keywords = ["dotfiles"]
 
 [dependencies]
 clap = "2.33"
-permissions = "*"
 toml = "*"
-file-structure = "*"
 
-# [dependencies.other]
-# version = "0.0"
-# path = "./other"
-# default-features = false
-# optional = true
+# Dependencies from us
+file-structure = { path = "./file-structure" }
+permissions = { path = "./permissions" }
+tree-file = { path = "./tree-file" }
 
 # Todo:
 # When publishing a new version:
@@ -29,6 +29,7 @@ file-structure = "*"
 [workspace]
 members = [
     ".",
-    # "other",
-    # "other",
+    "file-structure",
+    "permissions",
+    "tree-file",
 ]
