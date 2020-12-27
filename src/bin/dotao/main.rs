@@ -7,7 +7,8 @@ use dotao::{
     link::{LinkBehavior, LinkInformation},
 };
 
-use toml::{map::Map as TomlMap, Value as TomlValue};
+// use toml::map::Map as TomlMap;
+use toml::Value as TomlValue;
 
 use std::{env, fs, path::PathBuf, process};
 
@@ -29,9 +30,9 @@ fn get_config_from_file() -> Option<TomlValue> {
 }
 
 fn main() {
-    let toml_config_file = get_config_from_file();
+    let _toml_config_file = get_config_from_file();
 
-    let config = std::env::set_current_dir("/home/marcospb19/dotfiles").unwrap();
+    let _config = std::env::set_current_dir("/home/marcospb19/dotfiles").unwrap();
     let args = cli::parse_args();
 
     let mut groups: Vec<DotfileGroup> = vec![];

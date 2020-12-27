@@ -172,6 +172,7 @@ pub fn parse_tokens(spanned_tokens: Vec<SpannedLexToken>) -> ParserResult<Groups
             LexToken::Group(group) => {
                 // Add everything from last group
                 update_map_group(&mut map, current_group, &mut file_stack);
+                // Update the group for the next entries
                 current_group = group.into();
             },
 
