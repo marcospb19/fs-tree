@@ -1,0 +1,9 @@
+[package]
+name = "tree-file"
+version = "0.0.1"
+authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
+edition = "2018"
+
+[dependencies]
+logos = "0.11.4"
+file-structure = { path = "../file-structure" }
