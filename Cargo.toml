@@ -1,11 +1,34 @@
 [package]
 name = "dotao"
 version = "0.1.0"
-authors = ["João Marcos <marcospb19@hotmail.com>"]
+authors = ["João Marcos Bezerra <marcospb19@hotmail.com>"]
 edition = "2018"
+license = "MIT"
+repository = "https://github.com/marcospb19/dotao"
+description = "Dotfiles manager (WIP) inspired by Stow"
+keywords = ["dotfiles"]
 
 [dependencies]
 clap = "2.33"
 permissions = "*"
 toml = "*"
 file-structure = "*"
+
+# [dependencies.other]
+# version = "0.0"
+# path = "./other"
+# default-features = false
+# optional = true
+
+# Todo:
+# When publishing a new version:
+# - Update CHANGELOG.md
+# - Update README.md
+# - Create "crossbeam-X.Y.Z" git tag
+
+[workspace]
+members = [
+    ".",
+    # "other",
+    # "other",
+]
