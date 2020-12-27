@@ -1,0 +1,3 @@
+overwrite_files = true
+overwrite_directories = true
+overwrite_symlinks = true
