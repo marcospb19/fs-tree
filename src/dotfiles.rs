@@ -1,6 +1,6 @@
 use crate::error::*;
 
-use file_structure::{collect_directory_children, File, FileType};
+use file_structure::{util::collect_directory_children, File, FileType};
 
 use std::{
     collections::VecDeque,
@@ -10,11 +10,11 @@ use std::{
 #[derive(Debug, Default, Clone)]
 pub struct DotfileGroup {
     pub starting_path: PathBuf,
-    pub files: Vec<File>,
+    pub files: Vec<File<()>>,
 }
 
 impl DotfileGroup {
-    pub fn new(starting_path: PathBuf, files: Vec<File>) -> Self {
+    pub fn new(starting_path: PathBuf, files: Vec<File<()>>) -> Self {
         DotfileGroup {
             starting_path,
             files,
@@ -26,7 +26,7 @@ impl DotfileGroup {
 
         if !path.exists() {
             return Err(DotaoError::NotFoundInFilesystem);
-        } else if !FileType::from_path_shallow(&path, follow_symlinks)
+        } else if !FileType::<()>::from_path_shallow(&path, follow_symlinks)
             .unwrap()
             .is_dir()
         {
@@ -50,7 +50,7 @@ impl DotfileGroup {
         // Calculate length of prefix to trim
         let len_to_trim = self.starting_path.iter().count();
 
-        let mut stack: Vec<&mut File> = self.files.iter_mut().collect();
+        let mut stack: Vec<&mut File<()>> = self.files.iter_mut().collect();
 
         // Pop elements and trim them, if they are directory, push each child, because
         // it also needs to be trimmed
@@ -59,13 +59,13 @@ impl DotfileGroup {
             file.path = file.path.iter().skip(len_to_trim).collect();
 
             // If it is a directory, push children
-            if let FileType::Directory { children } = &mut file.file_type {
+            if let FileType::Directory(children) = &mut file.file_type {
                 stack.extend(children);
             }
         }
     }
 
-    pub fn files_into_queue(&mut self) -> VecDeque<File> {
+    pub fn files_into_queue(&mut self) -> VecDeque<File<()>> {
         let mut deque = VecDeque::new();
 
         while let Some(file) = self.files.pop() {

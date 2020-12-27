@@ -17,7 +17,7 @@ pub enum DotaoError {
     LinkError2 {
         source_path: PathBuf,
         destination_path: PathBuf,
-        file_type: FileType,
+        file_type: FileType<()>,
     },
     ReadError {
         path: PathBuf,

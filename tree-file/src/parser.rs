@@ -175,7 +175,7 @@ pub fn parse_tokens(spanned_tokens: Vec<SpannedLexToken>) -> ParserResult<Groups
                 current_group = group.into();
             },
 
-            /// João Marcos!! editar isso pls
+            // João Marcos!! editar isso pls
             // LexToken::Group(group) => {
             //     // Add everything from last group
             //     update_map_group(&mut map, current_group, &mut file_stack);

@@ -24,10 +24,12 @@ pub enum LexToken {
     // Examples:
     //   (a, b)
     //   (unix)
-    #[regex(r"\(([^\)\\]|\\t|\\u|\\n|\\\))*\)", |lex| {
-        let vec = vec![];
-        let potential_flags = vec![];
-        lex.source()[lex.span()].chars().map(String::from).collect()
+    #[regex(r"\(([^\)\\]|\\t|\\u|\\n|\\\))*\)", |_lex| {
+        // let vec = vec![];
+        // let potential_flags = vec![];
+        // let vec: Vec<String> = lex.source()[lex.span()].chars().map(String::from).collect();
+        // vec
+        vec![]
     })]
     Flags(Vec<String>),
 

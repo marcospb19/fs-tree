@@ -45,7 +45,7 @@ pub struct LinkInformation {
 #[derive(Default, Clone, Debug)]
 pub struct LinkPayload {
     links: Vec<(PathBuf, PathBuf)>,
-    deletes: Vec<(PathBuf, FileType)>,
+    deletes: Vec<(PathBuf, FileType<()>)>,
 }
 
 impl LinkInformation {
@@ -63,7 +63,7 @@ impl LinkInformation {
         let copy = self.groups.clone();
         for group in copy.into_iter() {
             //
-            let mut deque: VecDeque<File> = VecDeque::from(group.files.clone());
+            let mut deque: VecDeque<File<()>> = VecDeque::from(group.files.clone());
             // println!("{:#?}", deque);
 
             while let Some(file) = deque.pop_front() {
@@ -97,7 +97,7 @@ impl LinkInformation {
                 let destination_file_type =
                     FileType::from_path_shallow(&destination_path, false).unwrap();
                 match destination_file_type {
-                    FileType::File => {
+                    FileType::Regular => {
                         self.link_check_for_regular_file(
                             source_path,
                             destination_path,
@@ -108,8 +108,8 @@ impl LinkInformation {
                     },
                     FileType::Directory { .. } => {
                         match source_file_type {
-                            FileType::File => panic!("Cannot delete directory to link file."),
-                            FileType::Directory { children } => {
+                            FileType::Regular => panic!("Cannot delete directory to link file."),
+                            FileType::Directory(children) => {
                                 for child in children.iter() {
                                     deque.push_back(child.clone());
                                 }
@@ -122,7 +122,7 @@ impl LinkInformation {
                         //     self.link_check_for_directory(source_path,
                         // destination_path);
                     },
-                    FileType::Symlink { target_path } => {
+                    FileType::Symlink(target_path) => {
                         self.link_check_for_symlink(
                             source_path,
                             destination_path,
@@ -141,8 +141,8 @@ impl LinkInformation {
         &mut self,
         source_path: PathBuf,
         destination_path: PathBuf,
-        _source_file_type: FileType,
-        destination_file_type: FileType,
+        _source_file_type: FileType<()>,
+        destination_file_type: FileType<()>,
     ) -> io::Result<()> {
         if self.link_behavior.overwrite_files {
             println!("Deleting file at '{}'?", destination_path.display());
@@ -165,7 +165,7 @@ impl LinkInformation {
         &mut self,
         source_path: PathBuf,
         destination_path: PathBuf,
-        destination_file_type: FileType,
+        destination_file_type: FileType<()>,
         current_path: &PathBuf,
     ) -> io::Result<()> {
         if *current_path == source_path {
@@ -204,7 +204,7 @@ impl LinkInformation {
     pub fn proceed_and_link(&self) -> Result<()> {
         for (path, file_type) in &self.payload.deletes {
             match file_type {
-                FileType::File => fs::remove_file(path)?,
+                FileType::Regular => fs::remove_file(path)?,
                 _ => unimplemented!(),
             }
         }
