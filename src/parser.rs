@@ -175,8 +175,18 @@ pub fn parse_tokens(spanned_tokens: Vec<SpannedLexToken>) -> ParserResult<Groups
                 current_group = group.into();
             },
 
-            _ => {
-                eprintln!("_ => {{ eprintln!(); }},");
+            /// João Marcos!! editar isso pls
+            // LexToken::Group(group) => {
+            //     // Add everything from last group
+            //     update_map_group(&mut map, current_group, &mut file_stack);
+            //     current_group = group.into();
+            // },
+            other @ LexToken::LexError => {
+                eprintln!("lexer_error => eprintln!({:#?});", other);
+            },
+
+            other => {
+                eprintln!("parser_error => eprintln!({:#?});", other);
             },
         }
     }

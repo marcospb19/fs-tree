@@ -7,7 +7,6 @@ mod parser;
 pub use error::TreeFileError;
 pub use groups::Groups;
 pub use lexer::LexToken;
-// pub use value::Value;
 
 use std::collections::BTreeMap;
 
