@@ -11,7 +11,7 @@ pub struct Groups {
 impl Groups {
     pub fn from_text(text: &str) -> Self {
         let tokens = run_lexer(text);
-        let map = parse_tokens(tokens).unwrap_or_else(|err| {
+        let map = parse_tokens(tokens, text).unwrap_or_else(|err| {
             eprintln!("Error: '{}'", err);
             process::exit(1);
         });

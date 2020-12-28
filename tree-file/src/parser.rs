@@ -13,8 +13,6 @@ use std::{fmt, path::PathBuf, result};
 
 type Stack<T> = Vec<T>;
 
-const DEFAULT_GROUP: &str = "main";
-
 enum ParserState {
     Clear,
     Busy,
@@ -56,7 +54,10 @@ fn update_map_group(map: &mut GroupsMap, group: String, files: &mut Stack<File>)
     }
 }
 
-pub fn parse_tokens(spanned_tokens: Vec<SpannedLexToken>) -> ParserResult<GroupsMap> {
+pub fn parse_tokens(
+    spanned_tokens: Vec<SpannedLexToken>,
+    original_text: &str,
+) -> ParserResult<GroupsMap> {
     let mut map = GroupsMap::new();
 
     let mut current_line = 1;
@@ -65,12 +66,14 @@ pub fn parse_tokens(spanned_tokens: Vec<SpannedLexToken>) -> ParserResult<Groups
     let mut file_stack: Stack<File> = Stack::new();
     let mut quantity_stack: Stack<usize> = vec![0];
     let mut read_state = ParserState::Clear;
-    let mut current_group = String::from(DEFAULT_GROUP);
+    let mut current_group = String::from("main");
     let mut already_read_some_lmao = false;
     let mut brackets_open_position = vec![];
 
     let mut tokens_iter = spanned_tokens.into_iter().peekable();
     let mut depth = 0;
+
+    // let mut pending_flags: Vec<String> = vec![];
 
     while let Some((token, range)) = tokens_iter.next() {
         let current_column = range.start - current_line_start_index;
@@ -107,7 +110,6 @@ pub fn parse_tokens(spanned_tokens: Vec<SpannedLexToken>) -> ParserResult<Groups
 
             LexToken::DoubleDots => {
                 // optional
-                println!("Double dots!");
             },
 
             LexToken::OpenBracket => {
@@ -177,17 +179,18 @@ pub fn parse_tokens(spanned_tokens: Vec<SpannedLexToken>) -> ParserResult<Groups
             },
 
             // João Marcos!! editar isso pls
-            // LexToken::Group(group) => {
-            //     // Add everything from last group
-            //     update_map_group(&mut map, current_group, &mut file_stack);
-            //     current_group = group.into();
-            // },
-            other @ LexToken::LexError => {
-                eprintln!("lexer_error => eprintln!({:#?});", other);
+            LexToken::Flags(flags) => {
+                // Add everything from last group
+                println!("flags achadas: {:?}", flags);
             },
 
-            other => {
-                eprintln!("parser_error => eprintln!({:#?});", other);
+            // João Marcos!! editar isso pls
+            LexToken::SymlinkArrow => {
+                panic!("Unexpected SymlinkArrow!");
+            },
+
+            LexToken::LexError => {
+                eprintln!("LexError => '{}'", &original_text[range]);
             },
         }
     }

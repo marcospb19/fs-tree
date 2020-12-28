@@ -24,13 +24,11 @@ pub enum LexToken {
     // Examples:
     //   (a, b)
     //   (unix)
-    #[regex(r"\(([^\)\\]|\\t|\\u|\\n|\\\))*\)", |_lex| {
-        // let vec = vec![];
-        // let potential_flags = vec![];
-        // let vec: Vec<String> = lex.source()[lex.span()].chars().map(String::from).collect();
-        // vec
-        vec![]
-    })]
+    #[regex(r"\(([^\)\\]|\\t|\\u|\\n|\\\))*\)", |lex|
+        let span = lex.span();
+        let slice = &lex.source()[span.start + 1 .. span.end - 1]; // Without ()
+        slice.split(',').map(|x| x.trim().to_string()).collect::<Vec<_>>()
+    )]
     Flags(Vec<String>),
 
     // Value token delimited by ""
@@ -38,9 +36,7 @@ pub enum LexToken {
         let start = lex.slice().find('\"').unwrap();
         let end = lex.slice().rfind('\"').unwrap();
 
-        let slice: &str = &lex.slice()[start + 1..end];
-
-        String::from(slice)
+        lex.slice()[start + 1..end].to_string()
     })]
     Value(String),
 
@@ -53,26 +49,23 @@ pub enum LexToken {
     #[token("]")]
     CloseBracket,
 
-    #[token("->")]
+    #[regex(r"-?>")]
     SymlinkArrow,
 
-    // New line or comma
-    #[regex("(\\n|,)" , |lex| {
-        let c = lex.slice().chars().next().unwrap();
-        if c != '\n' && c != ',' {
-            unreachable!()
-        }
-        c
+    // New line or comma separators
+    #[regex(r"(\n|,)" , |lex| {
+        // Extract what char it was
+        lex.slice().chars().next().unwrap()
     })]
     Separator(char),
-    // // // Ignore whitespace
-    // #[regex(r"[ \t\n\f]+", logos::skip)]
 
     // Ignore whitespace
-    #[regex("( |\\t)+", logos::skip)]
+    #[regex(r" *", logos::skip)]
+    // Ignore tab
+    #[regex(r"\t+", logos::skip)]
     // Ignore comments, they start with two slashes
-    #[regex(r"//[^\n]*\n", logos::skip)]
-    // // Anything unexpected
+    #[regex(r"//[^\n]*", logos::skip)]
+    // Anything unexpected
     #[error]
     LexError,
 }
