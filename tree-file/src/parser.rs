@@ -9,7 +9,8 @@
 //
 // After groups we expect line break!!!!
 use crate::{lexer::SpannedLexToken, File, FileType, GroupsMap, LexToken};
-use std::{fmt, path::PathBuf, result};
+
+use std::{collections::HashMap, fmt, path::PathBuf, result};
 
 type Stack<T> = Vec<T>;
 
@@ -57,7 +58,7 @@ fn update_map_group(map: &mut GroupsMap, group: String, files: &mut Stack<File>)
 pub fn parse_tokens(
     spanned_tokens: Vec<SpannedLexToken>,
     original_text: &str,
-) -> ParserResult<GroupsMap> {
+) -> ParserResult<(GroupsMap, Vec<String>)> {
     let mut map = GroupsMap::new();
 
     let mut current_line = 1;
@@ -72,6 +73,10 @@ pub fn parse_tokens(
 
     let mut tokens_iter = spanned_tokens.into_iter().peekable();
     let mut depth = 0;
+
+    let mut group_order = vec!["main".to_string()];
+    let mut groups_seen = HashMap::<String, ()>::new();
+    groups_seen.insert("main".to_string(), ());
 
     // let mut pending_flags: Vec<String> = vec![];
 
@@ -172,6 +177,12 @@ pub fn parse_tokens(
             },
 
             LexToken::Group(group) => {
+                // Craziest shi ever... yeah
+                groups_seen.entry(group.to_string()).or_insert_with(|| {
+                    group_order.push(group.clone());
+                    ()
+                });
+
                 // Add everything from last group
                 update_map_group(&mut map, current_group, &mut file_stack);
                 // Update the group for the next entries
@@ -206,7 +217,7 @@ pub fn parse_tokens(
     }
 
     update_map_group(&mut map, current_group, &mut file_stack);
-    Ok(map)
+    Ok((map, group_order))
 }
 
 impl fmt::Display for ParserError {

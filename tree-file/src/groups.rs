@@ -11,7 +11,7 @@ pub struct Groups {
 impl Groups {
     pub fn from_text(text: &str) -> Self {
         let tokens = run_lexer(text);
-        let map = parse_tokens(tokens, text).unwrap_or_else(|err| {
+        let (map, groups_order) = parse_tokens(tokens, text).unwrap_or_else(|err| {
             eprintln!("Error: '{}'", err);
             process::exit(1);
         });
@@ -20,7 +20,7 @@ impl Groups {
             map,
             info: GroupsInfo {
                 file_path: None,
-                groups_order: vec![],
+                groups_order,
             },
         }
     }

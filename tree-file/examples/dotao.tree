@@ -1,6 +1,7 @@
 
-// [top]
-// - ".toprc"
+- [top]
+".toprc"
+
 (dotfiles)
 - [polybar]
 ".config": [
@@ -17,3 +18,5 @@
 //
 
 "you_can_one_line_too": ["1", "2", "3"]
+
+- [unused_group]
