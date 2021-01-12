@@ -5,7 +5,7 @@ use crate::{
 };
 
 use std::{
-    fmt,
+    fmt, mem,
     path::{Path, PathBuf},
 };
 
@@ -99,6 +99,51 @@ impl<T> File<T> {
             let child = File::from_text(rest);
             File::new(first, FileType::Directory(vec![child]))
         }
+    }
+
+    /// Apply a closure recursively to this structure
+    pub fn apply_recursively(&mut self, f: fn(&mut File<T>)) {
+        f(self);
+        if let FileType::Directory(children) = &mut self.file_type {
+            children.iter_mut().for_each(f);
+        }
+    }
+
+    /// Apply recursively a closure to each pair of `(parent, child)` in the
+    /// structure
+    ///
+    /// That is, for every file of type `FileType::Directory` found in the
+    /// structure, call the closure like this:
+    ///
+    /// ```no_run
+    /// closure(current, child);
+    /// ```
+    ///
+    /// With guarantee that `current` was a `Directory`, however, for this to
+    /// work with the borrow checker, this method separates children from the
+    /// `current` file.
+    ///
+    /// What this method does:
+    ///
+    /// 1. Detache `children` from `parent`, leaving the parent as
+    /// FileType::Regular. 2. Apply closure to each pair of `(parent,
+    /// child)`. 3. Call recursively for each `child` that is also a
+    /// `Directory`. 4. Attach back `children` to `parent`.
+    ///
+    /// This means that you cannot access the children from the parent itself,
+    /// only with the second parameter of the closure, see also
+    /// [`apply_recursively`]
+    pub fn apply_to_children(&mut self, f: fn(&mut File<T>, &mut File<T>)) {
+        // temporarly take self.file_type
+        let mut tmp = FileType::Regular;
+        mem::swap(&mut tmp, &mut self.file_type);
+
+        if let FileType::Directory(children) = &mut tmp {
+            for child in children.iter_mut() {
+                f(self, child);
+            }
+        }
+        mem::swap(&mut tmp, &mut self.file_type);
     }
 
     /// Iterator of all `File`s in the structure

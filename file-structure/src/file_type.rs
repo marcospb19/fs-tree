@@ -18,7 +18,7 @@ use std::{
 pub enum FileType<T> {
     /// Regular text file
     Regular,
-    /// File system that can contain more files
+    /// An folder that may contain more files
     Directory(Vec<File<T>>),
     /// Unix symlink that points to another path
     Symlink(PathBuf),
