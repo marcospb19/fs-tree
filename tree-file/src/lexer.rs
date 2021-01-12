@@ -27,7 +27,7 @@ pub enum LexToken {
     #[regex(r"\(([^\)\\]|\\t|\\u|\\n|\\\))*\)", |lex|
         let span = lex.span();
         let slice = &lex.source()[span.start + 1 .. span.end - 1]; // Without ()
-        slice.split(',').map(|x| x.trim().to_string()).collect::<Vec<_>>()
+        slice.split(',').map(|x| x.trim().to_string()).collect::<Vec<String>>()
     )]
     Flags(Vec<String>),
 

@@ -8,7 +8,11 @@
 // supported inside of it
 //
 // After groups we expect line break!!!!
-use crate::{lexer::SpannedLexToken, File, FileType, GroupsMap, LexToken};
+use crate::{
+    flags::{Flag, FlagType, Flags},
+    lexer::SpannedLexToken,
+    File, FileType, GroupsMap, LexToken,
+};
 
 use std::{collections::HashMap, fmt, path::PathBuf, result};
 
@@ -40,6 +44,7 @@ pub enum ParserErrorKind {
     BracketUnexpectedOpen,
     CommasOutsideOfBrackets,
     MissingSymlinkTarget,
+    GroupAfterGroup,
 }
 
 pub type ParserResult<T> = result::Result<T, ParserError>;
@@ -74,6 +79,8 @@ pub fn parse_tokens(
     let mut tokens_iter = spanned_tokens.into_iter().peekable();
     let mut depth = 0;
 
+    let mut last_flags = Vec::<Flag>::new();
+
     let mut group_order = vec!["main".to_string()];
     let mut groups_seen = HashMap::<String, ()>::new();
     groups_seen.insert("main".to_string(), ());
@@ -91,26 +98,28 @@ pub fn parse_tokens(
                     // panic!("{:?}", range);
                 }
                 read_state = ParserState::Busy;
-                file_stack.push(File::new(value, FileType::Regular));
                 already_read_some_lmao = true;
+
+                let mut file = File::new(value, FileType::<Flags>::Regular);
+                file.extra = if last_flags.is_empty() {
+                    None
+                } else {
+                    let mut tmp = Flags::new();
+                    tmp.inner = last_flags;
+                    Some(tmp)
+                };
+                last_flags = Vec::default(); // reinit
 
                 if let Some((LexToken::SymlinkArrow, _r1)) = tokens_iter.peek() {
                     if let Some((LexToken::Value(target), _r2)) = tokens_iter.nth(1) {
-                        if file_stack.last().unwrap().file_type.is_dir() {
-                            unimplemented!("straight up panic");
-                        }
-
-                        let path = file_stack.pop().unwrap().path;
-                        file_stack.push(File::new(path, FileType::Symlink(PathBuf::from(target))));
+                        file.file_type = FileType::<Flags>::Symlink(PathBuf::from(target));
                     } else {
                         panic!("Was expecting the target of the symlink");
-                        // return Err(ParserError::new(
-                        //     0,
-                        //     0,
-                        //     ParserErrorKind::MissingSymlinkTarget,
-                        // ))
+                        // return Err(ParserError::new(0, 0,
+                        // ParserErrorKind::MissingSymlinkTarget))
                     }
                 }
+                file_stack.push(file);
             },
 
             LexToken::DoubleDots => {
@@ -119,6 +128,8 @@ pub fn parse_tokens(
 
             LexToken::OpenBracket => {
                 brackets_open_position.push((current_line, current_column));
+                // Removed, need to study this again
+                // assert!(matches!(read_state, ParserState::Busy), "WIP parser");
                 read_state = ParserState::Clear;
                 // If trying to open nothing fail
                 if !already_read_some_lmao {
@@ -132,7 +143,7 @@ pub fn parse_tokens(
                 assert!(!file_stack.is_empty());
 
                 depth += 1;
-                file_stack.last_mut().unwrap().file_type = FileType::Directory(vec![]);
+                file_stack.last_mut().unwrap().file_type = FileType::<Flags>::Directory(vec![]);
                 quantity_stack.push(0);
                 already_read_some_lmao = false;
             },
@@ -147,7 +158,6 @@ pub fn parse_tokens(
                         ParserErrorKind::BracketUnexpectedClose,
                     ));
                 }
-
                 already_read_some_lmao = true;
                 depth -= 1;
                 let mut vec: Vec<File> = vec![];
@@ -156,8 +166,8 @@ pub fn parse_tokens(
                     vec.push(file_stack.pop().unwrap());
                 }
 
-                let current_last = file_stack.pop().unwrap();
-                file_stack.push(File::new(current_last.path, FileType::Directory(vec)));
+                file_stack.last_mut().expect("should").file_type =
+                    FileType::<Flags>::Directory(vec);
             },
 
             LexToken::Separator(separator) => {
@@ -182,20 +192,30 @@ pub fn parse_tokens(
                     group_order.push(group.clone());
                     ()
                 });
-
                 // Add everything from last group
                 update_map_group(&mut map, current_group, &mut file_stack);
                 // Update the group for the next entries
                 current_group = group.into();
             },
 
-            // João Marcos!! editar isso pls
+            // doing this
             LexToken::Flags(flags) => {
-                // Add everything from last group
-                println!("flags achadas: {:?}", flags);
+                if !last_flags.is_empty() {
+                    return Err(ParserError::new(
+                        current_line,
+                        current_column,
+                        ParserErrorKind::GroupAfterGroup,
+                    ));
+                }
+                last_flags = flags
+                    .iter()
+                    .map(|x| Flag::new(x, FlagType::Direct))
+                    .collect();
+
+                println!("flags achadas: {:?}", last_flags);
             },
 
-            // João Marcos!! editar isso pls
+            // João Marcos!! Logos!! editar isso pls
             LexToken::SymlinkArrow => {
                 panic!("Unexpected SymlinkArrow!");
             },
@@ -243,6 +263,9 @@ impl fmt::Display for ParserError {
             },
             ParserErrorKind::MissingSymlinkTarget => {
                 write!(f, "arrow without the plim plimplimplim")
+            },
+            ParserErrorKind::GroupAfterGroup => {
+                write!(f, "Group after group problemo")
             },
         }
     }
