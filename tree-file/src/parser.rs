@@ -45,6 +45,7 @@ pub enum ParserErrorKind {
     CommasOutsideOfBrackets,
     MissingSymlinkTarget,
     GroupAfterGroup,
+    FlagAfterFlag,
 }
 
 pub type ParserResult<T> = result::Result<T, ParserError>;
@@ -79,6 +80,7 @@ pub fn parse_tokens(
     let mut tokens_iter = spanned_tokens.into_iter().peekable();
     let mut depth = 0;
 
+    let mut group_flags = Vec::<Flag>::new();
     let mut last_flags = Vec::<Flag>::new();
 
     let mut group_order = vec!["main".to_string()];
@@ -100,15 +102,17 @@ pub fn parse_tokens(
                 read_state = ParserState::Busy;
                 already_read_some_lmao = true;
 
-                let mut file = File::new(value, FileType::<Flags>::Regular);
-                file.extra = if last_flags.is_empty() {
-                    None
-                } else {
-                    let mut tmp = Flags::new();
-                    tmp.inner = last_flags;
-                    Some(tmp)
-                };
-                last_flags = Vec::default(); // reinit
+                let mut file = File::new(value, FileType::Regular);
+                let flags = last_flags
+                    .into_iter()
+                    .chain(group_flags.into_iter())
+                    .map(|x| x.clone())
+                    .collect();
+                file.extra = Some(Flags::from(flags));
+
+                // reinit
+                last_flags = vec![];
+                group_flags = vec![];
 
                 if let Some((LexToken::SymlinkArrow, _r1)) = tokens_iter.peek() {
                     if let Some((LexToken::Value(target), _r2)) = tokens_iter.nth(1) {
@@ -165,7 +169,6 @@ pub fn parse_tokens(
                 for _ in 0..quantity_stack.pop().unwrap() {
                     vec.push(file_stack.pop().unwrap());
                 }
-
                 file_stack.last_mut().expect("should").file_type =
                     FileType::<Flags>::Directory(vec);
             },
@@ -192,10 +195,17 @@ pub fn parse_tokens(
                     group_order.push(group.clone());
                     ()
                 });
-                // Add everything from last group
+
+                // Add everything from PREVIOUS group
                 update_map_group(&mut map, current_group, &mut file_stack);
                 // Update the group for the next entries
                 current_group = group.into();
+
+                group_flags = last_flags
+                    .into_iter()
+                    .map(|x| Flag::new(x.name, FlagType::GroupInherited))
+                    .collect();
+                last_flags = Vec::default(); // reinit
             },
 
             // doing this
@@ -204,7 +214,7 @@ pub fn parse_tokens(
                     return Err(ParserError::new(
                         current_line,
                         current_column,
-                        ParserErrorKind::GroupAfterGroup,
+                        ParserErrorKind::FlagAfterFlag,
                     ));
                 }
                 last_flags = flags
@@ -237,6 +247,30 @@ pub fn parse_tokens(
     }
 
     update_map_group(&mut map, current_group, &mut file_stack);
+
+    for value in map.iter_mut().flat_map(|(_key, value)| value.iter_mut()) {
+        value.apply_to_children(|parent, child| {
+            if let Some(parent_extra) = &parent.extra {
+                let mut vec: Vec<Flag> = parent_extra
+                    .clone()
+                    .inner
+                    .into_iter()
+                    .map(|x| {
+                        if let FlagType::Direct = x.flag_type {
+                            Flag::new(x.name, FlagType::ParentInherited)
+                        } else {
+                            x
+                        }
+                    })
+                    .collect();
+                if let Some(asd) = &mut child.extra {
+                    asd.inner.append(&mut vec);
+                } else {
+                    child.extra = Some(Flags::from(vec));
+                }
+            }
+        });
+    }
     Ok((map, group_order))
 }
 
@@ -266,6 +300,9 @@ impl fmt::Display for ParserError {
             },
             ParserErrorKind::GroupAfterGroup => {
                 write!(f, "Group after group problemo")
+            },
+            ParserErrorKind::FlagAfterFlag => {
+                write!(f, "Flag after flag problemo")
             },
         }
     }

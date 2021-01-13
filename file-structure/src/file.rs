@@ -180,10 +180,10 @@ impl<T> File<T> {
 impl<T: fmt::Debug> fmt::Debug for File<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ds = f.debug_struct("File");
+        ds.field("path", &self.path);
         if std::mem::size_of::<T>() != 0 {
             ds.field("extra", &self.extra);
         }
-        ds.field("path", &self.path);
         ds.field("file_type", &self.file_type);
         ds.finish()
     }
