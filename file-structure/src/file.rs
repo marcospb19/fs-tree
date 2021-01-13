@@ -81,12 +81,12 @@ impl<T> File<T> {
     /// use file_structure::File;
     ///
     /// // Makes directory "a" with directory "b" with file "c"
-    /// let file = File::<()>::from_text("a/b/c");
+    /// let file = File::<()>::from_path_text("a/b/c");
     /// assert!(file.is_dir());
     /// assert_eq!(file.children().unwrap().len(), 1);
     /// assert_eq!(file.children().unwrap()[0].path, PathBuf::from("b"));
     /// ```
-    pub fn from_text(path: impl AsRef<Path>) -> Self {
+    pub fn from_path_text(path: impl AsRef<Path>) -> Self {
         let path = path.as_ref();
 
         if path.iter().count() <= 1 {
@@ -96,7 +96,7 @@ impl<T> File<T> {
             let (first, rest): (PathBuf, PathBuf) =
                 (components.next().unwrap().into(), components.collect());
 
-            let child = File::from_text(rest);
+            let child = File::from_path_text(rest);
             File::new(first, FileType::Directory(vec![child]))
         }
     }
@@ -116,6 +116,8 @@ impl<T> File<T> {
     /// structure, call the closure like this:
     ///
     /// ```no_run
+    /// # // Make it compile
+    /// # let (closure, current, child) = (|_, _| {}, (), ());
     /// closure(current, child);
     /// ```
     ///
@@ -133,6 +135,8 @@ impl<T> File<T> {
     /// This means that you cannot access the children from the parent itself,
     /// only with the second parameter of the closure, see also
     /// [`apply_recursively`]
+    ///
+    /// [`apply_recursively`]: File::apply_recursively
     pub fn apply_to_children(&mut self, f: fn(&mut File<T>, &mut File<T>)) {
         // temporarly take self.file_type
         let mut tmp = FileType::Regular;
@@ -151,7 +155,9 @@ impl<T> File<T> {
         FilesIter::new(self)
     }
 
-    /// Shorthand for `self.files().paths()`, see link to `.paths()` method
+    /// Shorthand for `self.files().paths()`, see link to [`.paths()`] method
+    ///
+    /// [`.paths()`]: super::iter::FilesIter::paths
     pub fn paths(&self) -> PathsIter<T> {
         self.files().paths()
     }
@@ -177,6 +183,7 @@ impl<T> File<T> {
     }
 }
 
+/// Note: the field `extra` is hidden if `mem::size_of::<T>() == 0` (zero-sized)
 impl<T: fmt::Debug> fmt::Debug for File<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ds = f.debug_struct("File");

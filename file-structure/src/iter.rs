@@ -60,7 +60,7 @@ impl<'a, T> FilesIter<'a, T> {
     /// end of the VecDeque in a way that is deterministic
     ///
     /// Example:
-    /// ```no_run
+    /// ```txt
     /// //// This was commented out because we don't have nice macros to make this example convenient
     /// // let mut it = root.files().files_before_directories(true);
     /// // assert_eq!(it.next(), Some(refs[0])); // .config/

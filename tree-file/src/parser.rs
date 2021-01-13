@@ -36,7 +36,6 @@ impl ParserError {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub enum ParserErrorKind {
     BracketUnclosed,
@@ -44,7 +43,6 @@ pub enum ParserErrorKind {
     BracketUnexpectedOpen,
     CommasOutsideOfBrackets,
     MissingSymlinkTarget,
-    GroupAfterGroup,
     FlagAfterFlag,
 }
 
@@ -106,7 +104,6 @@ pub fn parse_tokens(
                 let flags = last_flags
                     .into_iter()
                     .chain(group_flags.into_iter())
-                    .map(|x| x.clone())
                     .collect();
                 file.extra = Some(Flags::from(flags));
 
@@ -118,9 +115,11 @@ pub fn parse_tokens(
                     if let Some((LexToken::Value(target), _r2)) = tokens_iter.nth(1) {
                         file.file_type = FileType::<Flags>::Symlink(PathBuf::from(target));
                     } else {
-                        panic!("Was expecting the target of the symlink");
-                        // return Err(ParserError::new(0, 0,
-                        // ParserErrorKind::MissingSymlinkTarget))
+                        return Err(ParserError::new(
+                            current_line,
+                            current_column,
+                            ParserErrorKind::MissingSymlinkTarget,
+                        ));
                     }
                 }
                 file_stack.push(file);
@@ -193,7 +192,6 @@ pub fn parse_tokens(
                 // Craziest shi ever... yeah
                 groups_seen.entry(group.to_string()).or_insert_with(|| {
                     group_order.push(group.clone());
-                    ()
                 });
 
                 // Add everything from PREVIOUS group
@@ -248,7 +246,7 @@ pub fn parse_tokens(
 
     update_map_group(&mut map, current_group, &mut file_stack);
 
-    for value in map.iter_mut().flat_map(|(_key, value)| value.iter_mut()) {
+    for value in map.values_mut().flat_map(|value| value.iter_mut()) {
         value.apply_to_children(|parent, child| {
             if let Some(parent_extra) = &parent.extra {
                 let mut vec: Vec<Flag> = parent_extra
@@ -284,24 +282,22 @@ impl fmt::Display for ParserError {
             write!(f, "moao tree: at {}:{}: ", self.line, self.column)?;
         }
 
+        use ParserErrorKind::*;
         match self.kind {
-            ParserErrorKind::BracketUnclosed => Ok(()),
-            ParserErrorKind::BracketUnexpectedClose => {
+            BracketUnclosed => Ok(()),
+            BracketUnexpectedClose => {
                 write!(f, "unexpected close brackets, what are you closing?")
             },
-            ParserErrorKind::BracketUnexpectedOpen => {
+            BracketUnexpectedOpen => {
                 write!(f, "what are you trying to open there?????")
             },
-            ParserErrorKind::CommasOutsideOfBrackets => {
+            CommasOutsideOfBrackets => {
                 write!(f, "no commas alowed outsite of scopes")
             },
-            ParserErrorKind::MissingSymlinkTarget => {
+            MissingSymlinkTarget => {
                 write!(f, "arrow without the plim plimplimplim")
             },
-            ParserErrorKind::GroupAfterGroup => {
-                write!(f, "Group after group problemo")
-            },
-            ParserErrorKind::FlagAfterFlag => {
+            FlagAfterFlag => {
                 write!(f, "Flag after flag problemo")
             },
         }
