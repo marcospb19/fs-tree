@@ -57,33 +57,5 @@ pub mod util;
 pub mod error;
 pub use crate::error::*;
 
-// // Macros for creating File
-// /// Don't use this, use `dir!` instead
-// #[macro_export]
-// macro_rules! dir_inner {
-//     ($path:literal) => {{
-//         file_structure::File::new($path.into(),
-// file_structure::FileType::Regular)     }};
-//     ($file:expr) => {{
-//         $file
-//     }};
-// }
-
-// /// Easy way to create directory
-// ///
-// /// Example:
-// /// ```no_run
-// /// use file_structure::*;
-// /// let dir: File<()> = dir!("/home", ["user1", "user2", dir!("user3",
-// ["Downloads", "Desktop"])]); /// ```
-// #[macro_export]
-// macro_rules! dir {
-//     ($path:expr, [$($args:expr),*] ) => {{
-//         let mut children = vec![];
-//         $(
-//             let file = file_structure::dir_inner!( $args );
-//             children.push(file);
-//         )*
-//         File::new($path.into(),
-// file_structure::FileType::Directory(children))     }};
-// }
+/// Macros for creating files and directories
+pub mod macros;
