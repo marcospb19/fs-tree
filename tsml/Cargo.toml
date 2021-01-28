@@ -1,5 +1,5 @@
 [package]
-name = "tree-file"
+name = "tsml"
 version = "0.0.1"
 authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
 edition = "2018"

@@ -8,11 +8,7 @@
 // supported inside of it
 //
 // After groups we expect line break!!!!
-use crate::{
-    flags::{Flag, FlagType, Flags},
-    lexer::SpannedLexToken,
-    File, FileType, GroupsMap, LexToken,
-};
+use crate::{flags::Flags, lexer::SpannedLexToken, File, FileType, GroupsMap, LexToken};
 
 use std::{collections::HashMap, fmt, path::PathBuf, result};
 
@@ -51,7 +47,10 @@ pub type ParserResult<T> = result::Result<T, ParserError>;
 fn update_map_group(map: &mut GroupsMap, group: String, files: &mut Stack<File>) {
     // If group is already there, append
     if let Some(group) = map.get_mut(&group) {
-        group.append(files);
+        // Add in reverse order, so that in the end things are normal
+        while let Some(file) = files.pop() {
+            group.push(file);
+        }
     } else {
         // Else, move vec
         map.insert(group, files.to_vec());
@@ -78,8 +77,8 @@ pub fn parse_tokens(
     let mut tokens_iter = spanned_tokens.into_iter().peekable();
     let mut depth = 0;
 
-    let mut group_flags = Vec::<Flag>::new();
-    let mut last_flags = Vec::<Flag>::new();
+    let mut group_flags = Vec::<String>::new();
+    let mut last_flags = Vec::<String>::new();
 
     let mut group_order = vec!["main".to_string()];
     let mut groups_seen = HashMap::<String, ()>::new();
@@ -100,19 +99,25 @@ pub fn parse_tokens(
                 read_state = ParserState::Busy;
                 already_read_some_lmao = true;
 
+                // Create a file for the current value
                 let mut file = File::new(value, FileType::Regular);
-                let flags = last_flags
-                    .into_iter()
-                    .chain(group_flags.into_iter())
-                    .collect();
-                file.extra = Some(Flags::from(flags));
+                // Create flags and add every direct and group flags you've just seen
+                let mut flags = Flags::new();
+                last_flags.into_iter().for_each(|flag_name| {
+                    flags.add_direct_flag(flag_name);
+                });
+                group_flags.into_iter().for_each(|flag_name| {
+                    flags.add_group_flag(flag_name);
+                });
+                // Attach flags to the current file
+                file.extra = Some(flags);
 
-                // reinit
+                // reinit for next iterations
                 last_flags = vec![];
                 group_flags = vec![];
 
-                if let Some((LexToken::SymlinkArrow, _r1)) = tokens_iter.peek() {
-                    if let Some((LexToken::Value(target), _r2)) = tokens_iter.nth(1) {
+                if let Some((LexToken::SymlinkArrow, _)) = tokens_iter.peek() {
+                    if let Some((LexToken::Value(target), _)) = tokens_iter.nth(1) {
                         file.file_type = FileType::<Flags>::Symlink(PathBuf::from(target));
                     } else {
                         return Err(ParserError::new(
@@ -199,11 +204,9 @@ pub fn parse_tokens(
                 // Update the group for the next entries
                 current_group = group.into();
 
-                group_flags = last_flags
-                    .into_iter()
-                    .map(|x| Flag::new(x.name, FlagType::GroupInherited))
-                    .collect();
-                last_flags = Vec::default(); // reinit
+                // The last flags you've seen, are actually group_flags
+                group_flags = last_flags;
+                last_flags = vec![]; // reinit
             },
 
             // doing this
@@ -215,17 +218,16 @@ pub fn parse_tokens(
                         ParserErrorKind::FlagAfterFlag,
                     ));
                 }
-                last_flags = flags
-                    .iter()
-                    .map(|x| Flag::new(x, FlagType::Direct))
-                    .collect();
+
+                // YeeeeeeeeY
+                last_flags = flags.clone();
 
                 println!("flags achadas: {:?}", last_flags);
             },
 
             // João Marcos!! Logos!! editar isso pls
             LexToken::SymlinkArrow => {
-                panic!("Unexpected SymlinkArrow!");
+                unreachable!("Unexpected SymlinkArrow!");
             },
 
             LexToken::LexError => {
@@ -237,9 +239,10 @@ pub fn parse_tokens(
     if depth != 0 {
         // Only show the inner bracket problem for now, even if there are multiple
         // unclosed
+        let (start, end) = brackets_open_position.last().expect("should bro");
         return Err(ParserError::new(
-            brackets_open_position.last().unwrap().0, // wat
-            brackets_open_position.last().unwrap().1, // wat
+            *start,
+            *end,
             ParserErrorKind::BracketUnclosed,
         ));
     }
@@ -247,28 +250,16 @@ pub fn parse_tokens(
     update_map_group(&mut map, current_group, &mut file_stack);
 
     for value in map.values_mut().flat_map(|value| value.iter_mut()) {
-        value.apply_to_children(|parent, child| {
-            if let Some(parent_extra) = &parent.extra {
-                let mut vec: Vec<Flag> = parent_extra
-                    .clone()
-                    .inner
-                    .into_iter()
-                    .map(|x| {
-                        if let FlagType::Direct = x.flag_type {
-                            Flag::new(x.name, FlagType::ParentInherited)
-                        } else {
-                            x
-                        }
-                    })
-                    .collect();
-                if let Some(asd) = &mut child.extra {
-                    asd.inner.append(&mut vec);
-                } else {
-                    child.extra = Some(Flags::from(vec));
-                }
+        value.apply_recursively_to_children(|parent, child| {
+            match (&mut parent.extra, &mut child.extra) {
+                (Some(parent), Some(child)) => {
+                    child.inherit_from(parent);
+                },
+                _ => unreachable!(),
             }
         });
     }
+
     Ok((map, group_order))
 }
 

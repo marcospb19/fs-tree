@@ -18,7 +18,7 @@ toml = "*"
 # Dependencies from us
 file-structure = { path = "./file-structure" }
 permissions = { path = "./permissions" }
-tree-file = { path = "./tree-file" }
+tsml = { path = "./tsml" }
 
 # Todo:
 # When publishing a new version:
@@ -31,5 +31,5 @@ members = [
     ".",
     "file-structure",
     "permissions",
-    "tree-file",
+    "tsml",
 ]

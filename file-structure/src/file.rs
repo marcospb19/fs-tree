@@ -61,9 +61,9 @@ impl<T> File<T> {
         }
     }
 
-    /// Create `File` reading from the `path`
+    /// Create `File` reading on filesystem at `path`
     ///
-    /// Accesses the filesystem to build it up
+    /// TODO...docs
     pub fn from_path(path: impl AsRef<Path>, follow_symlinks: bool) -> FsResult<Self> {
         let file_type = FileType::from_path(&path, follow_symlinks)?;
         let result = File::new(path, file_type);
@@ -71,35 +71,33 @@ impl<T> File<T> {
         Ok(result)
     }
 
-    /// Create `File` structure from text passed
-    ///
-    /// This is made up from the text in the `path` argument
-    ///
-    /// Examples:
-    /// ```
-    /// use std::path::PathBuf;
-    /// use file_structure::File;
-    ///
-    /// // Makes directory "a" with directory "b" with file "c"
-    /// let file = File::<()>::from_path_text("a/b/c");
-    /// assert!(file.is_dir());
-    /// assert_eq!(file.children().unwrap().len(), 1);
-    /// assert_eq!(file.children().unwrap()[0].path, PathBuf::from("b"));
-    /// ```
-    pub fn from_path_text(path: impl AsRef<Path>) -> Self {
-        let path = path.as_ref();
+    // /// Create linear `File` directory structure from path text
+    // ///
+    // /// For example:
+    // ///     - _"a"_ -> **File** _"a"_
+    // ///     - _"a/b"_ -> **Directory** _"a"_ ( **File** _"b"_ )
+    // ///     - _"a/b/c"_ -> **Directory** _"a"_ ( **Directory** _"b"_ ( **File**
+    // ///       _"b"_ ) )
+    // ///
+    // /// Examples:
+    // /// ```
+    // /// assert_eq!(file.children().unwrap().len(), 1);
+    // /// assert_eq!(file.children().unwrap()[0].path, PathBuf::from("b"));
+    // /// ```
+    // pub fn from_path_text(path: impl AsRef<Path>) -> Self {
+    //     let path = path.as_ref();
 
-        if path.iter().count() <= 1 {
-            File::new(path, FileType::Regular)
-        } else {
-            let mut components = path.iter();
-            let (first, rest): (PathBuf, PathBuf) =
-                (components.next().unwrap().into(), components.collect());
+    //     if path.iter().count() <= 1 {
+    //         File::new(path, FileType::Regular)
+    //     } else {
+    //         let mut components = path.iter();
+    //         let (first, rest): (PathBuf, PathBuf) =
+    //             (components.next().unwrap().into(), components.collect());
 
-            let child = File::from_path_text(rest);
-            File::new(first, FileType::Directory(vec![child]))
-        }
-    }
+    //         let child = File::from_path_text(rest);
+    //         File::new(first, FileType::Directory(vec![child]))
+    //     }
+    // }
 
     /// Apply a closure recursively to this structure
     pub fn apply_recursively(&mut self, f: fn(&mut File<T>)) {
@@ -116,8 +114,7 @@ impl<T> File<T> {
     /// structure, call the closure like this:
     ///
     /// ```no_run
-    /// # // Make it compile
-    /// # let (closure, current, child) = (|_, _| {}, (), ());
+    /// # let (closure, current, child) = (|_, _| {}, (), ()); // Make this compile
     /// closure(current, child);
     /// ```
     ///
@@ -148,6 +145,16 @@ impl<T> File<T> {
             }
         }
         mem::swap(&mut tmp, &mut self.file_type);
+    }
+
+    /// Apply closure to each pair of parent and children available
+    pub fn apply_recursively_to_children(&mut self, f: fn(&mut File<T>, &mut File<T>)) {
+        self.apply_to_children(f);
+        if let FileType::Directory(children) = &mut self.file_type {
+            children
+                .iter_mut()
+                .for_each(|x| x.apply_recursively_to_children(f));
+        }
     }
 
     /// Iterator of all `File`s in the structure
