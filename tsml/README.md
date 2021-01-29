@@ -1,23 +1,32 @@
-# tree-file
-Lexer and parser for new file format intended to describe a file tree structure.
+# tsml (beta)
+TSML stands for Tree Structure Markup Language
 
-Limitations: This won't support non-UTF-8 paths, they are supported in Unix systems, but supporting them would be against the intent of this crate.
+It's a human-editable file format, in beta, the syntax is unstable.
 
-RESTARTING!
+At first the lexer was done by hand, but I switched to Logos, and did a parser myself for the tokens.
+
+Limitation of this implementation: Doesn't support invalid UTF-8, which are allowed in Unix paths.
+
+# Development stage
+Where is this project at?
+
+At the beginning, the focus for now is to just think about the design choices and stabilizing the syntax.
+
+Optimizing code is not a priority.
 
 # Progress
 - [x] FileStructure crate implementation for file structure representation (other project link goes here)
 - [x] API decisions
 - [x] Syntax stabilization + examples skratch
 - [x] Functional lexer
-- [ ] Functional parser
+- [x] Functional parser
 - [ ] Error message pointing to line and column
 - [ ] Fix lexer regex support to escaped and special characters
-- [ ] Implement groups
-- [ ] Implement flags support
+- [x] Implement groups
+- [x] Implement flags support
 - [ ] Improve this readme
 - [ ] Remove all non-idiomatic panics
-- [ ] Enum for types of flags (normal, parentInherited, and groupInherited)
+- [x] Enum for types of flags (normal, parentInherited, and groupInherited)
 - [ ] Nicer error messages, that say what was expected and where
 - [ ] Documentation, lol
 - [ ] Review where we accept whitespaces
