@@ -1,13 +1,5 @@
-// State machine parser from tokens
+// Slightly big parser, yet to be documented
 //
-// # States:
-// We don't need state recording for parsing symlinks because of it is a trivial
-// sequential 3 element combination.
-//
-// ParserScopeState suggests if we are inside of an scope, commas are only
-// supported inside of it
-//
-// After groups we expect line break!!!!
 use crate::{flags::Flags, lexer::SpannedLexToken, File, FileType, GroupsMap, LexToken};
 
 use std::{collections::HashMap, fmt, path::PathBuf, result};
@@ -207,6 +199,12 @@ pub fn parse_tokens(
                 // The last flags you've seen, are actually group_flags
                 group_flags = last_flags;
                 last_flags = vec![]; // reinit
+
+                // After a group, we expect a line break
+                match tokens_iter.peek() {
+                    None | Some((LexToken::Separator(','), ..)) => {},
+                    _other => panic!("We expected line break after this group"),
+                }
             },
 
             // doing this
