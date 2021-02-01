@@ -1,5 +1,9 @@
 use crate::{lexer::run_lexer, parser::parse_tokens, GroupsMap};
-use std::{path::PathBuf, process};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+    process,
+};
 
 #[derive(Debug)]
 // #[derive(Debug, Hash, Clone, PartialEq, Eq, Ord, PartialOrd)]
@@ -23,6 +27,13 @@ impl Groups {
                 groups_order,
             },
         }
+    }
+
+    pub fn from_path(path: impl AsRef<Path>) -> io::Result<Self> {
+        let text = fs::read_to_string(path.as_ref())?;
+        let mut result = Self::from_text(&text);
+        result.info.file_path = Some(path.as_ref().to_path_buf());
+        Ok(result)
     }
 }
 
