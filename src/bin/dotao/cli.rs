@@ -1,47 +1,71 @@
-use clap::{AppSettings::*, *};
-
-use std::env;
+use clap::{crate_name, crate_version, App, AppSettings, Arg, SubCommand};
 
 pub(super) fn parse_args() -> clap::ArgMatches<'static> {
-    let version = String::from(crate_version!());
-
     App::new(crate_name!())
-        .settings(&[ColoredHelp, ArgRequiredElseHelp])
-        .version(version.as_ref())
-        .about("See --help for more detailed help.")
-        .long_about("See -h for shorter help.")
+        .version(crate_version!())
+        .settings(&[AppSettings::ColoredHelp, AppSettings::ArgRequiredElseHelp])
+        // Why isn't this working as intended?
+        // .about("See --help for more detailed help.")
+        // .long_about("See -h for shorter help.")
         .help_message("Display help information.")
         .version_message("Display version information.")
-        .arg(
-            Arg::with_name("GROUPS")
-                .multiple(true)
-                .required(true)
-                .help("List of dotfile groups that will be linked the HOME directory."),
+        .subcommand(
+            SubCommand::with_name("add")
+                .arg(
+                    Arg::with_name("groups")
+                        .required(true)
+                        .multiple(true)
+                        .help("pass each group folder"),
+                )
+                .alias("insert"),
         )
-        .arg(
-            Arg::with_name("interactive_mode")
-                .short("i")
-                .help("Run in interactive mode, try to solve conflicts with questions,"),
+        .subcommand(
+            SubCommand::with_name("remove")
+                .arg(
+                    Arg::with_name("groups")
+                        .required(true)
+                        .multiple(true)
+                        .help("Group folders to remove from the tree"),
+                )
+                .alias("rm"),
         )
-        .arg(
-            Arg::with_name("overwrite_symlink")
-                .short("s")
-                .help("Overwrite symlinks."),
-        )
-        .arg(
-            Arg::with_name("overwrite_file")
-                .short("f")
-                .help("Overwrite files."),
-        )
-        .arg(
-            Arg::with_name("overwrite_directory")
-                .short("d")
-                .help("Overwrite directories."),
-        )
-        .arg(
-            Arg::with_name("fake-run")
-                .long("fake")
-                .help("Don't mess with files."),
-        )
+        // .subcommand(
+        //     SubCommand::with_name("add").arg(
+        //         Arg::with_name("GROUPS")
+        //             .multiple(true)
+        //             .help("Groups folders to add"),
+        //     ),
+        // )
+        // .arg(
+        //     Arg::with_name("GROUPS")
+        //         .multiple(true)
+        //         .required(true)
+        //         .help("List of dotfile groups that will be linked the HOME directory."),
+        // )
+        // .arg(
+        //     Arg::with_name("interactive_mode")
+        //         .short("i")
+        //         .help("Run in interactive mode, try to solve conflicts with questions,"),
+        // )
+        // .arg(
+        //     Arg::with_name("overwrite_symlink")
+        //         .short("s")
+        //         .help("Overwrite symlinks."),
+        // )
+        // .arg(
+        //     Arg::with_name("overwrite_file")
+        //         .short("f")
+        //         .help("Overwrite files."),
+        // )
+        // .arg(
+        //     Arg::with_name("overwrite_directory")
+        //         .short("d")
+        //         .help("Overwrite directories."),
+        // )
+        // .arg(
+        //     Arg::with_name("fake-run")
+        //         .long("fake")
+        //         .help("Don't mess with files."),
+        // )
         .get_matches()
 }
