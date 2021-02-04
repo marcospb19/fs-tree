@@ -1,4 +1,4 @@
-use file_structure::{File, FileType, FsError};
+use file_tree::{File, FileType, FsError};
 
 #[allow(unused_variables)]
 fn main() -> Result<(), FsError> {
@@ -7,12 +7,12 @@ fn main() -> Result<(), FsError> {
     // Recursive iterator that starts at file `examples_folder`
     // See documentation to see how to apply filters to this FilesIter
     for file in examples_folder.files() {
-        println!("{:#?}", file);
+        // println!("{:#?}", file);
     }
 
     // Same, but using PathsIter
     for path in examples_folder.paths() {
-        // println!("{:?}", path);
+        println!("{:?}", path);
     }
 
     // If you want to see each child file

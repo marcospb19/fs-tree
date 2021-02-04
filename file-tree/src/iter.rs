@@ -296,15 +296,25 @@ mod tests {
 
         let mut it = root.files();
         assert_eq!(it.next(), Some(refs[0])); // .config/
+        assert_eq!(it.depth(), 0);            // 0
         assert_eq!(it.next(), Some(refs[1])); // .config/i3/
+        assert_eq!(it.depth(), 1);            // 1
         assert_eq!(it.next(), Some(refs[4])); // .config/i3/dir/
+        assert_eq!(it.depth(), 2);            // 2
         assert_eq!(it.next(), Some(refs[5])); // .config/i3/dir/innerfile1
+        assert_eq!(it.depth(), 3);            // 3
         assert_eq!(it.next(), Some(refs[6])); // .config/i3/dir/innerfile2
+        assert_eq!(it.depth(), 3);            // 3
         assert_eq!(it.next(), Some(refs[2])); // .config/i3/file1
+        assert_eq!(it.depth(), 2);            // 2
         assert_eq!(it.next(), Some(refs[3])); // .config/i3/file2
+        assert_eq!(it.depth(), 2);            // 2
         assert_eq!(it.next(), Some(refs[7])); // .config/i3/file3
+        assert_eq!(it.depth(), 2);            // 2
         assert_eq!(it.next(), Some(refs[8])); // .config/outerfile1
+        assert_eq!(it.depth(), 1);            // 1
         assert_eq!(it.next(), Some(refs[9])); // .config/outerfile2
+        assert_eq!(it.depth(), 1);            // 1
 
         let mut it = root.files().files_before_directories(true);
         assert_eq!(it.next(), Some(refs[0])); // .config/

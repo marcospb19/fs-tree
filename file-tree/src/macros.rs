@@ -25,7 +25,7 @@ macro_rules! dir_inner {
 ///
 /// Example:
 /// ```
-/// # use file_structure::*;
+/// # use file_tree::*;
 /// let file: File<()> = dir!("root", [
 ///     "file1",
 ///     "file2",
@@ -49,7 +49,7 @@ macro_rules! dir {
     }};
 }
 
-/// Crate a `file_structure::File`, can be combined with `dir!`
+/// Crate a `file_tree::File`, can be combined with `dir!`
 #[macro_export]
 macro_rules! file {
     ($path:expr) => {{

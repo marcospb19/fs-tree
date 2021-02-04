@@ -1,4 +1,4 @@
-# file-structure
+# file-tree
 
 Representation of directory/file structure in file system to create, delete
 or link.

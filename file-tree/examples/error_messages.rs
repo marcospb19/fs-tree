@@ -1,4 +1,4 @@
-use file_structure::util::*;
+use file_tree::util::*;
 
 fn main() {
     let path = "src/ex.rs";

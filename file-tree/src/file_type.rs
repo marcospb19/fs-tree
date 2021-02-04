@@ -29,7 +29,7 @@ impl<T> FileType<T> {
     ///
     /// # Example
     /// ```no_run
-    /// use file_structure::{FileType, FsError};
+    /// use file_tree::{FileType, FsError};
     ///
     /// fn main() -> Result<(), FsError> {
     ///     // let file_type = FileType::from_path("src/", true)?;
@@ -85,7 +85,7 @@ impl<T> FileType<T> {
     ///
     /// # Example:
     /// ```
-    /// use file_structure::{FileType, FsError};
+    /// use file_tree::{FileType, FsError};
     ///
     /// fn main() -> Result<(), FsError> {
     ///     let file_type = FileType::<()>::from_path_shallow::<&str>("/sbin", true)?;
