@@ -1,6 +1,4 @@
-# Dotao's repository has a workspace with a top-level crate and
-# other crates in divided into other folders
-
+# Dotao repository has a top-level crate for the application, and lib sub-crates
 [package]
 name = "dotao"
 version = "0.1.0"
@@ -15,21 +13,15 @@ keywords = ["dotfiles"]
 clap = "2.33"
 toml = "*"
 
-# Dependencies from us
-file-structure = { path = "./file-structure" }
+# Our own workspace dependencies
+file-tree = { path = "./file-tree" }
 permissions = { path = "./permissions" }
 tsml = { path = "./tsml" }
-
-# Todo:
-# When publishing a new version:
-# - Update CHANGELOG.md
-# - Update README.md
-# - Create "crossbeam-X.Y.Z" git tag
 
 [workspace]
 members = [
     ".",
-    "file-structure",
+    "file-tree",
     "permissions",
     "tsml",
 ]

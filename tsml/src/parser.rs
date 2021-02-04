@@ -202,7 +202,7 @@ pub fn parse_tokens(
 
                 // After a group, we expect a line break
                 match tokens_iter.peek() {
-                    None | Some((LexToken::Separator(','), ..)) => {},
+                    None | Some((LexToken::Separator('\n'), ..)) => {},
                     _other => panic!("We expected line break after this group"),
                 }
             },
