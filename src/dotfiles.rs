@@ -1,6 +1,6 @@
 use crate::error::*;
 
-use file_structure::{util::collect_directory_children, File, FileType};
+use file_tree::{util::collect_directory_children, File, FileType};
 
 use std::{
     collections::VecDeque,

@@ -1,6 +1,6 @@
 use crate::{dotfiles::DotfileGroup, error::*};
 
-use file_structure::{File, FileType};
+use file_tree::{File, FileType};
 
 use std::{
     collections::VecDeque,

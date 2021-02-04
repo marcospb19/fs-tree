@@ -1,5 +1,5 @@
 // use crate::file_type::FileType;
-use file_structure::FileType;
+use file_tree::FileType;
 
 use std::{error, fmt, io, path::PathBuf, result};
 
