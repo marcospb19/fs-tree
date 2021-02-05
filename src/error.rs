@@ -9,20 +9,9 @@ pub type Result<T> = result::Result<T, DotaoError>;
 /// DotaoError covers all possible errors from this library
 #[derive(Debug)]
 pub enum DotaoError {
-    LinkError {
-        source_path: PathBuf,
-        destination_path: PathBuf,
-        source: io::Error,
-    },
-    LinkError2 {
-        source_path: PathBuf,
-        destination_path: PathBuf,
-        file_type: FileType<()>,
-    },
-    ReadError {
-        path: PathBuf,
-        source: io::Error,
-    },
+    LinkError { source_path: PathBuf, destination_path: PathBuf, source: io::Error },
+    LinkError2 { source_path: PathBuf, destination_path: PathBuf, file_type: FileType<()> },
+    ReadError { path: PathBuf, source: io::Error },
     NotFoundInFilesystem,
     NotADirectory,
     IoError(io::Error),
@@ -48,11 +37,7 @@ impl fmt::Display for DotaoError {
                 write!(f, "Read error: ")?;
                 source.fmt(f)
             },
-            LinkError {
-                source,
-                source_path,
-                destination_path,
-            } => {
+            LinkError { source, source_path, destination_path } => {
                 write!(
                     f,
                     "Link error: from '{}' to '{}': ",
@@ -61,11 +46,7 @@ impl fmt::Display for DotaoError {
                 )?;
                 source.fmt(f)
             },
-            LinkError2 {
-                source_path,
-                destination_path,
-                file_type,
-            } => write!(
+            LinkError2 { source_path, destination_path, file_type } => write!(
                 f,
                 "Link error: failed to link {}, from '{}' to '{}'.",
                 file_type,

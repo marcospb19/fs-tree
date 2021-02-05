@@ -21,13 +21,7 @@ impl Groups {
             process::exit(1);
         });
 
-        Groups {
-            map,
-            info: GroupsInfo {
-                file_path: None,
-                groups_order,
-            },
-        }
+        Groups { map, info: GroupsInfo { file_path: None, groups_order } }
     }
 
     pub fn from_path(path: impl AsRef<Path>) -> io::Result<Self> {

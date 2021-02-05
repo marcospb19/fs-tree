@@ -23,10 +23,7 @@ impl DotfileGroup {
 
         if !path.exists() {
             return Err(DotaoError::NotFoundInFilesystem);
-        } else if !FileType::<()>::from_path_shallow(&path, follow_symlinks)
-            .unwrap()
-            .is_dir()
-        {
+        } else if !FileType::<()>::from_path_shallow(&path, follow_symlinks).unwrap().is_dir() {
             return Err(DotaoError::NotADirectory);
         }
 

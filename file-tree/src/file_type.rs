@@ -64,7 +64,9 @@ impl<T> FileType<T> {
         //
         // If FileType::Directory, populate with it's children, else, do nothing
         let result = match FileType::from_path_shallow(&path, follow_symlinks)? {
-            FileType::Directory(_) => FileType::Directory(collect_directory_children(&path, follow_symlinks)?),
+            FileType::Directory(_) => {
+                FileType::Directory(collect_directory_children(&path, follow_symlinks)?)
+            },
             other => other,
         };
 

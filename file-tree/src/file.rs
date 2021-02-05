@@ -54,11 +54,7 @@ impl<T> File<T> {
     /// The behavior might be undefined if the `path` has more than one
     /// `component`
     pub unsafe fn new_unchecked(path: impl AsRef<Path>, file_type: FileType<T>) -> Self {
-        File {
-            path: path.as_ref().to_path_buf(),
-            file_type,
-            extra: None,
-        }
+        File { path: path.as_ref().to_path_buf(), file_type, extra: None }
     }
 
     /// Create `File` reading on filesystem at `path`

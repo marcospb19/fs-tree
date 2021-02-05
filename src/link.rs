@@ -92,7 +92,8 @@ impl LinkInformation {
                 }
 
                 // THIS IS SHALLOW!
-                let destination_file_type = FileType::from_path_shallow(&destination_path, false).unwrap();
+                let destination_file_type =
+                    FileType::from_path_shallow(&destination_path, false).unwrap();
                 match destination_file_type {
                     FileType::Regular => {
                         self.link_check_for_regular_file(
@@ -120,8 +121,13 @@ impl LinkInformation {
                         // destination_path);
                     },
                     FileType::Symlink(target_path) => {
-                        self.link_check_for_symlink(source_path, destination_path, source_file_type, &target_path)
-                            .unwrap();
+                        self.link_check_for_symlink(
+                            source_path,
+                            destination_path,
+                            source_file_type,
+                            &target_path,
+                        )
+                        .unwrap();
                     },
                 }
             }
@@ -138,9 +144,7 @@ impl LinkInformation {
     ) -> io::Result<()> {
         if self.link_behavior.overwrite_files {
             println!("Deleting file at '{}'?", destination_path.display());
-            self.payload
-                .deletes
-                .push((destination_path.clone(), destination_file_type));
+            self.payload.deletes.push((destination_path.clone(), destination_file_type));
             self.payload.links.push((source_path, destination_path));
         } else {
             println!("Error deleting file at '{}'?", destination_path.display());
@@ -163,9 +167,7 @@ impl LinkInformation {
         if *current_path == source_path {
             return Ok(()); // Nothing to do, already linked
         } else if self.link_behavior.overwrite_symbolic_links {
-            self.payload
-                .deletes
-                .push((destination_path.clone(), destination_file_type));
+            self.payload.deletes.push((destination_path.clone(), destination_file_type));
             self.payload.links.push((source_path, destination_path));
         } else {
             panic!("Cannot overwrite symlink");

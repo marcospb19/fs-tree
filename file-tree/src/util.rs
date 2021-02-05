@@ -6,7 +6,10 @@ use std::{
 use crate::{error::*, file::File, file_type::FileType};
 
 /// Fill a Vec with our own File struct
-pub fn collect_directory_children<T, P: AsRef<Path>>(path: P, follow_symlinks: bool) -> FsResult<Vec<File<T>>> {
+pub fn collect_directory_children<T, P: AsRef<Path>>(
+    path: P,
+    follow_symlinks: bool,
+) -> FsResult<Vec<File<T>>> {
     let path = path.as_ref();
 
     if !path.exists() {
@@ -83,18 +86,17 @@ pub fn symlink_target<P: AsRef<Path>>(path: P) -> FsResult<PathBuf> {
 }
 
 /// Used by FileType `from_path*` function
-pub fn fs_filetype_from_path(path: impl AsRef<Path>, follow_symlink: bool) -> FsResult<fs::FileType> {
+pub fn fs_filetype_from_path(
+    path: impl AsRef<Path>,
+    follow_symlink: bool,
+) -> FsResult<fs::FileType> {
     let path = path.as_ref();
 
     if !path.exists() {
         return Err(FsError::new(FsErrorKind::NotFoundError, path.into(), ""));
     }
 
-    let metadata_function = if follow_symlink {
-        fs::metadata
-    } else {
-        fs::symlink_metadata
-    };
+    let metadata_function = if follow_symlink { fs::metadata } else { fs::symlink_metadata };
 
     let metadata = metadata_function(path);
     let metadata = metadata.map_err(|source| {

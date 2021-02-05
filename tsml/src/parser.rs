@@ -165,7 +165,8 @@ pub fn parse_tokens(
                 for _ in 0..quantity_stack.pop().unwrap() {
                     vec.push(file_stack.pop().unwrap());
                 }
-                file_stack.last_mut().expect("should").file_type = FileType::<Flags>::Directory(vec);
+                file_stack.last_mut().expect("should").file_type =
+                    FileType::<Flags>::Directory(vec);
             },
 
             LexToken::Separator(separator) => {
@@ -243,11 +244,13 @@ pub fn parse_tokens(
     update_map_group(&mut map, current_group, &mut file_stack);
 
     for value in map.values_mut().flat_map(|value| value.iter_mut()) {
-        value.apply_recursively_to_children(|parent, child| match (&mut parent.extra, &mut child.extra) {
-            (Some(parent), Some(child)) => {
-                child.inherit_from(parent);
-            },
-            _ => unreachable!(),
+        value.apply_recursively_to_children(|parent, child| {
+            match (&mut parent.extra, &mut child.extra) {
+                (Some(parent), Some(child)) => {
+                    child.inherit_from(parent);
+                },
+                _ => unreachable!(),
+            }
         });
     }
 
