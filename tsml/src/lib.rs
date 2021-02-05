@@ -4,11 +4,11 @@ mod groups;
 mod lexer;
 mod parser;
 
+use std::collections::BTreeMap;
+
 pub use error::TreeFileError;
 pub use groups::Groups;
 pub use lexer::LexToken;
-
-use std::collections::BTreeMap;
 
 use crate::flags::Flags;
 pub type File = file_tree::File<Flags>;

@@ -1,36 +1,69 @@
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+    process,
+};
+
 use dotao::{
     dotfiles::DotfileGroup,
     error::*,
     link::{LinkBehavior, LinkInformation},
 };
 
-use std::{env, fs, path::PathBuf, process};
+use super::error;
+
+fn is_currently_in_git_repository() -> bool {
+    let current_dir =
+        env::current_dir().unwrap_or_else(|err| error! {"Failed to read curent directory path: '{}'.", err});
+    let mut path: &Path = &current_dir;
+    loop {
+        if path.join(".git").exists() {
+            return true;
+        } else if let Some(parent) = path.parent() {
+            path = parent;
+        } else {
+            return false;
+        }
+    }
+}
 
 fn run_status_command() {
     println!("run status command");
 }
 
-fn run_init_command() {
+fn run_init_command(force_flag: bool) {
+    if !is_currently_in_git_repository() && !force_flag || true {
+        error! {
+            "You are not inside a git repository, we recommend you to first run `git init`.\n\
+            To ignore this recommendation, type `dotao init --force` instead."
+        };
+    }
+
+    if Path::new("dotao.tsml").exists() {
+        error!("You passed the --init flag, but there's already a 'dotao.tsml' file in here! Aborting.");
+    }
+    let fs_file = fs::File::open("dotao.tsml");
     println!("run init command");
 }
 
-fn run_add_command(group_names: &[&str]) {
+fn run_add_command(group_names: &[&str], init_flag: bool, force_flag: bool) {
+    if init_flag {
+        run_init_command(force_flag);
+    }
     let tree: tsml::Groups = gather_tsml_thing();
     let group_files: Vec<tsml::File> = group_names
         .iter()
         .map(|x| {
-            tsml::File::from_path(x, false).unwrap_or_else(|err| {
-                eprintln!("Unable to add '{}' to the file: '{}'", x, err);
-                process::exit(1);
-            })
+            tsml::File::from_path(x, false)
+                .unwrap_or_else(|err| error! {"Unable to add '{}' to the file: '{}'", x, err})
         })
         .collect();
 
     for (group_file, group_name) in group_files.iter().zip(group_names) {
         if let Some(value) = tree.map.get(*group_name) {
-            if value == group_file {
-                unimplemented!();
-            }
+            // if value == group_file {
+            //     unimplemented!();
+            // }
             println!("in: {:?}", group_name);
         } else {
             println!("out: {:?}", group_name);
@@ -54,7 +87,7 @@ fn gather_tsml_thing() -> tsml::Groups {
 pub fn run() {
     // lalalalalalala
     let test_path = "/home/marcospb19/dotfiles";
-    std::env::set_current_dir(test_path).unwrap();
+    env::set_current_dir(test_path).expect("Expected, just for testing");
 
     if env::args().len() == 1 {
         run_status_command();
@@ -63,11 +96,18 @@ pub fn run() {
 
     match args.subcommand() {
         ("status", Some(_)) => run_status_command(),
-        ("init", Some(_)) => run_init_command(),
+        ("init", Some(init_matches)) => {
+            // Flag
+            let force = init_matches.is_present("force");
+            run_init_command(force);
+        },
         ("add", Some(add_matches)) => {
             let groups = add_matches.values_of("groups").unwrap(); // Safe
             let groups: Vec<&str> = groups.collect();
-            run_add_command(&groups);
+            // Flags
+            let init = add_matches.is_present("init");
+            let force = add_matches.is_present("force");
+            run_add_command(&groups, init, force);
         },
         ("rm", Some(_)) => run_remove_command(),
         _ => unreachable!(),

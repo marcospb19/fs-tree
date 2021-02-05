@@ -1,6 +1,6 @@
-use logos::Logos;
-
 use std::ops;
+
+use logos::Logos;
 
 pub(crate) type SpannedLexToken = (LexToken, ops::Range<usize>);
 
@@ -11,11 +11,11 @@ pub enum LexToken {
     //   - [group_name]
     //   -[spacing_is_optional]
     #[regex(" *- *\\[ *[^\\] ]+ *\\]", |lex| {
+        // Safe unwraps
         let start = lex.slice().find('[').unwrap();
         let end = lex.slice().rfind(']').unwrap();
 
         let slice: &str = &lex.slice()[start + 1..end].trim();
-
         String::from(slice)
     })]
     Group(String),
@@ -84,7 +84,7 @@ mod lexer_tests {
     // Test lexer
     fn tl(text: &str, expected: LexToken) {
         let mut lex = LexToken::lexer(text);
-        assert_eq!(lex.next().unwrap(), expected)
+        assert_eq!(lex.next().unwrap(), expected);
     }
 
     #[test]
@@ -102,26 +102,14 @@ mod lexer_tests {
 
     #[test]
     fn no_errors_check() {
-        let files = [
-            "examples/simplest.tree",
-            "examples/simple.tree",
-            // "examples/dotao.tree", // Need flags feature
-        ];
-
-        let mut should_panic = false;
+        let files = ["examples/simplest.tree", "examples/simple.tree", "examples/dotao.tree"];
 
         for file in &files {
             let text = std::fs::read_to_string(file).unwrap();
             let mut lex = LexToken::lexer(&text);
             while let Some(token) = lex.next() {
-                if matches!(token, LexToken::LexError) {
-                    should_panic = true;
-                }
+                assert!(!matches!(token, LexToken::LexError));
             }
-        }
-
-        if should_panic {
-            panic!();
         }
     }
 }

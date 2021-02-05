@@ -1,11 +1,11 @@
 // Show usage of is_* functions
-use permissions::{is_executable, is_readable, is_removable, is_writable};
-
 use std::{
     env,
     fs::{self, File},
     io,
 };
+
+use permissions::{is_executable, is_readable, is_removable, is_writable};
 
 fn main() -> io::Result<()> {
     // Asserts with files

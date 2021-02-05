@@ -11,13 +11,20 @@ pub(super) fn parse_args() -> clap::ArgMatches<'static> {
         .version_message("Display version information.")
         .subcommand(
             SubCommand::with_name("add")
+                .alias("insert")
                 .arg(
                     Arg::with_name("groups")
                         .required(true)
                         .multiple(true)
                         .help("pass each group folder"),
                 )
-                .alias("insert"),
+                .arg(Arg::with_name("init").long("init").help("Run `dotao init` beforehand."))
+                .arg(
+                    Arg::with_name("force")
+                        .long("force")
+                        .short("f")
+                        .help("Add even if there's no "),
+                ),
         )
         .subcommand(
             SubCommand::with_name("remove")
@@ -28,6 +35,14 @@ pub(super) fn parse_args() -> clap::ArgMatches<'static> {
                         .help("Group folders to remove from the tree"),
                 )
                 .alias("rm"),
+        )
+        .subcommand(
+            SubCommand::with_name("init").arg(
+                Arg::with_name("force")
+                    .long("force")
+                    .short("f")
+                    .help("Create even if there's no git repository"),
+            ),
         )
         // .subcommand(
         //     SubCommand::with_name("add").arg(

@@ -21,11 +21,7 @@ pub struct FsError {
 /// Note that all our functions execute excessive checks before
 impl FsError {
     pub(crate) fn new(kind: FsErrorKind, path: PathBuf, context: &'static str) -> Self {
-        Self {
-            context,
-            kind,
-            path,
-        }
+        Self { context, kind, path }
     }
 
     /// Description of the error

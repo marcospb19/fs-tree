@@ -1,12 +1,12 @@
+use std::{
+    fmt, mem,
+    path::{Path, PathBuf},
+};
+
 use crate::{
     error::*,
     file_type::FileType,
     iter::{FilesIter, PathsIter},
-};
-
-use std::{
-    fmt, mem,
-    path::{Path, PathBuf},
 };
 
 /// Recursive file representation that supports a generic extra field
@@ -151,9 +151,7 @@ impl<T> File<T> {
     pub fn apply_recursively_to_children(&mut self, f: fn(&mut File<T>, &mut File<T>)) {
         self.apply_to_children(f);
         if let FileType::Directory(children) = &mut self.file_type {
-            children
-                .iter_mut()
-                .for_each(|x| x.apply_recursively_to_children(f));
+            children.iter_mut().for_each(|x| x.apply_recursively_to_children(f));
         }
     }
 

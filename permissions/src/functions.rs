@@ -221,8 +221,9 @@ pub fn access_syscall(path: impl AsRef<Path>, mode_mask: c_int) -> io::Result<bo
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use libc::{F_OK, R_OK, W_OK, X_OK};
+
+    use super::*;
 
     #[test]
     fn test_access_syscall() {

@@ -1,10 +1,10 @@
-use crate::{file::File, file_type::FileType};
-
 use std::{
     collections::VecDeque,
     ffi::OsStr,
     path::{Path, PathBuf},
 };
+
+use crate::{file::File, file_type::FileType};
 
 /// An iterator over all `File` inside of the recursive struct
 #[derive(Debug, Clone)]

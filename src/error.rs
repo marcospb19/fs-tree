@@ -1,7 +1,7 @@
 // use crate::file_type::FileType;
-use file_tree::FileType;
-
 use std::{error, fmt, io, path::PathBuf, result};
+
+use file_tree::FileType;
 
 /// Dotao's dotao::error::Result<T> = Result<T, DotaoError>
 pub type Result<T> = result::Result<T, DotaoError>;

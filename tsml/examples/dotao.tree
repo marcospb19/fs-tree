@@ -1,13 +1,18 @@
+// This goes to the main group, should I insert configs here?
+"overwrite_stuff"
+
 
 - [top]
 ".toprc"
 
-(dotfiles)
+// comment
+(ignore)
 - [polybar]
 ".config": [
     (p, a) "polybar": [
         "folder": [
-            (follow) "symlink_path" > "target_path"
+            // Temporarly remove symlink support
+            // (follow) "symlink_path" > "target_path"
             (dont_follow) "file2"
             "empty_folder": []
         ]
@@ -15,8 +20,6 @@
         "config"
     ]
 ]
-//
 
 "you_can_one_line_too": ["1", "2", "3"]
-
-- [unused_group]
+- [empty_group]

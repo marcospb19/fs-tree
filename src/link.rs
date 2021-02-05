@@ -1,13 +1,13 @@
-use crate::{dotfiles::DotfileGroup, error::*};
-
-use file_tree::{File, FileType};
-
 use std::{
     collections::VecDeque,
     fs, io,
     os::unix::fs::symlink,
     path::{Path, PathBuf},
 };
+
+use file_tree::{File, FileType};
+
+use crate::{dotfiles::DotfileGroup, error::*};
 
 #[derive(Debug, Default, Clone)]
 pub struct LinkBehavior {
@@ -82,9 +82,7 @@ impl LinkInformation {
                 let destination_path = home_path.join(&file.path);
                 // No file there, just link it
                 if !destination_path.exists() {
-                    self.payload
-                        .links
-                        .push((source_path.clone(), destination_path.clone()));
+                    self.payload.links.push((source_path.clone(), destination_path.clone()));
                     continue;
                 }
 
@@ -94,8 +92,7 @@ impl LinkInformation {
                 }
 
                 // THIS IS SHALLOW!
-                let destination_file_type =
-                    FileType::from_path_shallow(&destination_path, false).unwrap();
+                let destination_file_type = FileType::from_path_shallow(&destination_path, false).unwrap();
                 match destination_file_type {
                     FileType::Regular => {
                         self.link_check_for_regular_file(
@@ -123,13 +120,8 @@ impl LinkInformation {
                         // destination_path);
                     },
                     FileType::Symlink(target_path) => {
-                        self.link_check_for_symlink(
-                            source_path,
-                            destination_path,
-                            source_file_type,
-                            &target_path,
-                        )
-                        .unwrap();
+                        self.link_check_for_symlink(source_path, destination_path, source_file_type, &target_path)
+                            .unwrap();
                     },
                 }
             }

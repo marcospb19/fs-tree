@@ -1,9 +1,10 @@
-use crate::{lexer::run_lexer, parser::parse_tokens, GroupsMap};
 use std::{
     fs, io,
     path::{Path, PathBuf},
     process,
 };
+
+use crate::{lexer::run_lexer, parser::parse_tokens, GroupsMap};
 
 #[derive(Debug)]
 // #[derive(Debug, Hash, Clone, PartialEq, Eq, Ord, PartialOrd)]

@@ -1,11 +1,11 @@
-use crate::error::*;
-
-use file_tree::{util::collect_directory_children, File, FileType};
-
 use std::{
     collections::VecDeque,
     path::{Path, PathBuf},
 };
+
+use file_tree::{util::collect_directory_children, File, FileType};
+
+use crate::error::*;
 
 #[derive(Debug, Default, Clone)]
 pub struct DotfileGroup {
@@ -15,10 +15,7 @@ pub struct DotfileGroup {
 
 impl DotfileGroup {
     pub fn new(starting_path: PathBuf, files: Vec<File<()>>) -> Self {
-        DotfileGroup {
-            starting_path,
-            files,
-        }
+        DotfileGroup { starting_path, files }
     }
 
     pub fn from_directory_path(path: &impl AsRef<Path>, follow_symlinks: bool) -> Result<Self> {

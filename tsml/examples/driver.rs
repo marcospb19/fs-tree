@@ -1,6 +1,6 @@
-use tsml::Groups;
-
 use std::{fs, io};
+
+use tsml::Groups;
 
 fn main() -> io::Result<()> {
     // let path = "examples/simplest.tree";

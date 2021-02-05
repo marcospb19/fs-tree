@@ -1,12 +1,12 @@
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+};
+
 use crate::{
     error::*,
     file::File,
     util::{collect_directory_children, fs_filetype_from_path, symlink_target},
-};
-
-use std::{
-    fmt,
-    path::{Path, PathBuf},
 };
 
 /// Simplified enum for `Regular`, `Directory` and `Symlink`
@@ -64,9 +64,7 @@ impl<T> FileType<T> {
         //
         // If FileType::Directory, populate with it's children, else, do nothing
         let result = match FileType::from_path_shallow(&path, follow_symlinks)? {
-            FileType::Directory(_) => {
-                FileType::Directory(collect_directory_children(&path, follow_symlinks)?)
-            },
+            FileType::Directory(_) => FileType::Directory(collect_directory_children(&path, follow_symlinks)?),
             other => other,
         };
 
