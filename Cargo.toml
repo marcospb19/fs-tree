@@ -17,6 +17,7 @@ toml = "*"
 file-tree = { path = "./file-tree" }
 permissions = { path = "./permissions" }
 tsml = { path = "./tsml" }
+indoc = "*"
 
 [workspace]
 members = [

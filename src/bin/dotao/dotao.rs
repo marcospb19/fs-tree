@@ -1,5 +1,8 @@
 use std::{
-    env, fs,
+    env,
+    ffi::OsStr,
+    fs,
+    io::prelude::*,
     path::{Path, PathBuf},
     process,
 };
@@ -9,12 +12,22 @@ use dotao::{
     error::*,
     link::{LinkBehavior, LinkInformation},
 };
+use indoc::indoc;
 
 use super::error;
 
+fn get_current_dir() -> PathBuf {
+    env::current_dir()
+        .unwrap_or_else(|err| error! {"Failed to read curent directory path: '{}'.", err})
+}
+
+fn bytes_to_uft(asd: impl AsRef<OsStr>) -> String {
+    let text = format!("{:?}", asd.as_ref());
+    text.trim_matches('"').to_string()
+}
+
 fn is_currently_in_git_repository() -> bool {
-    let current_dir =
-        env::current_dir().unwrap_or_else(|err| error! {"Failed to read curent directory path: '{}'.", err});
+    let current_dir = get_current_dir();
     let mut path: &Path = &current_dir;
     loop {
         if path.join(".git").exists() {
@@ -32,18 +45,49 @@ fn run_status_command() {
 }
 
 fn run_init_command(force_flag: bool) {
-    if !is_currently_in_git_repository() && !force_flag || true {
+    // Checks
+    if !is_currently_in_git_repository() && !force_flag {
         error! {
             "You are not inside a git repository, we recommend you to first run `git init`.\n\
             To ignore this recommendation, type `dotao init --force` instead."
         };
+    } else if Path::new("dotao.tsml").exists() {
+        error! {
+            "You passed the --init flag, but there's already a 'dotao.tsml' file in here! Aborting."
+        };
     }
 
-    if Path::new("dotao.tsml").exists() {
-        error!("You passed the --init flag, but there's already a 'dotao.tsml' file in here! Aborting.");
-    }
-    let fs_file = fs::File::open("dotao.tsml");
-    println!("run init command");
+    let mut new_dotao_tsml = fs::File::create("dotao.tsml")
+        .unwrap_or_else(|err| error! { "Error while trying to create file 'dotao.tsml': {}.", err});
+
+    write!(
+        new_dotao_tsml,
+        indoc!(
+            "//      __     __              __
+             //  ___/ /__  / /____ ____    / /________ ___
+             // / _  / _ \\/ __/ _ `/ _ \\  / __/ __/ -_) -_)
+             // \\___/\\___/\\__/\\___/\\___/  \\__/_/  \\__/\\__/
+             //
+             // Tree configuration file, see more at
+             // https://github.com/marcospb19/dotao (TODO, there's no info there)
+             //
+             // Tips: You can type `dotao add folder` to add a group to this file.
+             //       Then, you can type `dotao status` to see what's going on.
+             //       Then, you can type `dotao link` to apply links to your home directory.
+             //
+            "
+        )
+    )
+    .unwrap_or_else(|err| error! {"Error while trying to write to 'dotao.tsml': {}.", err});
+
+    // Success!
+    println!(
+        "Tree file successfully created at '{}'.",
+        bytes_to_uft(get_current_dir().join("dotao.tsml"))
+    );
+    println!(
+        "For more instruction on how to proceed, visit the repository at https://github.com/marcospb19/dotao ."
+    );
 }
 
 fn run_add_command(group_names: &[&str], init_flag: bool, force_flag: bool) {
@@ -51,24 +95,34 @@ fn run_add_command(group_names: &[&str], init_flag: bool, force_flag: bool) {
         run_init_command(force_flag);
     }
     let tree: tsml::Groups = gather_tsml_thing();
+    //
     let group_files: Vec<tsml::File> = group_names
         .iter()
         .map(|x| {
-            tsml::File::from_path(x, false)
-                .unwrap_or_else(|err| error! {"Unable to add '{}' to the file: '{}'", x, err})
+            tsml::File::from_path(x, false).unwrap_or_else(|err| error! {"{:?}", err})
+            // .unwrap_or_else(|err| error! {"Unable to add '{}' to tsml file: {}.", x, err})
         })
         .collect();
 
-    for (group_file, group_name) in group_files.iter().zip(group_names) {
-        if let Some(value) = tree.map.get(*group_name) {
-            // if value == group_file {
-            //     unimplemented!();
-            // }
-            println!("in: {:?}", group_name);
-        } else {
-            println!("out: {:?}", group_name);
-        }
+    // let mut vecs = vec![];
+
+    for group in group_files.iter() {
+        group.paths().for_each(|x| println!("{:?}", x));
+        // let mut set = BTreeSet::new();
+
+        // vecs.push
     }
+
+    // for (group_file, group_name) in group_files.iter().zip(group_names) {
+    //     if let Some(value) = tree.map.get(*group_name) {
+    //         // if value == group_file {
+    //         //     unimplemented!();
+    //         // }
+    //         println!("in: {:?}", group_name);
+    //     } else {
+    //         println!("out: {:?}", group_name);
+    //     }
+    // }
 
     println!("run add command");
 }
@@ -78,10 +132,8 @@ fn run_remove_command() {
 }
 
 fn gather_tsml_thing() -> tsml::Groups {
-    tsml::Groups::from_path("dotao.tsml").unwrap_or_else(|err| {
-        eprintln!("error trying to open 'dotao.tsml': '{}'", err);
-        process::exit(1);
-    })
+    tsml::Groups::from_path("dotao.tsml")
+        .unwrap_or_else(|err| error!("error trying to open 'dotao.tsml': {}.", err))
 }
 
 pub fn run() {
@@ -147,7 +199,7 @@ pub fn run() {
     // }
 
     // let home_path = env::var("HOME").unwrap_or_else(|err| {
-    //     eprintln!("Unable to read env variable HOME: {}", err);
+    //     eprintln!("Unable to read env variable HOME: {}.", err);
     //     process::exit(1);
     // });
     // let home_path = PathBuf::from(home_path);
@@ -179,7 +231,7 @@ pub fn run() {
     // link_information
     //     .prepare_linkage_to_home(&home_path)
     //     .unwrap_or_else(|err| {
-    //         eprintln!("prepare_linkage_to_home error: {}", err);
+    //         eprintln!("prepare_linkage_to_home error: {}.", err);
     //         process::exit(1);
     //     });
 
@@ -193,7 +245,7 @@ pub fn run() {
     // } else {
     //     link_information.proceed_and_link().unwrap_or_else(|err| {
     //         eprintln!("Mds ocorreu um erro!!!!!!!!!!!!!!!!!!!!!!!");
-    //         eprintln!("{}", err);
+    //         eprintln!("{}.", err);
     //     });
     // }
 

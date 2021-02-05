@@ -15,7 +15,7 @@ use_small_heuristics = "Max"
 
 # Put only unstable features from here
 unstable_features = true
-format_strings = true
+# format_strings = true
 wrap_comments = true
 condense_wildcard_suffixes = true
 group_imports = "StdExternalCrate"
