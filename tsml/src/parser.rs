@@ -2,7 +2,7 @@
 //
 use std::{collections::HashMap, fmt, path::PathBuf, result};
 
-use crate::{flags::Flags, lexer::SpannedLexToken, File, FileType, GroupsMap, LexToken};
+use crate::{flags::Flags, lexer::SpannedLexToken, FileTree, FileType, GroupsMap, LexToken};
 
 type Stack<T> = Vec<T>;
 
@@ -36,7 +36,7 @@ pub enum ParserErrorKind {
 
 pub type ParserResult<T> = result::Result<T, ParserError>;
 
-fn update_map_group(map: &mut GroupsMap, group: String, files: &mut Stack<File>) {
+fn update_map_group(map: &mut GroupsMap, group: String, files: &mut Stack<FileTree>) {
     // If group is already there, append
     if let Some(group) = map.get_mut(&group) {
         // Add in reverse order, so that in the end things are normal
@@ -59,7 +59,7 @@ pub fn parse_tokens(
     let mut current_line = 1;
     let mut current_line_start_index = 0;
 
-    let mut file_stack: Stack<File> = Stack::new();
+    let mut file_stack: Stack<FileTree> = Stack::new();
     let mut quantity_stack: Stack<usize> = vec![0];
     let mut read_state = ParserState::Clear;
     let mut current_group = String::from("main");
@@ -92,7 +92,7 @@ pub fn parse_tokens(
                 already_read_some_lmao = true;
 
                 // Create a file for the current value
-                let mut file = File::new(value, FileType::Regular);
+                let mut file = FileTree::new(value, FileType::Regular);
                 // Create flags and add every direct and group flags you've just seen
                 let mut flags = Flags::new();
                 last_flags.into_iter().for_each(|flag_name| {
@@ -160,7 +160,7 @@ pub fn parse_tokens(
                 }
                 already_read_some_lmao = true;
                 depth -= 1;
-                let mut vec: Vec<File> = vec![];
+                let mut vec: Vec<FileTree> = vec![];
 
                 for _ in 0..quantity_stack.pop().unwrap() {
                     vec.push(file_stack.pop().unwrap());

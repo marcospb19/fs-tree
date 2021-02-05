@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     error::*,
-    file::File,
+    file::FileTree,
     util::{collect_directory_children, fs_filetype_from_path, symlink_target},
 };
 
@@ -19,7 +19,7 @@ pub enum FileType<T> {
     /// Regular text file
     Regular,
     /// An folder that may contain more files
-    Directory(Vec<File<T>>),
+    Directory(Vec<FileTree<T>>),
     /// Unix symlink that points to another path
     Symlink(PathBuf),
 }
@@ -29,9 +29,9 @@ impl<T> FileType<T> {
     ///
     /// # Example
     /// ```no_run
-    /// use file_tree::{FileType, FsError};
+    /// use file_tree::{FileType, FtError};
     ///
-    /// fn main() -> Result<(), FsError> {
+    /// fn main() -> Result<(), FtError> {
     ///     // let file_type = FileType::from_path("src/", true)?;
     ///
     ///     // if let FileType::Directory(ref children) = file_type {
@@ -59,7 +59,7 @@ impl<T> FileType<T> {
     /// For each directory, call the function recursively.
     ///
     /// See also `from_path_shallow`.
-    pub fn from_path<P: AsRef<Path>>(path: P, follow_symlinks: bool) -> FsResult<Self> {
+    pub fn from_path<P: AsRef<Path>>(path: P, follow_symlinks: bool) -> FtResult<Self> {
         // Reuse code from `from_path_shallow`
         //
         // If FileType::Directory, populate with it's children, else, do nothing
@@ -85,9 +85,9 @@ impl<T> FileType<T> {
     ///
     /// # Example:
     /// ```
-    /// use file_tree::{FileType, FsError};
+    /// use file_tree::{FileType, FtError};
     ///
-    /// fn main() -> Result<(), FsError> {
+    /// fn main() -> Result<(), FtError> {
     ///     let file_type = FileType::<()>::from_path_shallow::<&str>("/sbin", true)?;
     ///
     ///     if !file_type.is_dir() {
@@ -96,7 +96,7 @@ impl<T> FileType<T> {
     ///     Ok(())
     /// }
     /// ```
-    pub fn from_path_shallow<P: AsRef<Path>>(path: P, follow_symlink: bool) -> FsResult<Self> {
+    pub fn from_path_shallow<P: AsRef<Path>>(path: P, follow_symlink: bool) -> FtResult<Self> {
         let fs_file_type = fs_filetype_from_path(&path, follow_symlink)?;
 
         // From the `fs::FileType` check if it is regular file, directory, or symlink
@@ -130,7 +130,7 @@ impl<T> FileType<T> {
     }
 
     /// Shorthand for unpacking `FileType::Directory(ref children)`
-    pub fn children(&self) -> Option<&Vec<File<T>>> {
+    pub fn children(&self) -> Option<&Vec<FileTree<T>>> {
         match self {
             FileType::Directory(ref children) => Some(children),
             _ => None,

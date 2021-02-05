@@ -1,9 +1,8 @@
-mod cli;
 #[allow(unused_variables, dead_code, unused_mut, unused_imports)]
-mod dotao;
-// #[export_macro]
+mod app;
+mod cli;
 mod macros;
 
 fn main() {
-    dotao::run();
+    app::run();
 }

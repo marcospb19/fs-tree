@@ -3,18 +3,18 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use file_tree::{util::collect_directory_children, File, FileType};
+use file_tree::{util::collect_directory_children, FileTree, FileType};
 
 use crate::error::*;
 
 #[derive(Debug, Default, Clone)]
 pub struct DotfileGroup {
     pub starting_path: PathBuf,
-    pub files: Vec<File<()>>,
+    pub files: Vec<FileTree<()>>,
 }
 
 impl DotfileGroup {
-    pub fn new(starting_path: PathBuf, files: Vec<File<()>>) -> Self {
+    pub fn new(starting_path: PathBuf, files: Vec<FileTree<()>>) -> Self {
         DotfileGroup { starting_path, files }
     }
 
@@ -44,7 +44,7 @@ impl DotfileGroup {
         // Calculate length of prefix to trim
         let len_to_trim = self.starting_path.iter().count();
 
-        let mut stack: Vec<&mut File<()>> = self.files.iter_mut().collect();
+        let mut stack: Vec<&mut FileTree<()>> = self.files.iter_mut().collect();
 
         // Pop elements and trim them, if they are directory, push each child, because
         // it also needs to be trimmed
@@ -59,7 +59,7 @@ impl DotfileGroup {
         }
     }
 
-    pub fn files_into_queue(&mut self) -> VecDeque<File<()>> {
+    pub fn files_into_queue(&mut self) -> VecDeque<FileTree<()>> {
         let mut deque = VecDeque::new();
 
         while let Some(file) = self.files.pop() {

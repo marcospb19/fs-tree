@@ -22,7 +22,7 @@ use crate::{
 ///
 /// The inner files path is "a/b" and "a/c" instead of just "b" or "c"
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct File<T> {
+pub struct FileTree<T> {
     /// Relative path to File
     pub path: PathBuf,
     /// The recursive type of the file
@@ -31,8 +31,8 @@ pub struct File<T> {
     pub extra: Option<T>,
 }
 
-impl<T> File<T> {
-    /// Create `File` from arguments
+impl<T> FileTree<T> {
+    /// Create `FileTree` from arguments
     ///
     /// This function will panic if you pass a path with multiple components to
     /// it, because it breaks iterators functionality.
@@ -40,13 +40,13 @@ impl<T> File<T> {
         // Todo: remove this and update docs!
         if !file_type.is_dir() && path.as_ref().components().count() > 1 {
             // panic!("Not a directory and has more than one component");
-            // return Err(FsError::NotADirectory);
+            // return Err(FtError::NotADirectory);
         }
 
-        unsafe { File::new_unchecked(path, file_type) }
+        unsafe { FileTree::new_unchecked(path, file_type) }
     }
 
-    /// Create `File` from arguments
+    /// Create `FileTree` from arguments
     ///
     /// Should be unsafe?
     ///
@@ -54,20 +54,20 @@ impl<T> File<T> {
     /// The behavior might be undefined if the `path` has more than one
     /// `component`
     pub unsafe fn new_unchecked(path: impl AsRef<Path>, file_type: FileType<T>) -> Self {
-        File { path: path.as_ref().to_path_buf(), file_type, extra: None }
+        FileTree { path: path.as_ref().to_path_buf(), file_type, extra: None }
     }
 
-    /// Create `File` reading on filesystem at `path`
+    /// Create `FileTree` reading on filesystem at `path`
     ///
     /// TODO...docs
-    pub fn from_path(path: impl AsRef<Path>, follow_symlinks: bool) -> FsResult<Self> {
+    pub fn from_path(path: impl AsRef<Path>, follow_symlinks: bool) -> FtResult<Self> {
         let file_type = FileType::from_path(&path, follow_symlinks)?;
-        let result = File::new(path, file_type);
+        let result = FileTree::new(path, file_type);
 
         Ok(result)
     }
 
-    // /// Create linear `File` directory structure from path text
+    // /// Create linear `FileTree` directory structure from path text
     // ///
     // /// For example:
     // ///     - _"a"_ -> **File** _"a"_
@@ -96,7 +96,7 @@ impl<T> File<T> {
     // }
 
     /// Apply a closure recursively to this structure
-    pub fn apply_recursively(&mut self, f: fn(&mut File<T>)) {
+    pub fn apply_recursively(&mut self, f: fn(&mut FileTree<T>)) {
         f(self);
         if let FileType::Directory(children) = &mut self.file_type {
             children.iter_mut().for_each(f);
@@ -129,8 +129,8 @@ impl<T> File<T> {
     /// only with the second parameter of the closure, see also
     /// [`apply_recursively`]
     ///
-    /// [`apply_recursively`]: File::apply_recursively
-    pub fn apply_to_children(&mut self, f: fn(&mut File<T>, &mut File<T>)) {
+    /// [`apply_recursively`]: FileTree::apply_recursively
+    pub fn apply_to_children(&mut self, f: fn(&mut FileTree<T>, &mut FileTree<T>)) {
         // temporarly take self.file_type
         let mut tmp = FileType::Regular;
         mem::swap(&mut tmp, &mut self.file_type);
@@ -144,14 +144,14 @@ impl<T> File<T> {
     }
 
     /// Apply closure to each pair of parent and children available
-    pub fn apply_recursively_to_children(&mut self, f: fn(&mut File<T>, &mut File<T>)) {
+    pub fn apply_recursively_to_children(&mut self, f: fn(&mut FileTree<T>, &mut FileTree<T>)) {
         self.apply_to_children(f);
         if let FileType::Directory(children) = &mut self.file_type {
             children.iter_mut().for_each(|x| x.apply_recursively_to_children(f));
         }
     }
 
-    /// Iterator of all `File`s in the structure
+    /// Iterator of all `FileTree`s in the structure
     pub fn files(&self) -> FilesIter<T> {
         FilesIter::new(self)
     }
@@ -163,8 +163,8 @@ impl<T> File<T> {
         self.files().paths()
     }
 
-    /// Shorthand for unpacking `File.file_type.children()`
-    pub fn children(&self) -> Option<&Vec<File<T>>> {
+    /// Shorthand for unpacking `FileTree.file_type.children()`
+    pub fn children(&self) -> Option<&Vec<FileTree<T>>> {
         self.file_type.children()
     }
 
@@ -185,9 +185,9 @@ impl<T> File<T> {
 }
 
 /// Note: the field `extra` is hidden if `mem::size_of::<T>() == 0` (zero-sized)
-impl<T: fmt::Debug> fmt::Debug for File<T> {
+impl<T: fmt::Debug> fmt::Debug for FileTree<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut ds = f.debug_struct("File");
+        let mut ds = f.debug_struct("FileTree");
         ds.field("path", &self.path);
         if std::mem::size_of::<T>() != 0 {
             ds.field("extra", &self.extra);

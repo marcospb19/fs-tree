@@ -39,7 +39,7 @@ pub mod file_type;
 /// Iterators for `File`: `FilesIter` and `PathsIter`
 pub mod iter;
 
-pub use file::File;
+pub use file::FileTree;
 pub use file_type::FileType;
 pub use iter::{FilesIter, PathsIter};
 
@@ -53,7 +53,7 @@ pub use iter::{FilesIter, PathsIter};
 pub mod util;
 
 // Exposing error module and everything inside of it, redundantly
-/// `FsError`, `FsErrorKind` and `FsResult`
+/// `FtError`, `FtErrorKind` and `FtResult`
 pub mod error;
 pub use crate::error::*;
 

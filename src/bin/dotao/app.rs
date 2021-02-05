@@ -71,9 +71,10 @@ fn run_init_command(force_flag: bool) {
              // Tree configuration file, see more at
              // https://github.com/marcospb19/dotao (TODO, there's no info there)
              //
-             // Tips: You can type `dotao add folder` to add a group to this file.
-             //       Then, you can type `dotao status` to see what's going on.
-             //       Then, you can type `dotao link` to apply links to your home directory.
+             // Tips: Some commands you can type, and what they do:
+             //   - `dotao add <folders>`, to add a group tree to this file.
+             //   - `dotao status`, to see what's going on.
+             //   - `dotao link`, to link added groups your home directory.
              //
             "
         )
@@ -96,10 +97,10 @@ fn run_add_command(group_names: &[&str], init_flag: bool, force_flag: bool) {
     }
     let tree: tsml::Groups = gather_tsml_thing();
     //
-    let group_files: Vec<tsml::File> = group_names
+    let group_files: Vec<tsml::FileTree> = group_names
         .iter()
         .map(|x| {
-            tsml::File::from_path(x, false).unwrap_or_else(|err| error! {"{:?}", err})
+            tsml::FileTree::from_path(x, false).unwrap_or_else(|err| error! {"{:?}", err})
             // .unwrap_or_else(|err| error! {"Unable to add '{}' to tsml file: {}.", x, err})
         })
         .collect();

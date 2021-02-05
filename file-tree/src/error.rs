@@ -1,13 +1,13 @@
 use std::{error, fmt, io, path::PathBuf};
 
 /// The only `Result` used in the public API of this crate
-pub type FsResult<T> = Result<T, FsError>;
+pub type FtResult<T> = Result<T, FtError>;
 
 /// The error type for this crate
 #[derive(Debug)]
-pub struct FsError {
+pub struct FtError {
     context: &'static str, // Optional aditional context for debugging purposes, can be empty
-    kind: FsErrorKind,
+    kind: FtErrorKind,
     path: PathBuf,
 }
 
@@ -19,8 +19,8 @@ pub struct FsError {
 /// ```
 ///
 /// Note that all our functions execute excessive checks before
-impl FsError {
-    pub(crate) fn new(kind: FsErrorKind, path: PathBuf, context: &'static str) -> Self {
+impl FtError {
+    pub(crate) fn new(kind: FtErrorKind, path: PathBuf, context: &'static str) -> Self {
         Self { context, kind, path }
     }
 
@@ -30,7 +30,7 @@ impl FsError {
     }
 
     /// Enum with all possible error variants
-    pub fn kind(&self) -> &FsErrorKind {
+    pub fn kind(&self) -> &FtErrorKind {
         &self.kind
     }
 
@@ -42,7 +42,7 @@ impl FsError {
 
 /// A list of possible error reasons
 #[derive(Debug)]
-pub enum FsErrorKind {
+pub enum FtErrorKind {
     /// Any error regarding `io::Result` read operations that failed
     ReadError(io::Error),
     /// Any error regarding `io::Result` write operations that failed
@@ -55,9 +55,9 @@ pub enum FsErrorKind {
     NotASymlinkError,
 }
 
-use FsErrorKind::*;
+use FtErrorKind::*;
 
-impl error::Error for FsError {
+impl error::Error for FtError {
     // Should this return Option<&io::Error> instead? nope, let's keep it like this
     // while there's no logistic link error...
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
@@ -68,7 +68,7 @@ impl error::Error for FsError {
     }
 }
 
-impl fmt::Display for FsError {
+impl fmt::Display for FtError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind {
             ReadError(ref io_err) => {
@@ -92,8 +92,8 @@ impl fmt::Display for FsError {
     }
 }
 
-// impl From<io::Error> for FsError {
+// impl From<io::Error> for FtError {
 //     fn from(err: io::Error) -> Self {
-//         FsError::IoError(err)
+//         FtError::IoError(err)
 //     }
 // }

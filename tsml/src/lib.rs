@@ -11,7 +11,7 @@ pub use groups::Groups;
 pub use lexer::LexToken;
 
 use crate::flags::Flags;
-pub type File = file_tree::File<Flags>;
+pub type FileTree = file_tree::FileTree<Flags>;
 pub use file_tree::FileType;
 //
-pub type GroupsMap = BTreeMap<String, Vec<File>>;
+pub type GroupsMap = BTreeMap<String, Vec<FileTree>>;

@@ -4,14 +4,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{file::File, file_type::FileType};
+use crate::{file::FileTree, file_type::FileType};
 
-/// An iterator over all `File` inside of the recursive struct
+/// An iterator over all `FileTree` inside of the recursive struct
 #[derive(Debug, Clone)]
 pub struct FilesIter<'a, T> {
     // Directories go at the back, files at the front
     // Has a aditional field for keeping track of depth
-    file_deque: VecDeque<(&'a File<T>, usize)>,
+    file_deque: VecDeque<(&'a FileTree<T>, usize)>,
     // Accessed by `depth` method
     current_depth: usize,
     // Options
@@ -25,7 +25,7 @@ pub struct FilesIter<'a, T> {
 
 impl<'a, T> FilesIter<'a, T> {
     // file_deque is a
-    pub(crate) fn new(start_file: &'a File<T>) -> Self {
+    pub(crate) fn new(start_file: &'a FileTree<T>) -> Self {
         let mut file_deque = VecDeque::new();
         // Start a deque from `start_file`, at depth 0, which can increase for each file
         // if self is a directory
@@ -49,7 +49,7 @@ impl<'a, T> FilesIter<'a, T> {
         self.current_depth
     }
 
-    /// Consume this `File` iterator into a `Path` iterator
+    /// Consume this `FileTree` iterator into a `Path` iterator
     pub fn paths(self) -> PathsIter<'a, T> {
         PathsIter::new(self)
     }
@@ -116,7 +116,7 @@ impl<'a, T> FilesIter<'a, T> {
 }
 
 impl<'a, T> Iterator for FilesIter<'a, T> {
-    type Item = &'a File<T>;
+    type Item = &'a FileTree<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.file_deque.is_empty() {
@@ -234,12 +234,11 @@ mod tests {
         use std::path::PathBuf;
         use crate::file_type::FileType::*;
 
-        use crate::File as File_;
-        type File = File_<()>;
+        type FileTree = crate::FileTree<()>;
 
         // Implementing a syntax sugar util to make tests readable
-        impl File {
-            fn c(&self, index: usize) -> &File {
+        impl FileTree {
+            fn c(&self, index: usize) -> &FileTree {
                 &self.file_type.children().unwrap()[index]
             }
         }
@@ -262,18 +261,18 @@ mod tests {
         // Create the strucutre
         #[rustfmt::skip]
         let root = unsafe {
-            File::new_unchecked(".config/", Directory(vec![
-            File::new_unchecked(".config/i3/", Directory(vec![
-                File::new_unchecked(".config/i3/file1", Regular),
-                File::new_unchecked(".config/i3/file2", Regular),
-                File::new_unchecked(".config/i3/dir/", Directory(vec![
-                    File::new_unchecked(".config/i3/dir/innerfile1", Regular),
-                    File::new_unchecked(".config/i3/dir/innerfile2", Regular)
+            FileTree::new_unchecked(".config/", Directory(vec![
+            FileTree::new_unchecked(".config/i3/", Directory(vec![
+                FileTree::new_unchecked(".config/i3/file1", Regular),
+                FileTree::new_unchecked(".config/i3/file2", Regular),
+                FileTree::new_unchecked(".config/i3/dir/", Directory(vec![
+                    FileTree::new_unchecked(".config/i3/dir/innerfile1", Regular),
+                    FileTree::new_unchecked(".config/i3/dir/innerfile2", Regular)
                 ])),
-                File::new_unchecked(".config/i3/file3", Regular),
+                FileTree::new_unchecked(".config/i3/file3", Regular),
             ])),
-            File::new_unchecked(".config/outerfile1", Regular),
-            File::new_unchecked(".config/outerfile2", Regular)
+            FileTree::new_unchecked(".config/outerfile1", Regular),
+            FileTree::new_unchecked(".config/outerfile2", Regular)
         ]))};
 
         #[rustfmt::skip]

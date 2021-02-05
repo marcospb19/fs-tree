@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use file_tree::{File, FileType};
+use file_tree::{FileTree, FileType};
 
 use crate::{dotfiles::DotfileGroup, error::*};
 
@@ -59,11 +59,11 @@ impl LinkInformation {
         }
     }
 
-    pub fn prepare_linkage_to_home(&mut self, home_path: &PathBuf) -> Result<()> {
+    pub fn prepare_linkage_to_home(&mut self, home_path: &Path) -> Result<()> {
         let copy = self.groups.clone();
         for group in copy.into_iter() {
             //
-            let mut deque: VecDeque<File<()>> = VecDeque::from(group.files.clone());
+            let mut deque: VecDeque<FileTree<()>> = VecDeque::from(group.files.clone());
             // println!("{:#?}", deque);
 
             while let Some(file) = deque.pop_front() {

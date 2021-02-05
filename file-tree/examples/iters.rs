@@ -1,7 +1,7 @@
-use file_tree::{File, FileType, FsError};
+use file_tree::{File, FileType, FtError};
 
 #[allow(unused_variables)]
-fn main() -> Result<(), FsError> {
+fn main() -> Result<(), FtError> {
     let examples_folder = File::<()>::from_path("examples/", true)?;
 
     // Recursive iterator that starts at file `examples_folder`
