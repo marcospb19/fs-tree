@@ -5,3 +5,6 @@ authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
 edition = "2018"
 description = "Representation of directory/file structure in filesystem, use directly to create, delete or link."
 license = "MIT"
+
+[dependencies]
+file_type_enum = "0.11"

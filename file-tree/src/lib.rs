@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+// #![warn(missing_docs)]
 
 //! Representation of directory/file structure in file system to create, delete
 //! or link.
@@ -34,13 +34,10 @@
 
 /// `File` struct.
 pub mod file;
-/// `FileType` struct.
-pub mod file_type;
 /// Iterators for `File`: `FilesIter` and `PathsIter`
 pub mod iter;
 
 pub use file::FileTree;
-pub use file_type::FileType;
 pub use iter::{FilesIter, PathsIter};
 
 // // This don't work as expected
@@ -57,5 +54,5 @@ pub mod util;
 pub mod error;
 pub use crate::error::*;
 
-/// Macros for creating files and directories
-pub mod macros;
+// /// Macros for creating files and directories
+// pub mod macros;

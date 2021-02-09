@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{file::FileTree, file_type::FileType};
+use crate::file::FileTree;
 
 /// An iterator over all `FileTree` inside of the recursive struct
 #[derive(Debug, Clone)]
@@ -132,7 +132,7 @@ impl<'a, T> Iterator for FilesIter<'a, T> {
         // directory left, then start popping from the left
         //
         // Note: last_file_is_directory <-> there is a directory in the deque
-        let last_file_is_directory = self.file_deque.back().unwrap().0.file_type.is_dir();
+        let last_file_is_directory = self.file_deque.back().unwrap().0.is_dir();
         let pop_from_the_left = self.files_before_directories || !last_file_is_directory;
 
         // Unpack popped file and depth
@@ -147,11 +147,11 @@ impl<'a, T> Iterator for FilesIter<'a, T> {
         self.current_depth = depth;
 
         // If directory, add children, and check for `self.skip_dirs`
-        if let FileType::Directory(ref children) = &file.file_type {
+        if let Some(children) = file.children() {
             // Reversed, because late nodes stay at the tip
             // We want at the tip the first ones
             for child in children.iter().rev() {
-                if child.file_type.is_dir() {
+                if child.is_dir() {
                     self.file_deque.push_back((child, depth + 1));
                 } else {
                     self.file_deque.push_front((child, depth + 1));
@@ -165,9 +165,9 @@ impl<'a, T> Iterator for FilesIter<'a, T> {
         }
 
         // If should skip due file type specific skip filters
-        if self.skip_regular_files && file.file_type.is_regular()
-            || self.skip_dirs && file.file_type.is_dir()
-            || self.skip_dirs && file.file_type.is_dir()
+        if self.skip_regular_files && file.is_regular()
+            || self.skip_dirs && file.is_dir()
+            || self.skip_dirs && file.is_dir()
         {
             return self.next();
         }
@@ -210,9 +210,9 @@ impl<'a, T> PathsIter<'a, T> {
         let file = self.file_iter.next()?;
 
         if self.only_show_last_segment {
-            file.path.file_name().map(OsStr::as_ref)
+            file.path().file_name().map(OsStr::as_ref)
         } else {
-            Some(&file.path)
+            Some(file.path())
         }
     }
 }
@@ -232,14 +232,12 @@ mod tests {
     #[rustfmt::skip]
     fn testing_files_and_paths_iters() {
         use std::path::PathBuf;
-        use crate::file_type::FileType::*;
-
         type FileTree = crate::FileTree<()>;
 
         // Implementing a syntax sugar util to make tests readable
         impl FileTree {
             fn c(&self, index: usize) -> &FileTree {
-                &self.file_type.children().unwrap()[index]
+                &self.children().unwrap()[index]
             }
         }
 
@@ -258,22 +256,24 @@ mod tests {
         //     "outerfile2"
         // ]
 
+        // This should be replaced with a proper macro
+
         // Create the strucutre
         #[rustfmt::skip]
         let root = unsafe {
-            FileTree::new_unchecked(".config/", Directory(vec![
-            FileTree::new_unchecked(".config/i3/", Directory(vec![
-                FileTree::new_unchecked(".config/i3/file1", Regular),
-                FileTree::new_unchecked(".config/i3/file2", Regular),
-                FileTree::new_unchecked(".config/i3/dir/", Directory(vec![
-                    FileTree::new_unchecked(".config/i3/dir/innerfile1", Regular),
-                    FileTree::new_unchecked(".config/i3/dir/innerfile2", Regular)
-                ])),
-                FileTree::new_unchecked(".config/i3/file3", Regular),
-            ])),
-            FileTree::new_unchecked(".config/outerfile1", Regular),
-            FileTree::new_unchecked(".config/outerfile2", Regular)
-        ]))};
+            FileTree::new_directory(".config/", vec![
+            FileTree::new_directory(".config/i3/", vec![
+                FileTree::new_regular(".config/i3/file1"),
+                FileTree::new_regular(".config/i3/file2"),
+                FileTree::new_directory(".config/i3/dir/", vec![
+                    FileTree::new_regular(".config/i3/dir/innerfile1"),
+                    FileTree::new_regular(".config/i3/dir/innerfile2")
+                ]),
+                FileTree::new_regular(".config/i3/file3"),
+            ]),
+            FileTree::new_regular(".config/outerfile1"),
+            FileTree::new_regular(".config/outerfile2")
+        ])};
 
         #[rustfmt::skip]
         // Get the references in line order, from top to bottom
