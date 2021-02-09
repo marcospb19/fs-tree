@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::file::FileTree;
+use crate::file_tree::FileTree;
 
 /// An iterator over all `FileTree` inside of the recursive struct
 #[derive(Debug, Clone)]

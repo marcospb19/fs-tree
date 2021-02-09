@@ -33,15 +33,15 @@
 //! FileType -> mode_t
 
 /// `File` struct.
-pub mod file;
+pub mod file_tree;
 /// Iterators for `File`: `FilesIter` and `PathsIter`
 pub mod iter;
 
-pub use file::FileTree;
+pub use file_tree::FileTree;
 pub use iter::{FilesIter, PathsIter};
 
 // // This don't work as expected
-// pub type File<T = ()> = file::File<T>;
+// pub type File<T = ()> = file_tree::File<T>;
 // pub type FileType<T = ()> = file_type::FileType<T>;
 // pub type PathsIter<'a, T = ()> = iter::PathsIter<'a, T>;
 // pub type FilesIter<'a, T = ()> = iter::FilesIter<'a, T>;
