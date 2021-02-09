@@ -107,8 +107,9 @@ impl<T> FileTree<T> {
         Self::Symlink { path, target_path, extra }
     }
 
-    // Internal
-    fn __collect_from_directory(path: &Path, follow_symlinks: bool) -> FtResult<Vec<Self>> {
+    /// Collects a `Vec` of `FileTree` from `path` that is a directory, follows symlinks.
+    pub fn collect_from_directory(path: impl AsRef<Path>) -> FtResult<Vec<Self>> {
+        let path = path.as_ref();
         if !path.exists() {
             return Err(FtError::NotFoundError(path.to_path_buf()));
         } else if !fs::metadata(path)?.file_type().is_dir() {
@@ -126,20 +127,12 @@ impl<T> FileTree<T> {
         Ok(children)
     }
 
-    /// Collects a `Vec` of `FileTree` from `path` that is a directory, follows symlinks.
-    pub fn collect_from_directory(path: impl AsRef<Path>) -> FtResult<Vec<Self>> {
-        Self::__collect_from_directory(path.as_ref(), true)
-    }
-
-    /// Collects a `Vec` of `FileTree` from `path` that is a directory, follows symlinks.
-    pub fn collect_from_symlink_directory(path: impl AsRef<Path>) -> FtResult<Vec<Self>> {
-        Self::__collect_from_directory(path.as_ref(), false)
-    }
-
     // Internal implementation of `from_path` and `from_symlink_path`
     fn __from_path(path: &Path, follow_symlinks: bool) -> FtResult<Self> {
-        let file_type = FileTypeEnum::from_path(path)?;
-        match file_type {
+        let get_file_type =
+            if follow_symlinks { FileTypeEnum::from_path } else { FileTypeEnum::from_symlink_path };
+
+        match get_file_type(path)? {
             FileTypeEnum::Regular => Ok(Self::new_regular(path)),
             FileTypeEnum::Directory => {
                 let children = Self::collect_from_directory(path)?;
