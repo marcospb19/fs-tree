@@ -1,4 +1,7 @@
 //! `FileTree` implementation
+//!
+//! The functions with name suffixed by "symlink" do not follow symlinks at `path`, read the
+//! documentation carefully.
 
 use std::{
     env, fs,
@@ -107,27 +110,35 @@ impl<T> FileTree<T> {
         Self::Symlink { path, target_path, extra }
     }
 
-    /// Collects a `Vec` of `FileTree` from `path` that is a directory, follows symlinks.
-    pub fn collect_from_directory(path: impl AsRef<Path>) -> FtResult<Vec<Self>> {
-        let path = path.as_ref();
+    // Private implementation
+    fn __collect_from_directory(path: &Path, follow_symlinks: bool) -> FtResult<Vec<Self>> {
         if !path.exists() {
             return Err(FtError::NotFoundError(path.to_path_buf()));
-        } else if !fs::metadata(path)?.file_type().is_dir() {
+        } else if !FileTypeEnum::from_path(path)?.is_directory() {
             return Err(FtError::NotADirectoryError(path.to_path_buf()));
         }
-
         let dirs = fs::read_dir(path)?;
 
         let mut children = vec![];
         for entry in dirs {
             let entry = entry?;
-            let file = Self::from_path(entry.path())?;
+            let file = Self::__from_path(&entry.path(), follow_symlinks)?;
             children.push(file);
         }
         Ok(children)
     }
 
-    // Internal implementation of `from_path` and `from_symlink_path`
+    /// Collects a `Vec` of `FileTree` from `path` that is a directory.
+    pub fn collect_from_directory(path: impl AsRef<Path>) -> FtResult<Vec<Self>> {
+        Self::__collect_from_directory(path.as_ref(), true)
+    }
+
+    /// Collects a `Vec` of `FileTree` from `path` that is a directory, entries can be symlinks.
+    pub fn collect_from_directory_symlink(path: impl AsRef<Path>) -> FtResult<Vec<Self>> {
+        Self::__collect_from_directory(path.as_ref(), false)
+    }
+
+    // Internal implementation of `from_path` and `from_path_symlink`
     fn __from_path(path: &Path, follow_symlinks: bool) -> FtResult<Self> {
         let get_file_type =
             if follow_symlinks { FileTypeEnum::from_path } else { FileTypeEnum::from_symlink_path };
@@ -135,7 +146,7 @@ impl<T> FileTree<T> {
         match get_file_type(path)? {
             FileTypeEnum::Regular => Ok(Self::new_regular(path)),
             FileTypeEnum::Directory => {
-                let children = Self::collect_from_directory(path)?;
+                let children = Self::__collect_from_directory(path, follow_symlinks)?;
                 Ok(Self::new_directory(path, children))
             },
             FileTypeEnum::Symlink => {
@@ -148,7 +159,7 @@ impl<T> FileTree<T> {
 
     /// Builds a `FileTree` from `path`, follows symlinks.
     ///
-    /// Similar to `from_symlink_path`.
+    /// Similar to `from_path_symlink`.
     ///
     /// If file at `path` is a regular file, will return a `FileTree::Regular`.
     /// If file at `path` is a directory file, `FileTree::Directory` (with .children).
@@ -160,7 +171,7 @@ impl<T> FileTree<T> {
     ///
     /// This function traverses symlinks until final destination, and then reads it, so it can never
     /// return `Ok(FileTree::Symlink { .. ]})`, if you wish otherwise, use
-    /// `FileTree::from_symlink_path` instead.
+    /// `FileTree::from_path_symlink` instead.
     ///
     /// [unexpected file type]: docs.rs/file_type_enum
     pub fn from_path(path: impl AsRef<Path>) -> FtResult<Self> {
@@ -169,7 +180,7 @@ impl<T> FileTree<T> {
 
     /// Builds a `FileTree` from `path`, follows symlinks.
     ///
-    /// Similar to `from_symlink_path`.
+    /// Similar to `from_path_symlink`.
     ///
     /// If file at `path` is a regular file, will return a `FileTree::Regular`.
     /// If file at `path` is a directory file, `FileTree::Directory` (with `children` field).
@@ -185,12 +196,12 @@ impl<T> FileTree<T> {
     /// `FileTree::from_path`.
     ///
     /// [unexpected file type]: docs.rs/file_type_enum
-    pub fn from_symlink_path(path: impl AsRef<Path>) -> FtResult<Self> {
+    pub fn from_path_symlink(path: impl AsRef<Path>) -> FtResult<Self> {
         Self::__from_path(path.as_ref(), false)
     }
 
     // Internal
-    fn ___from_cd_path(path: &Path, follow_symlinks: bool) -> FtResult<Self> {
+    fn ___from_path_cd(path: &Path, follow_symlinks: bool) -> FtResult<Self> {
         let previous_path = env::current_dir()?;
         debug_assert!(path.is_absolute());
         env::set_current_dir(path)?;
@@ -202,15 +213,15 @@ impl<T> FileTree<T> {
     /// `cd` into path, run `from_path`, and come back.
     ///
     /// TODO explain here why this is useful
-    pub fn from_cd_path(path: impl AsRef<Path>) -> FtResult<Self> {
-        Self::___from_cd_path(path.as_ref(), true)
+    pub fn from_path_cd(path: impl AsRef<Path>) -> FtResult<Self> {
+        Self::___from_path_cd(path.as_ref(), true)
     }
 
-    /// `cd` into path, run `from_symlink_path`, and come back.
+    /// `cd` into path, run `from_path_symlink`, and come back.
     ///
     /// TODO explain here why this is useful
     pub fn from_cd_symlink_path(path: impl AsRef<Path>) -> FtResult<Self> {
-        Self::___from_cd_path(path.as_ref(), false)
+        Self::___from_path_cd(path.as_ref(), false)
     }
 
     /// Creates a `FileTree` from path text.
@@ -253,6 +264,22 @@ impl<T> FileTree<T> {
             // Create current and return it
             let path = iter.as_path();
             FileTree::new_directory(path, vec![child])
+        }
+    }
+
+    /// Fix paths for the macro
+    ///
+    /// needs docs
+    pub fn fix(&mut self) {
+        let parent_path_copy = self.path().clone();
+        if let Some(children) = self.children_mut() {
+            for child in children.iter_mut() {
+                *child.path_mut() = parent_path_copy.join(child.path());
+                if let Some(target) = child.target_mut() {
+                    *target = parent_path_copy.join(&target);
+                }
+                child.fix();
+            }
         }
     }
 
@@ -325,7 +352,23 @@ impl<T> FileTree<T> {
         }
     }
 
+    pub fn path_mut(&mut self) -> &mut PathBuf {
+        match self {
+            Self::Regular { path, .. }
+            | Self::Directory { path, .. }
+            | Self::Symlink { path, .. } => path,
+        }
+    }
+
     pub fn extra(&self) -> &Option<T> {
+        match self {
+            Self::Regular { extra, .. }
+            | Self::Directory { extra, .. }
+            | Self::Symlink { extra, .. } => extra,
+        }
+    }
+
+    pub fn extra_mut(&mut self) -> &mut Option<T> {
         match self {
             Self::Regular { extra, .. }
             | Self::Directory { extra, .. }
