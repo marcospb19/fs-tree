@@ -1,12 +1,14 @@
-use file_tree::util::*;
+// This is a test for us to see what are the error messages this gives us.
+//
+use file_tree::{util, FileTree};
 
 fn main() {
-    let path = "src/ex.rs";
+    let path = "Cargo.toml";
 
-    if let Err(err) = collect_directory_children::<(), &str>(path, false) {
+    if let Err(err) = FileTree::<()>::collect_from_directory(path) {
         eprintln!("{}", err);
     }
-    if let Err(err) = symlink_target(path) {
+    if let Err(err) = util::symlink_target(path) {
         eprintln!("{}", err);
     }
 }

@@ -1,8 +1,8 @@
-use file_tree::{File, FileType, FtError};
+use file_tree::{FileTree, FtResult};
 
 #[allow(unused_variables)]
-fn main() -> Result<(), FtError> {
-    let examples_folder = File::<()>::from_path("examples/", true)?;
+fn main() -> FtResult<()> {
+    let examples_folder = FileTree::<()>::from_path("examples/")?;
 
     // Recursive iterator that starts at file `examples_folder`
     // See documentation to see how to apply filters to this FilesIter
@@ -16,7 +16,7 @@ fn main() -> Result<(), FtError> {
     }
 
     // If you want to see each child file
-    if let FileType::Directory(ref children) = examples_folder.file_type {
+    if let Some(children) = examples_folder.children() {
         for child in children {
             // println!("{:?}", child.path);
         }
