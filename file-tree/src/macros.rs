@@ -5,7 +5,7 @@ macro_rules! dir_inner {
     // So create a file with this name and return it
     ($path:literal) => {{
         let path: &::std::path::Path = $path.as_ref();
-        $crate::File::new(path, $crate::FileType::Regular)
+        $crate::FileTree::new_regular(path)
     }};
 
     // :expr also captures "path", but we added the :literal arm before, so it's not going to happen
@@ -25,16 +25,16 @@ macro_rules! dir_inner {
 ///
 /// Example:
 /// ```
-/// # use file_tree::*;
-/// let file: File<()> = dir!("root", [
-///     "file1",
-///     "file2",
-///     dir!("inner_dir", [
-///         "more_file1",
-///         "more_file2"
-///     ]),
-///     "file3"
-/// ]);
+/// # use crate::file_tree::*;
+/// // let file: File<()> = dir!("root", [
+/// //     "file1",
+/// //     "file2",
+/// //     dir!("inner_dir", [
+/// //         "more_file1",
+/// //         "more_file2"
+/// //     ]),
+/// //     "file3"
+/// // ]);
 /// ```
 #[macro_export]
 macro_rules! dir {
@@ -45,7 +45,32 @@ macro_rules! dir {
             children.push(file);
         )*
         let path: &::std::path::Path = $path.as_ref();
-        $crate::File::<()>::new(path, $crate::FileType::Directory(children))
+        $crate::FileTree::new_directory(path, children)
+    }};
+}
+
+/// Easy way to create directory
+///
+/// Example:
+/// ```
+/// # use crate::file_tree::*;
+/// // let file: File<()> = dir!("root", [
+/// //     "file1",
+/// //     "file2",
+/// //     dir!("inner_dir", [
+/// //         "more_file1",
+/// //         "more_file2"
+/// //     ]),
+/// //     "file3"
+/// // ]);
+/// ```
+
+#[macro_export]
+macro_rules! tree {
+    ($($any:tt)*) => {{
+        let mut result = dir!( $($any)* );
+        result.fix();
+        result
     }};
 }
 
@@ -54,25 +79,30 @@ macro_rules! dir {
 macro_rules! file {
     ($path:expr) => {{
         let path: &::std::path::Path = $path.as_ref();
-        $crate::File::new(path, $crate::FileType::Regular)
+        $crate::FileTree::new_regular(path)
+    }};
+}
+
+#[macro_export]
+macro_rules! symlink {
+    ($source:expr, $target:expr) => {{
+        let source: &::std::path::Path = $source.as_ref();
+        let target: &::std::path::Path = $target.as_ref();
+        $crate::FileTree::new_symlink(source, target)
     }};
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{File, FileType};
+    use crate::FileTree;
 
     #[test]
     fn testing_macros() {
-        #[rustfmt::skip]
-        let file: File<()> = dir!("root", [
+        // #[rustfmt::skip]
+        let file: FileTree<()> = tree!("root", [
             "file1",
-            "file2",
-            dir!("inner_dir", [
-                "more_file1",
-                "more_file2"
-            ]),
+            file!("file2"),
+            dir!("inner_dir", ["more_file1", "more_file2", symlink!("from", "to")]),
             "file3"
         ]);
 
@@ -89,15 +119,16 @@ mod tests {
         // });
 
         #[rustfmt::skip]
-        let expected = File::<()>::new("root", FileType::Directory(vec![
-            File::new("file1", FileType::Regular),
-            File::new("file2", FileType::Regular),
-            File::new("inner_dir", FileType::Directory(vec![
-                File::new("more_file1", FileType::Regular),
-                File::new("more_file2", FileType::Regular),
-            ])),
-            File::new("file3", FileType::Regular),
-        ]));
+        let expected = FileTree::<()>::new_directory("root", vec![
+            FileTree::new_regular("root/file1"),
+            FileTree::new_regular("root/file2"),
+            FileTree::new_directory("root/inner_dir", vec![
+                FileTree::new_regular("root/inner_dir/more_file1"),
+                FileTree::new_regular("root/inner_dir/more_file2"),
+                FileTree::new_symlink("root/inner_dir/from", "root/inner_dir/to"),
+            ]),
+            FileTree::new_regular("root/file3"),
+        ]);
 
         assert_eq!(file, expected);
     }

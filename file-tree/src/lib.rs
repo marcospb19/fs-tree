@@ -32,27 +32,18 @@
 //! .merge() method for File
 //! FileType -> mode_t
 
-/// `File` struct.
 pub mod file_tree;
-/// Iterators for `File`: `FilesIter` and `PathsIter`
+pub use self::file_tree::FileTree; // Need self (cargo test)
+
 pub mod iter;
-
-pub use file_tree::FileTree;
-pub use iter::{FilesIter, PathsIter};
-
-// // This don't work as expected
-// pub type File<T = ()> = file_tree::File<T>;
-// pub type FileType<T = ()> = file_type::FileType<T>;
-// pub type PathsIter<'a, T = ()> = iter::PathsIter<'a, T>;
-// pub type FilesIter<'a, T = ()> = iter::FilesIter<'a, T>;
+pub use self::iter::{FilesIter, PathsIter};
 
 /// Exposed functions that are used internally by this crate
 pub mod util;
 
-// Exposing error module and everything inside of it, redundantly
-/// `FtError`, `FtErrorKind` and `FtResult`
+/// `FtResult` and `FtError` types.
 pub mod error;
-pub use crate::error::*;
+pub use self::error::*;
 
-// /// Macros for creating files and directories
-// pub mod macros;
+// /// Macros for creating `FileTree` structure.
+pub mod macros;
