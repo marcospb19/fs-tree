@@ -10,7 +10,7 @@ fn main() -> io::Result<()> {
     let text = fs::read_to_string(path)?;
 
     let groups = Groups::from_text(&text);
-    println!("{:#?}", groups);
+    dbg!(groups);
 
     Ok(())
 }

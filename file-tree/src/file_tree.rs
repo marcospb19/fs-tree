@@ -4,7 +4,7 @@
 //! documentation carefully.
 
 use std::{
-    env, fs,
+    env, fs, mem,
     path::{Path, PathBuf},
 };
 
@@ -337,10 +337,12 @@ impl<T> FileTree<T> {
     /// Apply a closure to all direct and indirect descendants inside, also includes root.
     ///
     /// Calls recursively for all levels.
-    pub fn apply_to_all(&mut self, f: &mut impl FnMut(&mut Self)) {
+    pub fn apply_to_all(&mut self, mut f: impl FnMut(&mut Self) + Copy) {
         f(self);
         if let Some(children) = self.children_mut() {
-            children.iter_mut().for_each(|x| x.apply_to_all(f))
+            for child in children.iter_mut() {
+                child.apply_to_all(f);
+            }
         }
     }
 
@@ -390,16 +392,52 @@ impl<T> FileTree<T> {
 
     /// Shorthand for `file.file_type.is_regular()`
     pub fn is_regular(&self) -> bool {
-        matches!(self, FileTree::Regular { .. })
+        matches!(self, Self::Regular { .. })
     }
 
     /// Shorthand for `file.file_type.is_dir()`
     pub fn is_dir(&self) -> bool {
-        matches!(self, FileTree::Directory { .. })
+        matches!(self, Self::Directory { .. })
     }
 
     /// Shorthand for `file.file_type.is_symlink()`
     pub fn is_symlink(&self) -> bool {
-        matches!(self, FileTree::Symlink { .. })
+        matches!(self, Self::Symlink { .. })
+    }
+
+    pub fn to_regular(&mut self) {
+        match self {
+            Self::Regular { .. } => {},
+            Self::Directory { path, extra, .. } | Self::Symlink { path, extra, .. } => {
+                let path = mem::take(path);
+                let extra = mem::take(extra);
+                *self = Self::Regular { path, extra };
+            },
+        }
+    }
+
+    pub fn to_directory(&mut self, children: Vec<Self>) {
+        match self {
+            Self::Regular { path, extra }
+            | Self::Directory { path, extra, .. }
+            | Self::Symlink { path, extra, .. } => {
+                let path = mem::take(path);
+                let extra = mem::take(extra);
+                *self = Self::Directory { path, children, extra };
+            },
+        }
+    }
+
+    pub fn to_symlink(&mut self, target_path: impl AsRef<Path>) {
+        match self {
+            Self::Regular { path, extra }
+            | Self::Directory { path, extra, .. }
+            | Self::Symlink { path, extra, .. } => {
+                let path = mem::take(path);
+                let extra = mem::take(extra);
+                let target_path = target_path.as_ref().to_path_buf();
+                *self = Self::Symlink { path, target_path, extra };
+            },
+        }
     }
 }

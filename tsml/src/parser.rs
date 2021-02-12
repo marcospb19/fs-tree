@@ -1,8 +1,8 @@
 // Slightly big parser, yet to be documented
 //
-use std::{collections::HashMap, fmt, path::PathBuf, result};
+use std::{collections::HashMap, fmt, result};
 
-use crate::{flags::Flags, lexer::SpannedLexToken, FileTree, FileType, GroupsMap, LexToken};
+use crate::{flags::Flags, lexer::SpannedLexToken, FileTree, GroupsMap, LexToken};
 
 type Stack<T> = Vec<T>;
 
@@ -91,8 +91,6 @@ pub fn parse_tokens(
                 read_state = ParserState::Busy;
                 already_read_some_lmao = true;
 
-                // Create a file for the current value
-                let mut file = FileTree::new(value, FileType::Regular);
                 // Create flags and add every direct and group flags you've just seen
                 let mut flags = Flags::new();
                 last_flags.into_iter().for_each(|flag_name| {
@@ -101,8 +99,8 @@ pub fn parse_tokens(
                 group_flags.into_iter().for_each(|flag_name| {
                     flags.add_group_flag(flag_name);
                 });
-                // Attach flags to the current file
-                file.extra = Some(flags);
+
+                let mut file = FileTree::new_regular_with_extra(value, Some(flags));
 
                 // reinit for next iterations
                 last_flags = vec![];
@@ -110,7 +108,7 @@ pub fn parse_tokens(
 
                 if let Some((LexToken::SymlinkArrow, _)) = tokens_iter.peek() {
                     if let Some((LexToken::Value(target), _)) = tokens_iter.nth(1) {
-                        file.file_type = FileType::<Flags>::Symlink(PathBuf::from(target));
+                        file.to_symlink(target);
                     } else {
                         return Err(ParserError::new(
                             current_line,
@@ -143,7 +141,7 @@ pub fn parse_tokens(
                 assert!(!file_stack.is_empty());
 
                 depth += 1;
-                file_stack.last_mut().unwrap().file_type = FileType::<Flags>::Directory(vec![]);
+                file_stack.last_mut().unwrap().to_directory(vec![]);
                 quantity_stack.push(0);
                 already_read_some_lmao = false;
             },
@@ -165,8 +163,7 @@ pub fn parse_tokens(
                 for _ in 0..quantity_stack.pop().unwrap() {
                     vec.push(file_stack.pop().unwrap());
                 }
-                file_stack.last_mut().expect("should").file_type =
-                    FileType::<Flags>::Directory(vec);
+                file_stack.last_mut().expect("should").to_directory(vec);
             },
 
             LexToken::Separator(separator) => {
@@ -209,6 +206,7 @@ pub fn parse_tokens(
 
             // doing this
             LexToken::Flags(flags) => {
+                // Flags not clear yet to read more flags
                 if !last_flags.is_empty() {
                     return Err(ParserError::new(
                         current_line,
@@ -216,11 +214,7 @@ pub fn parse_tokens(
                         ParserErrorKind::FlagAfterFlag,
                     ));
                 }
-
-                // YeeeeeeeeY
                 last_flags = flags.clone();
-
-                println!("flags achadas: {:?}", last_flags);
             },
 
             // João Marcos!! Logos!! editar isso pls
@@ -243,15 +237,18 @@ pub fn parse_tokens(
 
     update_map_group(&mut map, current_group, &mut file_stack);
 
-    for value in map.values_mut().flat_map(|value| value.iter_mut()) {
-        value.apply_recursively_to_children(|parent, child| {
-            match (&mut parent.extra, &mut child.extra) {
-                (Some(parent), Some(child)) => {
-                    child.inherit_from(parent);
-                },
-                _ => unreachable!(),
+    fn propagate_to_children(ft: &mut FileTree) {
+        // Todo: try to remove this clone
+        let parent_path = ft.path().clone();
+        if let Some(children) = ft.children_mut() {
+            for child in children {
+                *child.path_mut() = child.path().join(&parent_path);
             }
-        });
+        }
+    }
+
+    for ft in map.values_mut().flat_map(|value| value.iter_mut()) {
+        propagate_to_children(ft);
     }
 
     Ok((map, group_order))
