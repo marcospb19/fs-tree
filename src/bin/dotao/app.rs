@@ -7,18 +7,13 @@ use std::{
     process,
 };
 
-use dotao::{
-    dotfiles::DotfileGroup,
-    error::*,
-    link::{LinkBehavior, LinkInformation},
-};
 use indoc::indoc;
 
-use super::error;
+use super::{cli, error};
 
 fn get_current_dir() -> PathBuf {
     env::current_dir()
-        .unwrap_or_else(|err| error! {"Failed to read curent directory path: '{}'.", err})
+        .unwrap_or_else(|err| error!("Failed to read curent directory path: '{}'.", err))
 }
 
 fn bytes_to_uft(asd: impl AsRef<OsStr>) -> String {
@@ -47,18 +42,20 @@ fn run_status_command() {
 fn run_init_command(force_flag: bool) {
     // Checks
     if !is_currently_in_git_repository() && !force_flag {
-        error! {
+        error!(
             "You are not inside a git repository, we recommend you to first run `git init`.\n\
             To ignore this recommendation, type `dotao init --force` instead."
-        };
+        );
     } else if Path::new("dotao.tsml").exists() {
-        error! {
-            "You passed the --init flag, but there's already a 'dotao.tsml' file in here! Aborting."
-        };
+        error!(
+            "You passed the --init flag, but there's already a 'dotao.tsml' file in here!\n\
+            Run `rm dotao.tsml` before if you wish to restart everything.\n\
+            Be careful,"
+        );
     }
 
     let mut new_dotao_tsml = fs::File::create("dotao.tsml")
-        .unwrap_or_else(|err| error! { "Error while trying to create file 'dotao.tsml': {}.", err});
+        .unwrap_or_else(|err| error!("Error while trying to create file 'dotao.tsml': {}.", err));
 
     write!(
         new_dotao_tsml,
@@ -79,7 +76,7 @@ fn run_init_command(force_flag: bool) {
             "
         )
     )
-    .unwrap_or_else(|err| error! {"Error while trying to write to 'dotao.tsml': {}.", err});
+    .unwrap_or_else(|err| error!("Error while trying to write to 'dotao.tsml': {}.", err));
 
     // Success!
     println!(
@@ -87,32 +84,44 @@ fn run_init_command(force_flag: bool) {
         bytes_to_uft(get_current_dir().join("dotao.tsml"))
     );
     println!(
-        "For more instruction on how to proceed, visit the repository at https://github.com/marcospb19/dotao ."
+        "For help, type `dotao --help`.\n\
+         See also the (TODO) full tutorial at https://github.com/marcospb19/dotao ."
     );
 }
 
 fn run_add_command(group_names: &[&str], init_flag: bool, force_flag: bool) {
     if init_flag {
+        println!("Running `dotao init` before `dotao add`.");
         run_init_command(force_flag);
     }
-    let tree: tsml::Groups = gather_tsml_thing();
     //
-    let group_files: Vec<tsml::FileTree> = group_names
+    let content = fs::read_to_string("dotao.tsml").unwrap();
+    let mut tree = tsml::Groups::from_text(&content);
+    let _comment_lines =
+        content.lines().take_while(|line| line.starts_with("//")).collect::<Vec<&str>>();
+
+    let group_files: Vec<Vec<tsml::FileTree>> = group_names
         .iter()
-        .map(|x| {
-            tsml::FileTree::from_path(x, false).unwrap_or_else(|err| error! {"{:?}", err})
-            // .unwrap_or_else(|err| error! {"Unable to add '{}' to tsml file: {}.", x, err})
+        .map(|path| {
+            tsml::FileTree::collect_from_directory(path).unwrap_or_else(|err| {
+                error!("Error while trying to read `add` arguments: {:?}.", err)
+            })
         })
         .collect();
 
-    // let mut vecs = vec![];
-
-    for group in group_files.iter() {
-        group.paths().for_each(|x| println!("{:?}", x));
-        // let mut set = BTreeSet::new();
-
-        // vecs.push
+    // Lmao?
+    for (name, vec_of_files) in group_names.iter().zip(group_files) {
+        *tree.map.entry(name.to_string()).or_default() = vec_of_files;
     }
+
+    println!("--\n{}\n--", tsml::groups_to_tsml(&tree));
+
+    // for group in group_files.iter() {
+    //     group.paths().for_each(|x| println!("{:?}", x));
+    //     // let mut set = BTreeSet::new();
+
+    //     // vecs.push
+    // }
 
     // for (group_file, group_name) in group_files.iter().zip(group_names) {
     //     if let Some(value) = tree.map.get(*group_name) {
@@ -125,27 +134,22 @@ fn run_add_command(group_names: &[&str], init_flag: bool, force_flag: bool) {
     //     }
     // }
 
-    println!("run add command");
+    // println!("run add command");
 }
 
 fn run_remove_command() {
     println!("run remove command");
 }
 
-fn gather_tsml_thing() -> tsml::Groups {
-    tsml::Groups::from_path("dotao.tsml")
-        .unwrap_or_else(|err| error!("error trying to open 'dotao.tsml': {}.", err))
-}
-
 pub fn run() {
-    // lalalalalalala
+    // temporary fix for fast testing
     let test_path = "/home/marcospb19/dotfiles";
     env::set_current_dir(test_path).expect("Expected, just for testing");
 
     if env::args().len() == 1 {
         run_status_command();
     }
-    let args = super::cli::parse_args();
+    let args = cli::parse_args();
 
     match args.subcommand() {
         ("status", Some(_)) => run_status_command(),

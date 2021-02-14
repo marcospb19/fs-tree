@@ -44,9 +44,9 @@ pub(super) fn parse_args() -> clap::ArgMatches<'static> {
                     .help("Create even if there's no git repository"),
             ),
         )
-        .subcommand(
-            SubCommand::with_name("link").arg()
-        )
+        // .subcommand(
+        //     SubCommand::with_name("link").arg()
+        // )
         // .subcommand(
         //     SubCommand::with_name("add").arg(
         //         Arg::with_name("GROUPS")
