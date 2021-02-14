@@ -138,6 +138,26 @@ impl<T> FileTree<T> {
         Self::__collect_from_directory(path.as_ref(), false)
     }
 
+    // Private implementation
+    fn __collect_from_directory_cd(path: &Path, follow_symlinks: bool) -> FtResult<Vec<Self>> {
+        let previous_path = env::current_dir()?;
+        debug_assert!(path.is_absolute());
+        env::set_current_dir(path)?;
+        let result = Self::__collect_from_directory(&Path::new("."), follow_symlinks);
+        env::set_current_dir(previous_path)?;
+        result
+    }
+
+    /// Collects a `Vec` of `FileTree` from `path` that is a directory.
+    pub fn collect_from_directory_cd(path: impl AsRef<Path>) -> FtResult<Vec<Self>> {
+        Self::__collect_from_directory_cd(path.as_ref(), false)
+    }
+
+    /// Collects a `Vec` of `FileTree` from `path` that is a directory, entries can be symlinks.
+    pub fn collect_from_directory_symlink_cd(path: impl AsRef<Path>) -> FtResult<Vec<Self>> {
+        Self::__collect_from_directory_cd(path.as_ref(), false)
+    }
+
     // Internal implementation of `from_path` and `from_path_symlink`
     fn __from_path(path: &Path, follow_symlinks: bool) -> FtResult<Self> {
         let get_file_type =
