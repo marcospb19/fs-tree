@@ -1,6 +1,6 @@
 // Slightly big parser, yet to be documented
 //
-use std::{collections::HashMap, fmt, result};
+use std::{collections::HashMap, fmt, path::PathBuf, result};
 
 use crate::{flags::Flags, lexer::SpannedLexToken, FileTree, GroupsMap, LexToken};
 
@@ -37,17 +37,8 @@ pub enum ParserErrorKind {
 pub type ParserResult<T> = result::Result<T, ParserError>;
 
 fn update_map_group(map: &mut GroupsMap, group: String, files: &mut Stack<FileTree>) {
-    // If group is already there, append
-    if let Some(group) = map.get_mut(&group) {
-        // Add in reverse order, so that in the end things are normal
-        while let Some(file) = files.pop() {
-            group.push(file);
-        }
-    } else {
-        // Else, move vec
-        map.insert(group, files.to_vec());
-        *files = Stack::new();
-    }
+    let vec = map.entry(group).or_default();
+    vec.append(files);
 }
 
 pub fn parse_tokens(
@@ -129,7 +120,7 @@ pub fn parse_tokens(
                 // Removed, need to study this again
                 // assert!(matches!(read_state, ParserState::Busy), "WIP parser");
                 read_state = ParserState::Clear;
-                // If trying to open nothing fail
+                // If trying to open nothing, fail
                 if !already_read_some_lmao {
                     return Err(ParserError::new(
                         current_line,
@@ -160,9 +151,13 @@ pub fn parse_tokens(
                 depth -= 1;
                 let mut vec: Vec<FileTree> = vec![];
 
-                for _ in 0..quantity_stack.pop().unwrap() {
+                let quantity_in_group = quantity_stack.pop().unwrap();
+                for _ in 0..quantity_in_group {
                     vec.push(file_stack.pop().unwrap());
                 }
+                // Reversed
+                let vec = vec.into_iter().rev().collect();
+
                 file_stack.last_mut().expect("should").to_directory(vec);
             },
 
@@ -183,7 +178,7 @@ pub fn parse_tokens(
             },
 
             LexToken::Group(group) => {
-                // Craziest shi ever... yeah
+                // This is intentionally mad bad
                 groups_seen.entry(group.to_string()).or_insert_with(|| {
                     group_order.push(group.clone());
                 });
@@ -200,6 +195,7 @@ pub fn parse_tokens(
                 // After a group, we expect a line break
                 match tokens_iter.peek() {
                     None | Some((LexToken::Separator('\n'), ..)) => {},
+                    // TODO: show debug information
                     _other => panic!("We expected line break after this group"),
                 }
             },
@@ -236,19 +232,18 @@ pub fn parse_tokens(
     }
 
     update_map_group(&mut map, current_group, &mut file_stack);
-
-    fn propagate_to_children(ft: &mut FileTree) {
-        // Todo: try to remove this clone
-        let parent_path = ft.path().clone();
+    fn propagate_to_children(ft: &mut FileTree, accumulated_path: &mut PathBuf) {
+        let old_current: PathBuf = ft.path().clone();
+        *ft.path_mut() = accumulated_path.join(ft.path());
+        accumulated_path.push(old_current);
         if let Some(children) = ft.children_mut() {
-            for child in children {
-                *child.path_mut() = child.path().join(&parent_path);
-            }
+            children.iter_mut().for_each(|x| propagate_to_children(x, accumulated_path));
         }
+        accumulated_path.pop();
     }
 
     for ft in map.values_mut().flat_map(|value| value.iter_mut()) {
-        propagate_to_children(ft);
+        propagate_to_children(ft, &mut PathBuf::new());
     }
 
     Ok((map, group_order))

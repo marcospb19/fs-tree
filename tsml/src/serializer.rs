@@ -44,7 +44,9 @@ fn close_bracket(text: &mut String, at_indent_level: usize) {
 
 // Todo: think about what to do here to deal with group flags
 fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
-    text.push_str(format!("- [{}]\n", key).as_str());
+    if key != "main" {
+        text.push_str(format!("- [{}]\n", key).as_str());
+    }
 
     let mut last_depth = 0;
     for file_tree in files.iter() {
@@ -68,7 +70,11 @@ fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
             text.push_str(
                 format!(
                     "\"{}\"",
-                    file.path().to_str().expect("We are not supporting non utf-8 paths")
+                    file.path()
+                        .file_name()
+                        .expect("unexpected")
+                        .to_str()
+                        .expect("We are not supporting non utf-8 paths")
                 )
                 .as_str(),
             );
@@ -79,7 +85,14 @@ fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
                     text.push_str(": [");
                 },
                 FileTree::Symlink { target_path, .. } => {
-                    text.push_str(&format!(" > \"{}\"", target_path.to_string_lossy()));
+                    text.push_str(&format!(
+                        " > \"{}\"",
+                        target_path
+                            .file_name()
+                            .expect("unexpected")
+                            .to_str()
+                            .expect("We are not supporting non utf-8 paths")
+                    ));
                 },
             }
             text.push('\n');
