@@ -137,6 +137,8 @@ fn run_add_command(group_names: &[&str], init_flag: bool, force_flag: bool) {
     // println!("run add command");
 }
 
+fn run_unlink_command() {}
+
 fn run_remove_command() {
     println!("run remove command");
 }
@@ -165,6 +167,11 @@ pub fn run() {
             let init = add_matches.is_present("init");
             let force = add_matches.is_present("force");
             run_add_command(&groups, init, force);
+        ("link", Some(_)) => {
+            run_link_command();
+        },
+        ("unlink", Some(_)) => {
+            run_unlink_command();
         },
         ("rm", Some(_)) => run_remove_command(),
         _ => unreachable!(),
