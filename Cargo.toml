@@ -11,6 +11,7 @@ keywords = ["dotfiles"]
 
 [dependencies]
 clap = "2.33"
+lazy_static = "1.4.0"
 
 # Our own workspace dependencies
 file-tree = { path = "./file-tree" }

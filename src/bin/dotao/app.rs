@@ -9,12 +9,13 @@ use std::{
 };
 
 use indoc::indoc;
+use lazy_static::lazy_static;
 
 use super::{cli, error};
 
-fn get_current_dir() -> PathBuf {
-    env::current_dir()
-        .unwrap_or_else(|err| error!("Failed to read curent directory path: '{}'.", err))
+lazy_static! {
+    static ref CURRENT_DIR: PathBuf = env::current_dir()
+        .unwrap_or_else(|err| error!("Failed to read curent directory path: '{}'.", err));
 }
 
 fn bytes_to_uft(asd: impl AsRef<OsStr>) -> String {
@@ -22,30 +23,43 @@ fn bytes_to_uft(asd: impl AsRef<OsStr>) -> String {
     text.trim_matches('"').to_string()
 }
 
-fn is_currently_in_git_repository() -> bool {
-    let current_dir = get_current_dir();
-    let mut path: &Path = &current_dir;
-    loop {
-        if path.join(".git").exists() {
-            return true;
-        } else if let Some(parent) = path.parent() {
-            path = parent;
-        } else {
-            return false;
-        }
-    }
-}
-
 fn run_status_command() {
     println!("run status command");
 }
 
 fn run_init_command(force_flag: bool) {
+    fn is_currently_in_git_repository() -> bool {
+        let current_dir = &CURRENT_DIR;
+        let mut path: &Path = &current_dir;
+        loop {
+            if path.join(".git").exists() {
+                return true;
+            } else if let Some(parent) = path.parent() {
+                path = parent;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    fn is_in_dotfiles_folder() -> bool {
+        let current_dir = &CURRENT_DIR;
+        match current_dir.file_name() {
+            None => false,
+            Some(file_name) => file_name == Path::new("dotfiles"),
+        }
+    }
+
     // Checks
     if !is_currently_in_git_repository() && !force_flag {
         error!(
             "You are not inside a git repository, we recommend you to first run `git init`.\n\
-             To ignore this recommendation, type `dotao init --force` instead."
+             To ignore this recommendation, run `dotao init --force` instead."
+        );
+    } else if !is_in_dotfiles_folder() && !force_flag {
+        error!(
+            "You are not inside the '~/dotfiles' folder, we recomend creating it and running `dotao` in it.\n\
+             To ignore this recommendation, run `dotao init --force` instead."
         );
     } else if Path::new("dotao.tsml").exists() {
         error!(
@@ -84,7 +98,7 @@ fn run_init_command(force_flag: bool) {
     // Success!
     println!(
         "Tree file successfully created at '{}'.",
-        bytes_to_uft(get_current_dir().join("dotao.tsml"))
+        bytes_to_uft(CURRENT_DIR.join("dotao.tsml"))
     );
     println!(
         "For help, type `dotao --help`.\n\
@@ -193,17 +207,15 @@ fn run_link_command() {
     }
 }
 
-fn run_unlink_command() {}
+fn run_unlink_command() {
+    todo!();
+}
 
 fn run_remove_command() {
     println!("run remove command");
 }
 
 pub fn run() {
-    // temporary fix for fast testing
-    let test_path = "/home/marcospb19/dotfiles";
-    env::set_current_dir(test_path).expect("Expected, just for testing");
-
     if env::args().len() == 1 {
         run_status_command();
     }
