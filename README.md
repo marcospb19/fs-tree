@@ -1,27 +1,30 @@
 # Dotao
 
-WIP! I'm focusing a lot on this project, it is on early stage of development.
+Not ready for use, starting to function
 
-Not ready for personal use yet, will break your stuff.
+# stuff
 
-# Scracth:
+Clone the repo
+```sh
+git clone https://github.com/marcospb19/dotao
+```
 
-# How it works:
-Dotao is a dotfiles manager that considers groups of dotfiles, and links it to the user home.
+For testing/developing, I recommend you installing it and running on another folder
+```sh
+cargo install --path .
+cargo install --path . --debug           # Instead of release
+cargo install --path . --debug --offline # Skip crates.io update
+```
+
+Because you want to be testing `dotao` inside of a git repository at `~/dotfiles`.
+
+Then you can run
 
 ```sh
-cd ~/dotfiles
-dotao i3/
-```
-or
-```
-dotao */ # All directories, all groups
+dotao help
+dotao init
+dotao add [folders...]
+dotao link
 ```
 
-Now the files inside of the i3 group are linked in your user home.
-
-# Choices
-The whole behavior of the linking process will be customizable with flags and a .tree/.dotman-tree file, more on that later
-
-# Documentation
-Just to tell you, there's a lot left to document
+But those folders added need to follow the mfin' desired structure.
