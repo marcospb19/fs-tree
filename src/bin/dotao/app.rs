@@ -2,7 +2,8 @@ use std::{
     env,
     ffi::OsStr,
     fs,
-    io::prelude::*,
+    io::{BufWriter, Write},
+    os::unix::fs::symlink,
     path::{Path, PathBuf},
     process,
 };
@@ -44,13 +45,13 @@ fn run_init_command(force_flag: bool) {
     if !is_currently_in_git_repository() && !force_flag {
         error!(
             "You are not inside a git repository, we recommend you to first run `git init`.\n\
-            To ignore this recommendation, type `dotao init --force` instead."
+             To ignore this recommendation, type `dotao init --force` instead."
         );
     } else if Path::new("dotao.tsml").exists() {
         error!(
-            "You passed the --init flag, but there's already a 'dotao.tsml' file in here!\n\
-            Run `rm dotao.tsml` before if you wish to restart everything.\n\
-            Be careful,"
+            "You ran `dotao init`, but the 'dotao.tsml' file already exists!\n\
+             Delete the file manually if you with to restart the tree configuration.\n\
+             This action may not be reversible."
         );
     }
 
@@ -60,10 +61,10 @@ fn run_init_command(force_flag: bool) {
     write!(
         new_dotao_tsml,
         indoc!(
-            "//      __     __              __
-             //  ___/ /__  / /____ ____    / /________ ___
-             // / _  / _ \\/ __/ _ `/ _ \\  / __/ __/ -_) -_)
-             // \\___/\\___/\\__/\\___/\\___/  \\__/_/  \\__/\\__/
+            "//       __     __              __
+             //   ___/ /__  / /____ ____    / /________ ___
+             //  / _  / _ \\/ __/ _ `/ _ \\  / __/ __/ -_) -_)
+             //  \\___/\\___/\\__/\\___/\\___/  \\__/_/  \\__/\\__/
              //
              // Tree configuration file, see more at
              // https://github.com/marcospb19/dotao (TODO, there's no info there)
@@ -73,6 +74,8 @@ fn run_init_command(force_flag: bool) {
              //   - `dotao status`, to see what's going on.
              //   - `dotao link`, to link added groups your home directory.
              //
+             //
+             // (Only the comments in this header block are persistent)
             "
         )
     )
@@ -89,16 +92,20 @@ fn run_init_command(force_flag: bool) {
     );
 }
 
-fn run_add_command(group_names: &[&str], init_flag: bool, force_flag: bool) {
-    if init_flag {
-        println!("Running `dotao init` before `dotao add`.");
-        run_init_command(force_flag);
-    }
-    //
+fn run_add_command(group_names: &[&str]) {
     let content = fs::read_to_string("dotao.tsml").unwrap();
     let mut tree = tsml::Groups::from_text(&content);
-    let _comment_lines =
-        content.lines().take_while(|line| line.starts_with("//")).collect::<Vec<&str>>();
+    // The header of the file is made of the starting comments and blank lines
+    let mut header = content
+        .lines()
+        .take_while(|line| line.starts_with("//") || line.is_empty())
+        .collect::<Vec<&str>>();
+
+    let amount_of_trailing_empty = header.iter().rev().take_while(|line| line.is_empty()).count();
+    // Remove excessive empty lines
+    for _ in 0..amount_of_trailing_empty {
+        header.pop();
+    }
 
     let group_files: Vec<Vec<tsml::FileTree>> = group_names
         .iter()
@@ -109,32 +116,81 @@ fn run_add_command(group_names: &[&str], init_flag: bool, force_flag: bool) {
         })
         .collect();
 
-    // Lmao?
+    // Updating groups
     for (name, vec_of_files) in group_names.iter().zip(group_files) {
         *tree.map.entry(name.to_string()).or_default() = vec_of_files;
     }
 
-    println!("--\n{}\n--", tsml::groups_to_tsml(&tree));
+    // Override file
+    let file = fs::File::create("dotao.tsml").unwrap_or_else(|err| {
+        error!("Unable to open dotao.tsml to edit (write) it: {}.", err);
+    });
 
-    // for group in group_files.iter() {
-    //     group.paths().for_each(|x| println!("{:?}", x));
-    //     // let mut set = BTreeSet::new();
+    let mut writer = BufWriter::new(file);
+    for comment in header.iter() {
+        writeln!(writer, "{}", comment).unwrap_or_else(|err| error!("Unable to write! {}", err));
+    }
+    let tree_content = tsml::groups_to_tsml(&tree);
+    write!(writer, "{}", tree_content).unwrap_or_else(|err| error!("Unable to write! {}", err));
+}
 
-    //     // vecs.push
-    // }
+fn run_link_command() {
+    let home = env::var_os("HOME").expect("No home detected.");
+    let tree = tsml::Groups::from_path("dotao.tsml").unwrap();
 
-    // for (group_file, group_name) in group_files.iter().zip(group_names) {
-    //     if let Some(value) = tree.map.get(*group_name) {
-    //         // if value == group_file {
-    //         //     unimplemented!();
-    //         // }
-    //         println!("in: {:?}", group_name);
-    //     } else {
-    //         println!("out: {:?}", group_name);
-    //     }
-    // }
+    let tsml_names: Vec<_> = tree.map.keys().collect();
+    let tsml_trees: Vec<_> = tree.map.values().collect();
 
-    // println!("run add command");
+    for (name, tree_vec) in tsml_names.iter().zip(tsml_trees) {
+        for tree in tree_vec.iter() {
+            for file in tree.files() {
+                let semi_path = file.path();
+                let dotfiles_path = Path::new(name).join(&semi_path);
+                let dotfiles_path = dotfiles_path.canonicalize().unwrap_or_else(|err| {
+                    error!("Can't canonicalize to '{}': {}.", dotfiles_path.display(), err)
+                });
+                let home_path = Path::new(&home).join(&semi_path);
+                // let home_path = home_path.canonicalize().unwrap_or_else(|err| {
+                //     error!("Can't canonicalize to '{}': {}.", home_path.display(), err)
+                // });
+
+                // Let's naively skip what we've already linked
+                if home_path.exists() {
+                    continue;
+                }
+                match file {
+                    tsml::FileTree::Regular { .. } => {
+                        symlink(&dotfiles_path, &home_path).unwrap_or_else(|err| {
+                            error!(
+                                "Error while trying to make link for regular file '{}' -> '{}': {}",
+                                dotfiles_path.display(),
+                                home_path.display(),
+                                err
+                            )
+                        });
+                    },
+                    tsml::FileTree::Directory { children, .. } => {
+                        // Verify if should link or create directory
+                        // If there's no children, link, else, create directory
+                        if children.is_empty() {
+                            symlink(&dotfiles_path, &home_path).unwrap_or_else(|err| {
+                                error!(
+                                "Error while trying to make link for directory '{}' -> '{}': {}",
+                                dotfiles_path.display(),
+                                home_path.display(),
+                                err
+                            );
+                            });
+                        } else {
+                            fs::create_dir_all(&home_path)
+                                .expect("Error while trying to create directory.");
+                        }
+                    },
+                    tsml::FileTree::Symlink { .. } => todo!(),
+                }
+            }
+        }
+    }
 }
 
 fn run_unlink_command() {}
@@ -154,7 +210,9 @@ pub fn run() {
     let args = cli::parse_args();
 
     match args.subcommand() {
-        ("status", Some(_)) => run_status_command(),
+        ("status", Some(_)) => {
+            run_status_command();
+        },
         ("init", Some(init_matches)) => {
             // Flag
             let force = init_matches.is_present("force");
@@ -163,17 +221,17 @@ pub fn run() {
         ("add", Some(add_matches)) => {
             let groups = add_matches.values_of("groups").unwrap(); // Safe
             let groups: Vec<&str> = groups.collect();
-            // Flags
-            let init = add_matches.is_present("init");
-            let force = add_matches.is_present("force");
-            run_add_command(&groups, init, force);
+            run_add_command(&groups);
+        },
         ("link", Some(_)) => {
             run_link_command();
         },
         ("unlink", Some(_)) => {
             run_unlink_command();
         },
-        ("rm", Some(_)) => run_remove_command(),
+        ("rm", Some(_)) => {
+            run_remove_command();
+        },
         _ => unreachable!(),
     }
 
