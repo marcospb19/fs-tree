@@ -1,55 +1,22 @@
 use std::{
-    env,
-    ffi::OsStr,
-    fs,
+    env, fs,
     io::{BufWriter, Write},
     os::unix::fs::symlink,
-    path::{Path, PathBuf},
-    process,
+    path::Path,
 };
 
 use indoc::indoc;
-use lazy_static::lazy_static;
 
-use super::{cli, error};
-
-lazy_static! {
-    static ref CURRENT_DIR: PathBuf = env::current_dir()
-        .unwrap_or_else(|err| error!("Failed to read curent directory path: '{}'.", err));
-}
-
-fn bytes_to_uft(asd: impl AsRef<OsStr>) -> String {
-    let text = format!("{:?}", asd.as_ref());
-    text.trim_matches('"').to_string()
-}
+use crate::{
+    cli, error,
+    util::{bytes_to_uft, is_currently_in_git_repository, is_in_dotfiles_folder, CURRENT_DIR},
+};
 
 fn run_status_command() {
     println!("run status command");
 }
 
 fn run_init_command(force_flag: bool) {
-    fn is_currently_in_git_repository() -> bool {
-        let current_dir = &CURRENT_DIR;
-        let mut path: &Path = &current_dir;
-        loop {
-            if path.join(".git").exists() {
-                return true;
-            } else if let Some(parent) = path.parent() {
-                path = parent;
-            } else {
-                return false;
-            }
-        }
-    }
-
-    fn is_in_dotfiles_folder() -> bool {
-        let current_dir = &CURRENT_DIR;
-        match current_dir.file_name() {
-            None => false,
-            Some(file_name) => file_name == Path::new("dotfiles"),
-        }
-    }
-
     // Checks
     if !is_currently_in_git_repository() && !force_flag {
         error!(
@@ -150,16 +117,13 @@ fn run_add_command(group_names: &[&str]) {
 
 fn run_link_command() {
     let home = env::var_os("HOME").expect("No home detected.");
-    let tree = tsml::Groups::from_path("dotao.tsml").unwrap();
+    let groups = tsml::Groups::from_path("dotao.tsml").unwrap();
 
-    let tsml_names: Vec<_> = tree.map.keys().collect();
-    let tsml_trees: Vec<_> = tree.map.values().collect();
-
-    for (name, tree_vec) in tsml_names.iter().zip(tsml_trees) {
+    for (group_name, tree_vec) in groups.map.iter() {
         for tree in tree_vec.iter() {
             for file in tree.files() {
                 let semi_path = file.path();
-                let dotfiles_path = Path::new(name).join(&semi_path);
+                let dotfiles_path = Path::new(group_name).join(&semi_path);
                 let dotfiles_path = dotfiles_path.canonicalize().unwrap_or_else(|err| {
                     error!("Can't canonicalize to '{}': {}.", dotfiles_path.display(), err)
                 });
@@ -208,7 +172,56 @@ fn run_link_command() {
 }
 
 fn run_unlink_command() {
-    todo!();
+    let home = env::var_os("HOME").expect("No home detected.");
+    let groups = tsml::Groups::from_path("dotao.tsml").unwrap();
+
+    for (group_name, tree_vec) in groups.map.iter() {
+        for tree in tree_vec.iter() {
+            for file in tree.files() {
+                let semi_path = file.path();
+                let dotfiles_path = Path::new(group_name).join(&semi_path);
+                let dotfiles_path = dotfiles_path.canonicalize().unwrap_or_else(|err| {
+                    error!("Can't canonicalize to '{}': {}.", dotfiles_path.display(), err)
+                });
+                let home_path = Path::new(&home).join(&semi_path);
+
+                // Let's naively skip what we've already linked
+                if home_path.exists() {
+                    continue;
+                }
+                match file {
+                    tsml::FileTree::Regular { .. } => {
+                        symlink(&dotfiles_path, &home_path).unwrap_or_else(|err| {
+                            error!(
+                                "Error while trying to make link for regular file '{}' -> '{}': {}",
+                                dotfiles_path.display(),
+                                home_path.display(),
+                                err
+                            )
+                        });
+                    },
+                    tsml::FileTree::Directory { children, .. } => {
+                        // Verify if should link or create directory
+                        // If there's no children, link, else, create directory
+                        if children.is_empty() {
+                            symlink(&dotfiles_path, &home_path).unwrap_or_else(|err| {
+                                error!(
+                                "Error while trying to make link for directory '{}' -> '{}': {}",
+                                dotfiles_path.display(),
+                                home_path.display(),
+                                err
+                            );
+                            });
+                        } else {
+                            fs::create_dir_all(&home_path)
+                                .expect("Error while trying to create directory.");
+                        }
+                    },
+                    tsml::FileTree::Symlink { .. } => todo!(),
+                }
+            }
+        }
+    }
 }
 
 fn run_remove_command() {

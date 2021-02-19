@@ -2,6 +2,6 @@
 macro_rules! error {
     ($($arg:tt)*) => ({
         eprintln!($($arg)*);
-        process::exit(1);
+        ::std::process::exit(1);
     })
 }
