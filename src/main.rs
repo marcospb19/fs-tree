@@ -5,5 +5,5 @@ mod macros;
 mod util;
 
 fn main() {
-    app::run();
+    app::run_app();
 }
