@@ -18,6 +18,9 @@ fn run_remove_command() {
 }
 
 pub fn run_app() {
+    // dbg!(crate::util::FINAL_DIR.display());
+    // std::process::exit(0);
+
     if env::args().len() == 1 {
         run_status_command();
     }

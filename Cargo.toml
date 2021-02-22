@@ -11,13 +11,13 @@ keywords = ["dotfiles"]
 
 [dependencies]
 clap = "2.33"
-lazy_static = "1.4.0"
+indoc = "*"
+toml = "0.5.8"
 
 # Our own workspace dependencies
 file-tree = { path = "./file-tree" }
 permissions = { path = "./permissions" }
 tsml = { path = "./tsml" }
-indoc = "*"
 
 [workspace]
 members = [

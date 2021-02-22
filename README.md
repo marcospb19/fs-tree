@@ -21,6 +21,11 @@ This came very handy as now I could versionate my configuration files using `git
 
 Dotao is 100% inspired by `stow`.
 
+# Repository structure
+The repository is divided into 4 subprojects: `dotao`, `tsml`, `ft` and `permissions`.
+
+`dotao` is the main crate for the binary, and the others are libs used by it.
+
 # Installation
 There are no pré-compiled binaries yet, because we haven't realeased a stable release of `dotao`, so these instructions are targeted ONLY to contributors.
 
@@ -44,5 +49,3 @@ dotao init
 dotao add [folders...]
 dotao link
 ```
-
-Following the guide.

@@ -4,17 +4,12 @@ use indoc::indoc;
 
 use crate::{
     error,
-    util::{bytes_to_uft, is_currently_in_git_repository, is_in_dotfiles_folder, CURRENT_DIR},
+    util::{current_dir, is_in_dotfiles_folder, to_uft},
 };
 
 pub fn run_init_command(force_flag: bool) {
     // Checks
-    if !is_currently_in_git_repository() && !force_flag {
-        error!(
-            "You are not inside a git repository, we recommend you to first run `git init`.\n\
-             To ignore this recommendation, run `dotao init --force` instead."
-        );
-    } else if !is_in_dotfiles_folder() && !force_flag {
+    if !is_in_dotfiles_folder() && !force_flag {
         error!(
             "You are not inside the '~/dotfiles' folder, we recomend creating it and running `dotao` in it.\n\
              To ignore this recommendation, run `dotao init --force` instead."
@@ -23,7 +18,8 @@ pub fn run_init_command(force_flag: bool) {
         error!(
             "You ran `dotao init`, but the 'dotao.tsml' file already exists!\n\
              Delete the file manually if you with to restart the tree configuration.\n\
-             This action may not be reversible."
+             \n\
+             This action might be irreversible."
         );
     }
 
@@ -38,26 +34,49 @@ pub fn run_init_command(force_flag: bool) {
              //  / _  / _ \\/ __/ _ `/ _ \\  / __/ __/ -_) -_)
              //  \\___/\\___/\\__/\\___/\\___/  \\__/_/  \\__/\\__/
              //
-             // Tree configuration file, see more at
-             // https://github.com/marcospb19/dotao (TODO, there's no info there)
+             // Welcome to the dotao tree!
              //
-             // Tips: Some commands you can type, and what they do:
-             //   - `dotao add <folders>`, to add a group tree to this file.
-             //   - `dotao status`, to see what's going on.
-             //   - `dotao link`, to link added groups your home directory.
+             // THis file is used by dotao to keep track of dotfiles, when you run `dotao add` or `dotao remove`, files
+             // are added and removed from here. If you're using git, add and push this too.
              //
+             // If you're lost, check the quickstart guide (TODO) at https://github.com/marcospb19/dotao
              //
-             // (Only the comments in this header block are persistent)
+             // You can edit this file manually too, but this is not strictly necessary, as `dotao` might have all the commands needed.
+             //
+             // ---
+             // # Syntax
+             // Group syntax:
+             // - [group_name]
+             //
+             // File syntax:
+             // \"file_name\"
+             //
+             // Directory syntax:
+             // \"directory_name\": [
+             //     \"file_a\"
+             //     \"nested_directory\": [
+             //         \"file_1\"
+             //         \"file_2\"
+             //         \"file_3\"
+             //         \"file_4\"
+             //     ]
+             //     \"file_b\"
+             //     \"empty_directory\": []
+             // ]
+             //
+             // Tag syntax:
+             // (tag_name) [Token] // Where token is a file or directory
+             // or
+             // (tag_name)
+             // - [group_name] // When applying to a group
+             //
             "
         )
     )
-    .unwrap_or_else(|err| error!("Error while trying to write to 'dotao.tsml': {}.", err));
+    .unwrap_or_else(|err| error!("Error while trying to write text to 'dotao.tsml': {}.", err));
 
     // Success!
-    println!(
-        "Tree file successfully created at '{}'.",
-        bytes_to_uft(CURRENT_DIR.join("dotao.tsml"))
-    );
+    println!("Tree file successfully created at '{}'.", to_uft(current_dir().join("dotao.tsml")));
     println!(
         "For help, type `dotao --help`.\n\
          See also the (TODO) full tutorial at https://github.com/marcospb19/dotao ."
