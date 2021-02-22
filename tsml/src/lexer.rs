@@ -20,7 +20,7 @@ pub enum LexToken {
     })]
     Group(String),
 
-    // Flags, escaped like strings, but use () instead of ""
+    // Tags, escaped like strings, but use () instead of ""
     // Examples:
     //   (a, b)
     //   (unix)
@@ -29,7 +29,7 @@ pub enum LexToken {
         let slice = &lex.source()[span.start + 1 .. span.end - 1]; // Without ()
         slice.split(',').map(|x| x.trim().to_string()).collect::<Vec<String>>()
     )]
-    Flags(Vec<String>),
+    Tags(Vec<String>),
 
     // Value token delimited by ""
     #[regex("\"[^\"]+\"", |lex| {

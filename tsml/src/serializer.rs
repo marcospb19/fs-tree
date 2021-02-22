@@ -1,4 +1,4 @@
-use crate::{FileTree, Flags, Groups};
+use crate::{FileTree, Groups, Tags};
 
 // TODO: preserve comments, somehow
 // TODO: fix order
@@ -24,17 +24,17 @@ fn indent(text: &mut String, levels: usize) {
     }
 }
 
-fn add_flags(text: &mut String, flags: &Option<Flags>) {
-    if let Some(flags) = flags {
-        if !flags.direct_flags.is_empty() {
-            // TODO: preserve order of the flags
-            text.push_str(format!("({}", flags.direct_flags.iter().next().unwrap()).as_str());
-            for flag in flags.direct_flags.iter().skip(1) {
-                text.push_str(format!(", {}", flag).as_str());
+fn add_tags(text: &mut String, tags: &Option<Tags>) {
+    if let Some(tags) = tags {
+        if !tags.direct_tags.is_empty() {
+            // TODO: preserve order of the tags
+            text.push_str(format!("({}", tags.direct_tags.iter().next().unwrap()).as_str());
+            for tag in tags.direct_tags.iter().skip(1) {
+                text.push_str(format!(", {}", tag).as_str());
             }
             text.push_str(") ");
         }
-    } // end of adding flags
+    } // end of adding tags
 }
 
 fn close_bracket(text: &mut String, at_indent_level: usize) {
@@ -42,7 +42,7 @@ fn close_bracket(text: &mut String, at_indent_level: usize) {
     text.push_str("]\n");
 }
 
-// Todo: think about what to do here to deal with group flags
+// Todo: think about what to do here to deal with group tags
 fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
     if key != "main" {
         text.push_str(format!("- [{}]\n", key).as_str());
@@ -60,8 +60,8 @@ fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
 
             // Indent
             indent(text, file_iter.depth());
-            // Add flags
-            add_flags(text, file.extra());
+            // Add tags
+            add_tags(text, file.extra());
             // Write file name
             // TODO fix string_lossy
 
@@ -109,11 +109,11 @@ fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
 // #[cfg(test)]
 // mod tests {
 //     use super::*;
-//     use crate::Flags;
+//     use crate::tags;
 
 //     #[test]
 //     fn asd() {
-//         let file = File::new("asd", FileType::<Flags>::Regular);
+//         let file = File::new("asd", FileType::<tags>::Regular);
 //         for a in file.files() {
 //             println!("{:?}", a);
 //         }

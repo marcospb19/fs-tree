@@ -2,7 +2,7 @@
 //
 use std::{collections::HashMap, fmt, path::PathBuf, result};
 
-use crate::{flags::Flags, lexer::SpannedLexToken, FileTree, GroupsMap, LexToken};
+use crate::{lexer::SpannedLexToken, tags::Tags, FileTree, GroupsMap, LexToken};
 
 type Stack<T> = Vec<T>;
 
@@ -31,7 +31,7 @@ pub enum ParserErrorKind {
     BracketUnexpectedOpen,
     CommasOutsideOfBrackets,
     MissingSymlinkTarget,
-    FlagAfterFlag,
+    TagAfterTag,
 }
 
 pub type ParserResult<T> = result::Result<T, ParserError>;
@@ -60,14 +60,14 @@ pub fn parse_tokens(
     let mut tokens_iter = spanned_tokens.into_iter().peekable();
     let mut depth = 0;
 
-    let mut group_flags = Vec::<String>::new();
-    let mut last_flags = Vec::<String>::new();
+    let mut group_tags = Vec::<String>::new();
+    let mut last_tags = Vec::<String>::new();
 
     let mut group_order = vec!["main".to_string()];
     let mut groups_seen = HashMap::<String, ()>::new();
     groups_seen.insert("main".to_string(), ());
 
-    // let mut pending_flags: Vec<String> = vec![];
+    // let mut pending_tags: Vec<String> = vec![];
 
     while let Some((token, range)) = tokens_iter.next() {
         let current_column = range.start - current_line_start_index;
@@ -82,20 +82,20 @@ pub fn parse_tokens(
                 read_state = ParserState::Busy;
                 already_read_some_lmao = true;
 
-                // Create flags and add every direct and group flags you've just seen
-                let mut flags = Flags::new();
-                last_flags.into_iter().for_each(|flag_name| {
-                    flags.add_direct_flag(flag_name);
+                // Create tags and add every direct and group tags you've just seen
+                let mut tags = Tags::new();
+                last_tags.into_iter().for_each(|tag_name| {
+                    tags.add_direct_tag(tag_name);
                 });
-                group_flags.into_iter().for_each(|flag_name| {
-                    flags.add_group_flag(flag_name);
+                group_tags.into_iter().for_each(|tag_name| {
+                    tags.add_group_tag(tag_name);
                 });
 
-                let mut file = FileTree::new_regular_with_extra(value, Some(flags));
+                let mut file = FileTree::new_regular_with_extra(value, Some(tags));
 
                 // reinit for next iterations
-                last_flags = vec![];
-                group_flags = vec![];
+                last_tags = vec![];
+                group_tags = vec![];
 
                 if let Some((LexToken::SymlinkArrow, _)) = tokens_iter.peek() {
                     if let Some((LexToken::Value(target), _)) = tokens_iter.nth(1) {
@@ -188,9 +188,9 @@ pub fn parse_tokens(
                 // Update the group for the next entries
                 current_group = group.into();
 
-                // The last flags you've seen, are actually group_flags
-                group_flags = last_flags;
-                last_flags = vec![]; // reinit
+                // The last tags you've seen, are actually group_tags
+                group_tags = last_tags;
+                last_tags = vec![]; // reinit
 
                 // After a group, we expect a line break
                 match tokens_iter.peek() {
@@ -201,16 +201,16 @@ pub fn parse_tokens(
             },
 
             // doing this
-            LexToken::Flags(flags) => {
-                // Flags not clear yet to read more flags
-                if !last_flags.is_empty() {
+            LexToken::Tags(tags) => {
+                // tags not clear yet to read more tags
+                if !last_tags.is_empty() {
                     return Err(ParserError::new(
                         current_line,
                         current_column,
-                        ParserErrorKind::FlagAfterFlag,
+                        ParserErrorKind::TagAfterTag,
                     ));
                 }
-                last_flags = flags.clone();
+                last_tags = tags.clone();
             },
 
             // João Marcos!! Logos!! editar isso pls
@@ -274,8 +274,8 @@ impl fmt::Display for ParserError {
             MissingSymlinkTarget => {
                 write!(f, "arrow without the plim plimplimplim")
             },
-            FlagAfterFlag => {
-                write!(f, "Flag after flag problemo")
+            TagAfterTag => {
+                write!(f, "tag after tag problemo")
             },
         }
     }

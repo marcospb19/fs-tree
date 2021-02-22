@@ -1,9 +1,9 @@
 mod error;
-mod flags;
 mod groups;
 mod lexer;
 mod parser;
 mod serializer;
+mod tags;
 
 use std::collections::BTreeMap;
 
@@ -11,8 +11,8 @@ pub use error::TreeFileError;
 pub use groups::Groups;
 pub use lexer::LexToken;
 
-use crate::flags::Flags;
-pub type FileTree = file_tree::FileTree<Flags>;
+use crate::tags::Tags;
+pub type FileTree = file_tree::FileTree<Tags>;
 //
 pub type GroupsMap = BTreeMap<String, Vec<FileTree>>;
 
