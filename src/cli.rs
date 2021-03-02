@@ -54,5 +54,10 @@ pub fn parse_args() -> clap::ArgMatches<'static> {
                 .alias("i")
                 .about("Create tree file."),
         )
+        .subcommand(
+            SubCommand::with_name("status")
+                .settings(&[AppSettings::ColoredHelp])
+                .about("Show status of the dotfiles."),
+        )
         .get_matches()
 }
