@@ -1,10 +1,14 @@
 // Should the functions in here use lazy_static?
 use std::{
     env,
-    ffi::OsStr,
-    fs,
+    ffi::{CStr, OsStr},
+    fs, mem,
+    os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
+    ptr,
 };
+
+use libc::{self, c_char};
 
 use crate::error;
 
@@ -14,7 +18,36 @@ pub fn current_dir() -> PathBuf {
 }
 
 pub fn home_dir() -> PathBuf {
-    env::var("HOME").expect("$HOME not found").into()
+    unsafe fn char_ptr_to_path_buf(ptr: *mut c_char) -> PathBuf {
+        OsStr::from_bytes(CStr::from_ptr(ptr).to_bytes()).into()
+    }
+
+    // Check env var, otherwise, call libc::getpwuid_r
+    env::var_os("HOME")
+        .map(PathBuf::from)
+        .or_else(|| {
+            let mut buf = [0; 4096];
+            let mut result = ptr::null_mut();
+            let mut passwd: libc::passwd = unsafe { mem::zeroed() };
+
+            let getpwuid_r_code = unsafe {
+                libc::getpwuid_r(
+                    libc::getuid(),
+                    &mut passwd,
+                    buf.as_mut_ptr(),
+                    buf.len(),
+                    &mut result,
+                )
+            };
+            // If success
+            if getpwuid_r_code == 0 && !result.is_null() {
+                let home_dir = unsafe { char_ptr_to_path_buf(passwd.pw_dir) };
+                Some(home_dir)
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| error!("Unable to find HOME dir. Try setting the $HOME env var."))
 }
 
 // Opt for ~/.config/dotao/config.toml before ./config.toml
