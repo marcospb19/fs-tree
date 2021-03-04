@@ -19,7 +19,6 @@ use std::{io, os::raw::c_int, path::Path};
 /// system's root).
 ///
 /// # Errors
-///
 /// - If [`Path::canonicalize`] fails.
 /// - Same as [`access_syscall`].
 ///
@@ -29,12 +28,12 @@ use std::{io, os::raw::c_int, path::Path};
 /// use std::io;
 ///
 /// fn main() -> io::Result<()> {
-///     println!("{:?}", is_removable("src/lib.rs")?);
-///     println!("{:?}", is_removable("/root")?);
-///     println!("{:?}", is_removable("/")?);
+///     println!("{}", is_removable("src/lib.rs")?);
+///     println!("{}", is_removable("/root")?);
+///     println!("{}", is_removable("/")?);
 ///
 ///     // May return `Err(kind: PermissionDenied)`
-///     // println!("{:?}", is_removable("/root/any")?);
+///     // println!("{}", is_removable("/root/any")?);
 ///
 ///     Ok(())
 /// }
@@ -43,6 +42,43 @@ use std::{io, os::raw::c_int, path::Path};
 pub fn is_removable(path: impl AsRef<Path>) -> io::Result<bool> {
     let path = path.as_ref().canonicalize()?;
     let parent = match path.parent() {
+        // Cannot delete '/' (root)
+        None => return Ok(false),
+        Some(parent) => parent,
+    };
+
+    access_syscall(&parent, libc::W_OK)
+}
+
+/// Check if current process has permission to create file.
+///
+/// That is, if the current process has permission of `write` to the parent
+/// directory, similar to [`is_removable`], but does not run canonicalize.
+///
+/// Returns `false` if there's no parent directory (because you can't create the
+/// system's root).
+///
+/// # Errors
+/// Same as [`access_syscall`].
+///
+/// # Examples
+/// ```
+/// use permissions::is_creatable;
+/// use std::io;
+///
+/// fn main() -> io::Result<()> {
+///     println!("{}", is_creatable("src/lib.rs")?);
+///     println!("{}", is_creatable("/root")?);
+///     println!("{}", is_creatable("/")?);
+///
+///     // May return `Err(kind: PermissionDenied)`
+///     // println!("{}", is_removable("/root/any")?);
+///
+///     Ok(())
+/// }
+/// ```
+pub fn is_creatable(path: impl AsRef<Path>) -> io::Result<bool> {
+    let parent = match path.as_ref().parent() {
         // Cannot delete '/' (root)
         None => return Ok(false),
         Some(parent) => parent,
@@ -62,12 +98,12 @@ pub fn is_removable(path: impl AsRef<Path>) -> io::Result<bool> {
 /// use std::io;
 ///
 /// fn main() -> io::Result<()> {
-///     println!("{:?}", is_readable("src/lib.rs")?);
-///     println!("{:?}", is_readable("/root")?);
-///     println!("{:?}", is_readable("/")?);
+///     println!("{}", is_readable("src/lib.rs")?);
+///     println!("{}", is_readable("/root")?);
+///     println!("{}", is_readable("/")?);
 ///
 ///     // may return `Err(kind: PermissionDenied)`
-///     // println!("{:?}", is_readable("/root/any")?);
+///     // println!("{}", is_readable("/root/any")?);
 ///
 ///     Ok(())
 /// }
@@ -87,12 +123,12 @@ pub fn is_readable(path: impl AsRef<Path>) -> io::Result<bool> {
 /// use std::io;
 ///
 /// fn main() -> io::Result<()> {
-///     println!("{:?}", is_writable("src/lib.rs")?);
-///     println!("{:?}", is_writable("/root")?);
-///     println!("{:?}", is_writable("/")?);
+///     println!("{}", is_writable("src/lib.rs")?);
+///     println!("{}", is_writable("/root")?);
+///     println!("{}", is_writable("/")?);
 ///
 ///     // may return `Err(kind: PermissionDenied)`
-///     // println!("{:?}", is_writable("/root/any")?);
+///     // println!("{}", is_writable("/root/any")?);
 ///
 ///     Ok(())
 /// }
@@ -122,7 +158,7 @@ pub fn is_writable(path: impl AsRef<Path>) -> io::Result<bool> {
 ///     assert!(!is_executable("/root")?);
 ///
 ///     // may return `Err(kind: PermissionDenied)`
-///     // println!("{:?}", is_executable("/root/any")?);
+///     // println!("{}", is_executable("/root/any")?);
 ///
 ///     Ok(())
 /// }

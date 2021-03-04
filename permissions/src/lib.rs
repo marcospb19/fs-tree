@@ -8,6 +8,7 @@
 //! - [`is_readable`]
 //! - [`is_writable`]
 //! - [`is_removable`]
+//! - [`is_creatable`]
 //!
 //! See [`functions`].
 //!
@@ -16,7 +17,7 @@
 //! compatibility (PR welcome! if you can test it and update this section).
 //!
 //! # Examples:
-//! ```rust
+//! ```
 //! use permissions::*;
 //!
 //! fn main() -> std::io::Result<()> {
