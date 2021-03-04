@@ -1,8 +1,6 @@
-// Slightly big parser, yet to be documented
-//
-use std::{collections::HashMap, fmt, path::PathBuf, result};
+use std::{collections::HashMap, fmt, path::PathBuf};
 
-use crate::{lexer::SpannedLexToken, tags::Tags, FileTree, GroupsMap, LexToken};
+use crate::{lexer::SpannedLexToken, tags::Tags, FileTree, GroupsMap, LexToken, TsmlResult};
 
 type Stack<T> = Vec<T>;
 
@@ -13,14 +11,13 @@ enum ParserState {
 
 #[derive(Debug)]
 pub struct ParserError {
-    line: usize,
-    column: usize,
+    position: TokenPosition,
     kind: ParserErrorKind,
 }
 
 impl ParserError {
-    pub(crate) fn new(line: usize, column: usize, kind: ParserErrorKind) -> Self {
-        ParserError { line, column, kind }
+    pub(crate) fn new(position: TokenPosition, kind: ParserErrorKind) -> Self {
+        ParserError { position, kind }
     }
 }
 
@@ -34,17 +31,28 @@ pub enum ParserErrorKind {
     TagAfterTag,
 }
 
-pub type ParserResult<T> = result::Result<T, ParserError>;
-
 fn update_map_group(map: &mut GroupsMap, group: String, files: &mut Stack<FileTree>) {
     let vec = map.entry(group).or_default();
     vec.append(files);
 }
 
+#[derive(Debug, Clone)]
+pub struct TokenPosition {
+    line: usize,
+    column: usize,
+    start_index: usize,
+}
+
+impl TokenPosition {
+    fn new(line: usize, column: usize, start_index: usize) -> Self {
+        Self { line, column, start_index }
+    }
+}
+
 pub fn parse_tokens(
     spanned_tokens: Vec<SpannedLexToken>,
     original_text: &str,
-) -> ParserResult<(GroupsMap, Vec<String>)> {
+) -> TsmlResult<(GroupsMap, Vec<String>)> {
     let mut map = GroupsMap::new();
 
     let mut current_line = 1;
@@ -69,6 +77,8 @@ pub fn parse_tokens(
 
     while let Some((token, range)) = tokens_iter.next() {
         let current_column = range.start - current_line_start_index;
+        let position = TokenPosition::new(current_line, current_column, current_line_start_index);
+
         match &token {
             LexToken::Value(value) => {
                 *quantity_stack.last_mut().unwrap() += 1;
@@ -100,10 +110,10 @@ pub fn parse_tokens(
                         file.to_symlink(target);
                     } else {
                         return Err(ParserError::new(
-                            current_line,
-                            current_column,
+                            position,
                             ParserErrorKind::MissingSymlinkTarget,
-                        ));
+                        )
+                        .into());
                     }
                 }
                 file_stack.push(file);
@@ -114,17 +124,15 @@ pub fn parse_tokens(
             },
 
             LexToken::OpenBracket => {
-                brackets_open_position.push((current_line, current_column));
+                brackets_open_position.push(position.clone());
                 // Removed, need to study this again
                 // assert!(matches!(read_state, ParserState::Busy), "WIP parser");
                 read_state = ParserState::Clear;
                 // If trying to open nothing, fail
                 if !already_read_some_lmao {
-                    return Err(ParserError::new(
-                        current_line,
-                        current_column,
-                        ParserErrorKind::BracketUnexpectedOpen,
-                    ));
+                    return Err(
+                        ParserError::new(position, ParserErrorKind::BracketUnexpectedOpen).into()
+                    );
                 }
 
                 assert!(!file_stack.is_empty());
@@ -140,10 +148,10 @@ pub fn parse_tokens(
 
                 if depth == 0 {
                     return Err(ParserError::new(
-                        current_line,
-                        current_column,
+                        position,
                         ParserErrorKind::BracketUnexpectedClose,
-                    ));
+                    )
+                    .into());
                 }
                 already_read_some_lmao = true;
                 depth -= 1;
@@ -162,10 +170,10 @@ pub fn parse_tokens(
             LexToken::Separator(separator) => {
                 if depth == 0 && *separator == ',' {
                     return Err(ParserError::new(
-                        current_line,
-                        current_column,
+                        position,
                         ParserErrorKind::CommasOutsideOfBrackets,
-                    ));
+                    )
+                    .into());
                 }
                 read_state = ParserState::Clear;
 
@@ -202,11 +210,7 @@ pub fn parse_tokens(
             LexToken::Tags(tags) => {
                 // tags not clear yet to read more tags
                 if !last_tags.is_empty() {
-                    return Err(ParserError::new(
-                        current_line,
-                        current_column,
-                        ParserErrorKind::TagAfterTag,
-                    ));
+                    return Err(ParserError::new(position, ParserErrorKind::TagAfterTag).into());
                 }
                 last_tags = tags.clone();
             },
@@ -225,8 +229,8 @@ pub fn parse_tokens(
     if depth != 0 {
         // Only show the inner bracket problem for now, even if there are multiple
         // unclosed
-        let (start, end) = brackets_open_position.last().expect("should bro");
-        return Err(ParserError::new(*start, *end, ParserErrorKind::BracketUnclosed));
+        let position = brackets_open_position.last().expect("should bro");
+        return Err(ParserError::new(position.clone(), ParserErrorKind::BracketUnclosed).into());
     }
 
     update_map_group(&mut map, current_group, &mut file_stack);
@@ -252,9 +256,9 @@ impl fmt::Display for ParserError {
         write!(f, "moao tree: ")?;
         if let ParserErrorKind::BracketUnclosed = self.kind {
             // "close those brackets man!!!",
-            write!(f, "bracket at {}:{} is unclosed!", self.line, self.column)?;
+            write!(f, "bracket at {}:{} is unclosed!", self.position.line, self.position.column)?;
         } else {
-            write!(f, "moao tree: at {}:{}: ", self.line, self.column)?;
+            write!(f, "moao tree: at {}:{}: ", self.position.line, self.position.column)?;
         }
 
         use ParserErrorKind::*;

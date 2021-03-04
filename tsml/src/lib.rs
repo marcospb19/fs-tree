@@ -7,7 +7,7 @@ mod tags;
 
 use std::collections::BTreeMap;
 
-pub use error::TreeFileError;
+pub use error::{TsmlError, TsmlResult};
 pub use groups::Groups;
 pub use lexer::LexToken;
 

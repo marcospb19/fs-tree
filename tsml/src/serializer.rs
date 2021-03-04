@@ -68,15 +68,8 @@ fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
             let file: &FileTree = file;
 
             text.push_str(
-                format!(
-                    "\"{}\"",
-                    file.path()
-                        .file_name()
-                        .expect("unexpected")
-                        .to_str()
-                        .expect("We are not supporting non utf-8 paths")
-                )
-                .as_str(),
+                format!("\"{}\"", file.path().file_name().expect("unexpected").to_str().expect(""))
+                    .as_str(),
             );
             // Draw regular file
             match file {

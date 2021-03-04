@@ -1,39 +1,40 @@
 use std::{
-    fs, io,
+    fs,
     path::{Path, PathBuf},
-    process,
 };
 
-use crate::{lexer::run_lexer, parser::parse_tokens, GroupsMap};
+use crate::{lexer::run_lexer, parser::parse_tokens, GroupsMap, TsmlResult};
 
-#[derive(Debug)]
-// #[derive(Debug, Hash, Clone, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, Clone)]
 pub struct Groups {
     pub map: GroupsMap,
     pub info: GroupsInfo,
 }
 
-impl Groups {
-    pub fn from_text(text: &str) -> Self {
-        let tokens = run_lexer(text);
-        let (map, groups_order) = parse_tokens(tokens, text).unwrap_or_else(|err| {
-            eprintln!("Error: '{}'", err);
-            process::exit(1);
-        });
+fn get_file_header(text: &str) -> String {
+    text.lines().take_while(|line| line.starts_with("//") || line.is_empty()).collect::<String>()
+}
 
-        Groups { map, info: GroupsInfo { file_path: None, groups_order } }
+impl Groups {
+    pub fn from_text(text: &str) -> TsmlResult<Self> {
+        let tokens = run_lexer(text);
+        parse_tokens(tokens, text).map(|(map, groups_order)| Groups {
+            map,
+            info: GroupsInfo { file_path: None, file_header: get_file_header(text), groups_order },
+        })
     }
 
-    pub fn from_path(path: impl AsRef<Path>) -> io::Result<Self> {
+    pub fn from_path(path: impl AsRef<Path>) -> TsmlResult<Self> {
         let text = fs::read_to_string(path.as_ref())?;
-        let mut result = Self::from_text(&text);
+        let mut result = Self::from_text(&text)?;
         result.info.file_path = Some(path.as_ref().to_path_buf());
         Ok(result)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GroupsInfo {
-    file_path: Option<PathBuf>,
-    groups_order: Vec<String>,
+    pub file_path: Option<PathBuf>,
+    pub file_header: String,
+    pub groups_order: Vec<String>,
 }

@@ -7,14 +7,12 @@ use crate::error;
 
 pub fn run_add_command(group_names: &[&str]) {
     let content = fs::read_to_string("dotao.tsml").unwrap();
-    let mut tree = tsml::Groups::from_text(&content);
+    let mut tree = tsml::Groups::from_text(&content).unwrap();
     // The header of the file is made of the starting comments and blank lines
-    let mut header = content
-        .lines()
-        .take_while(|line| line.starts_with("//") || line.is_empty())
-        .collect::<Vec<&str>>();
 
-    let amount_of_trailing_empty = header.iter().rev().take_while(|line| line.is_empty()).count();
+    let mut header = tree.info.file_header.clone();
+
+    let amount_of_trailing_empty = header.lines().rev().take_while(|line| line.is_empty()).count();
     // Remove excessive empty lines
     for _ in 0..amount_of_trailing_empty {
         header.pop();
@@ -40,7 +38,7 @@ pub fn run_add_command(group_names: &[&str]) {
     });
 
     let mut writer = BufWriter::new(file);
-    for comment in header.iter() {
+    for comment in header.lines() {
         writeln!(writer, "{}", comment).unwrap_or_else(|err| error!("Unable to write! {}", err));
     }
     let tree_content = tsml::groups_to_tsml(&tree);
