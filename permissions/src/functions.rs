@@ -1,22 +1,19 @@
-//! Check for permissions at a path using [`access_syscall`].
+//! Functions for checking permissions at a path using the [`access_syscall`].
 //!
-//! Having permission of reading, writing, executing or deleting a file does not
-//! guarantee success in doing so, it is unlikely but IO can fail.
+//! Note that for every function, even if you have permission, you can never rely a 100% on it.
 //!
-//! Also be careful with [`TOCTOU race conditions`], when you have outdated file
-//! system information that has changed since the last check.
+//! There is no way to guarantee an I/O operation will succeed, but if you check for the permissions
+//! before, it will be very unlikely.
 //!
-//! [`TOCTOU race conditions`]: https://en.wikipedia.org/wiki/Time-of-check_to_time-of-use
+//! Also, be aware of [`TOCTOU race conditions`], permissions can change since the last checks.
 
 use std::{io, os::raw::c_int, path::Path};
 
 /// Check if current process has permission to remove file.
 ///
-/// That is, if the current process has permission of `write` to the parent
-/// directory.
+/// That is, if the current process has permission of `write` to the parent directory.
 ///
-/// Returns `false` if there's no parent directory (because can't delete the
-/// system's root).
+/// Returns `false` if there's no parent directory (can't delete the system's root).
 ///
 /// # Errors
 /// - If [`Path::canonicalize`] fails.
@@ -38,25 +35,24 @@ use std::{io, os::raw::c_int, path::Path};
 ///     Ok(())
 /// }
 /// ```
+///
 /// [`Path::canonicalize`]: std::path::Path::canonicalize
 pub fn is_removable(path: impl AsRef<Path>) -> io::Result<bool> {
     let path = path.as_ref().canonicalize()?;
     let parent = match path.parent() {
-        // Cannot delete '/' (root)
+        // Cannot delete '/' (root directory)
         None => return Ok(false),
         Some(parent) => parent,
     };
-
     access_syscall(&parent, libc::W_OK)
 }
 
 /// Check if current process has permission to create file.
 ///
-/// That is, if the current process has permission of `write` to the parent
-/// directory, similar to [`is_removable`], but does not run canonicalize.
+/// That is, if the current process has permission of `write` to the parent directory, similar to
+/// [`is_removable`], but does not run [`canonicalize.
 ///
-/// Returns `false` if there's no parent directory (because you can't create the
-/// system's root).
+/// Returns `false` if there's no parent directory (because you can't create the system's root).
 ///
 /// # Errors
 /// Same as [`access_syscall`].
@@ -72,18 +68,17 @@ pub fn is_removable(path: impl AsRef<Path>) -> io::Result<bool> {
 ///     println!("{}", is_creatable("/")?);
 ///
 ///     // May return `Err(kind: PermissionDenied)`
-///     // println!("{}", is_removable("/root/any")?);
+///     // println!("{}", is_creatable("/root/any")?);
 ///
 ///     Ok(())
 /// }
 /// ```
 pub fn is_creatable(path: impl AsRef<Path>) -> io::Result<bool> {
     let parent = match path.as_ref().parent() {
-        // Cannot delete '/' (root)
+        // Cannot create '/' (root directory)
         None => return Ok(false),
         Some(parent) => parent,
     };
-
     access_syscall(&parent, libc::W_OK)
 }
 
@@ -139,8 +134,7 @@ pub fn is_writable(path: impl AsRef<Path>) -> io::Result<bool> {
 
 /// Check if current process has permission to execute.
 ///
-/// If `path` points to a directory, you'll be checking if you have the right to
-/// enter it.
+/// If `path` points to a directory, you'll be checking if you have the right to enter it.
 ///
 /// # Errors
 /// Same as [`access_syscall`].
@@ -185,8 +179,10 @@ pub fn is_executable(path: impl AsRef<Path>) -> io::Result<bool> {
 /// To check for each given `rwx` permission, or:
 /// - [`libc::F_OK`] _(File exists)_
 ///
-/// Otherwise, the function fails with [`Err(kind:
-/// InvalidInput)`](std::io::ErrorKind::InvalidInput)
+/// Otherwise, the function fails with [`Err(kind: InvalidInput)`](std::io::ErrorKind::InvalidInput)
+///
+/// # Errors
+/// See the [`access man page`].
 ///
 /// # Examples:
 ///
@@ -205,9 +201,6 @@ pub fn is_executable(path: impl AsRef<Path>) -> io::Result<bool> {
 ///     Ok(())
 /// }
 /// ```
-///
-/// # Errors
-/// See [`access man page`].
 ///
 /// [`io::Error`]: std::io::Error
 /// [`access man page`]: https://man7.org/linux/man-pages/man2/access.2.html
@@ -243,11 +236,11 @@ pub fn access_syscall(path: impl AsRef<Path>, mode_mask: c_int) -> io::Result<bo
     let access_return_code = unsafe { libc::access(buf_ptr, mode_mask) };
 
     match access_return_code {
-        0 => Ok(true),
+        0 => Ok(true), // Permission to delete
         _ => {
             let err = io::Error::last_os_error();
             if err.raw_os_error().unwrap() == libc::EACCES {
-                Ok(false) // Ok, no permission to delete
+                Ok(false) // Ok, but no permission to delete
             } else {
                 Err(err) // Syscall error
             }

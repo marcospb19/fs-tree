@@ -1,6 +1,6 @@
 //! # Permissions crate
 //! [![Crates.io](https://img.shields.io/crates/v/permissions.svg)](https://crates.io/crates/permissions)
-//! [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/marcospb19/permissions/blob/main/LICENSE)
+//! [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/marcospb19/dotao/blob/master/LICENSE)
 //! [![Docs.rs](https://docs.rs/permissions/badge.svg)](https://docs.rs/permissions)
 //!
 //! Useful filesystem queries for file permissions:
@@ -10,11 +10,11 @@
 //! - [`is_removable`]
 //! - [`is_creatable`]
 //!
-//! See [`functions`].
+//! See [`functions`](https://docs.rs/permissions/latest/permissions/functions/index.html).
 //!
 //! # Cross-platform
-//! I tested this lib to work in `Unix` systems, I'm not sure about `Windows`
-//! compatibility (PR welcome! if you can test it and update this section).
+//! This is expected to work with `Windows` as well, but it was only tested in `Unix` machines.
+//! (PR welcome! Need someone to test it and update this section).
 //!
 //! # Examples:
 //! ```
@@ -27,33 +27,32 @@
 //!    assert!(is_writable("src/lib.rs")?);
 //!    assert!(is_executable("/usr/bin/cat")?);
 //!    assert!(is_removable("src/lib.rs")?);
+//!    assert!(is_creatable("src/file.rs")?);
 //!
 //!    Ok(())
 //! }
 //! ```
 //!
-//! # More about it
-//! For the 0.3 version I plan on adding an nicer `rwx` bitmask interface, if
-//! you're interested, open an issue and I'll consider completing it sooner.
+//! # Future
+//! For the 0.4 version I plan on adding an nicer `rwx` bitmask interface, if you're interested,
+//! open an issue and I'll consider completing it sooner.
 //!
-//! I haven't finished 0.3 because I didn't needed it, I just needed this crate
-//! to implement what's in 0.1 for other project of mine, that's why I'm waiting
-//! for someone to ask me to implement it before I do so.
+//! I haven't finished 0.4 because I didn't needed it, I just needed this crate to implement what's
+//! in 0.1 for other project of mine, that's why I'm waiting for someone to ask me to implement it
+//! before I do so.
 //!
-//! I also want to ask what are the needs of other people for these features in
-//! 0.3.
+//! I also want to ask what are the needs of other people for these features in 0.4.
 //!
-//! Part of the code for `rwx` and `(Owner | Group | Other)` permissions
-//! bitflags are already available at the project's repository.
+//! Part of the code for `rwx` and `(Owner | Group | Other)` permissions bitflags are already
+//! available at the project's repository.
 //!
 //! # Helping/Contributing:
 //! It's easy to contribute to this crate, here are some options:
 //!
 //! - Share it to a friend.
-//! - Help improve this README or other docs (even with little details).
+//! - Help improve this README or other docs (even little details).
 //! - Open an issue or PR in the repository.
-//! - Leave a star on GitHub.
-//! - Use it!!!
+//! - Use it and give feedback!!!
 
 #![warn(missing_docs)]
 

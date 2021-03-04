@@ -1,16 +1,16 @@
 [package]
 name = "permissions"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
 edition = "2018"
-description = "Library to query for file permissions (read, write, execute, and removal)."
+description = "Ask for file permissions (read, write, execute, removal and creation)."
 
 categories = ["api-bindings", "filesystem", "os"]
 keywords = ["permission", "file", "filesystem"]
 
-repository = "https://github.com/marcospb19/permissions"
+repository = "https://github.com/marcospb19/dotao"
 license = "MIT"
 
 [dependencies]
 libc = "0.2"
-# bitflags = "1.2" # For next features
+# bitflags = "1.2" # For 0.4 features
