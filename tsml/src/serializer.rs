@@ -45,7 +45,7 @@ fn close_bracket(text: &mut String, at_indent_level: usize) {
 // Todo: think about what to do here to deal with group tags
 fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
     if key != "main" {
-        text.push_str(format!("- [{}]\n", key).as_str());
+        text.push_str(format!("- [{}]\n", key.trim_end_matches('/')).as_str());
     }
 
     let mut last_depth = 0;
@@ -53,9 +53,9 @@ fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
         // For each file inside of this bad boi
         let mut file_iter = file_tree.files();
         while let Some(file) = file_iter.next() {
-            // If we exited a directory, add a closing ']'
-            if file_iter.depth() < last_depth {
-                close_bracket(text, file_iter.depth());
+            // If left a directory, close brackets
+            for level in (file_iter.depth()..last_depth).rev() {
+                close_bracket(text, level);
             }
 
             // Indent
@@ -89,7 +89,7 @@ fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
                         " > \"{}\"",
                         target_path
                             .file_name()
-                            .expect("unexpected")
+                            .expect("we found a file that does not contain a name!")
                             .to_str()
                             .expect("We are not supporting non utf-8 paths")
                     ));

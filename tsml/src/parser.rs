@@ -67,8 +67,6 @@ pub fn parse_tokens(
     let mut groups_seen = HashMap::<String, ()>::new();
     groups_seen.insert("main".to_string(), ());
 
-    // let mut pending_tags: Vec<String> = vec![];
-
     while let Some((token, range)) = tokens_iter.next() {
         let current_column = range.start - current_line_start_index;
         match &token {
