@@ -20,10 +20,12 @@
 //! use permissions::*;
 //!
 //! fn main() -> std::io::Result<()> {
-//!    println!("{:?}", is_readable("src/lib.rs")?);
-//!    println!("{:?}", is_writable("src/lib.rs")?);
-//!    println!("{:?}", is_executable("src/lib.rs")?);
-//!    println!("{:?}", is_removable("src/lib.rs")?);
+//!    // Functions accept `AsRef<Path>`
+//!    assert!(is_readable("src/")?);
+//!    assert!(is_writable("src/")?);
+//!    assert!(is_writable("src/lib.rs")?);
+//!    assert!(is_executable("/usr/bin/cat")?);
+//!    assert!(is_removable("src/lib.rs")?);
 //!
 //!    Ok(())
 //! }
@@ -51,6 +53,8 @@
 //! - Open an issue or PR in the repository.
 //! - Leave a star on GitHub.
 //! - Use it!!!
+
+#![warn(missing_docs)]
 
 pub mod functions;
 pub use functions::*;
