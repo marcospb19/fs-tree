@@ -4,13 +4,13 @@
 //! [![Docs.rs](https://docs.rs/permissions/badge.svg)](https://docs.rs/permissions)
 //!
 //! Useful filesystem queries for file permissions:
-//! - [`is_executable`]
-//! - [`is_readable`]
-//! - [`is_writable`]
-//! - [`is_removable`]
-//! - [`is_creatable`]
 //!
 //! See [`functions`](https://docs.rs/permissions/latest/permissions/functions/index.html).
+//! - [`is_executable`](https://docs.rs/permissions/latest/permissions/functions/fn.is_executable.html)
+//! - [`is_readable`](https://docs.rs/permissions/latest/permissions/functions/fn.is_readable.html)
+//! - [`is_writable`](https://docs.rs/permissions/latest/permissions/functions/fn.is_writable.html)
+//! - [`is_removable`](https://docs.rs/permissions/latest/permissions/functions/fn.is_removable.html)
+//! - [`is_creatable`](https://docs.rs/permissions/latest/permissions/functions/fn.is_creatable.html)
 //!
 //! # Cross-platform
 //! This is expected to work with `Windows` as well, but it was only tested in `Unix` machines.
@@ -34,25 +34,24 @@
 //! ```
 //!
 //! # Future
-//! For the 0.4 version I plan on adding an nicer `rwx` bitmask interface, if you're interested,
-//! open an issue and I'll consider completing it sooner.
+//! For this crate I plan on adding a nicer and convenient `rwx` bitmask interface, in the 0.4
+//! version.
 //!
-//! I haven't finished 0.4 because I didn't needed it, I just needed this crate to implement what's
-//! in 0.1 for other project of mine, that's why I'm waiting for someone to ask me to implement it
-//! before I do so.
+//! If you're interested in this implemented, open an issue and I'll try to complete it sooner.
 //!
-//! I also want to ask what are the needs of other people for these features in 0.4.
+//! I haven't finished it yet beucase I've never needed this functionality, the existing functions
+//! were enough for my use cases.
 //!
-//! Part of the code for `rwx` and `(Owner | Group | Other)` permissions bitflags are already
-//! available at the project's repository.
+//! (Part of the code for `rwx` and `(Owner | Group | Other)` permissions bitflags are already
+//! available at the project's repository)
 //!
 //! # Helping/Contributing:
 //! It's easy to contribute to this crate, here are some options:
-//!
 //! - Share it to a friend.
 //! - Help improve this README or other docs (even little details).
 //! - Open an issue or PR in the repository.
-//! - Use it and give feedback!!!
+//! - Use it and give feedback.
+//! - Suggest how to improve.
 
 #![warn(missing_docs)]
 

@@ -5,7 +5,8 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/marcospb19/dotao/blob/master/LICENSE)
 [![Docs.rs](https://docs.rs/permissions/badge.svg)](https://docs.rs/permissions)
 
-Useful filesystem queries for file permissions: \
+Useful filesystem queries for file permissions:
+
 See [`functions`](https://docs.rs/permissions/latest/permissions/functions/index.html).
 - [`is_executable`](https://docs.rs/permissions/latest/permissions/functions/fn.is_executable.html)
 - [`is_readable`](https://docs.rs/permissions/latest/permissions/functions/fn.is_readable.html)
@@ -35,22 +36,19 @@ fn main() -> std::io::Result<()> {
 ```
 
 ## Future
-For the 0.4 version I plan on adding an nicer `rwx` bitmask interface, if you're interested,
-open an issue and I'll consider completing it sooner.
+For this crate I plan on adding a nicer and convenient `rwx` bitmask interface, in the 0.4 version.
 
-I haven't finished 0.4 because I didn't needed it, I just needed this crate to implement what's
-in 0.1 for other project of mine, that's why I'm waiting for someone to ask me to implement it
-before I do so.
+If you're interested in this implemented, open an issue and I'll try to complete it sooner.
 
-I also want to ask what are the needs of other people for these features in 0.4.
+I haven't finished it yet beucase I've never needed this functionality, the existing functions were enough for my use cases.
 
-Part of the code for `rwx` and `(Owner | Group | Other)` permissions bitflags are already
-available at the project's repository.
+(Part of the code for `rwx` and `(Owner | Group | Other)` permissions bitflags are already
+available at the project's repository)
 
 ## Helping/Contributing:
 It's easy to contribute to this crate, here are some options:
-
 - Share it to a friend.
 - Help improve this README or other docs (even little details).
 - Open an issue or PR in the repository.
-- Use it and give feedback!!!
+- Use it and give feedback.
+- Suggest how to improve.
