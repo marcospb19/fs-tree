@@ -1,24 +1,14 @@
-use std::{collections::HashMap, fmt, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf};
 
-use crate::{lexer::SpannedLexToken, tags::Tags, FileTree, GroupsMap, LexToken, TsmlResult};
+use crate::{
+    lexer::SpannedLexToken, tags::Tags, FileTree, GroupsMap, LexToken, TsmlError, TsmlResult,
+};
 
 type Stack<T> = Vec<T>;
 
 enum ParserState {
     Clear,
     Busy,
-}
-
-#[derive(Debug)]
-pub struct ParserError {
-    position: TokenPosition,
-    kind: ParserErrorKind,
-}
-
-impl ParserError {
-    pub(crate) fn new(position: TokenPosition, kind: ParserErrorKind) -> Self {
-        ParserError { position, kind }
-    }
 }
 
 #[derive(Debug)]
@@ -38,9 +28,9 @@ fn update_map_group(map: &mut GroupsMap, group: String, files: &mut Stack<FileTr
 
 #[derive(Debug, Clone)]
 pub struct TokenPosition {
-    line: usize,
-    column: usize,
-    start_index: usize,
+    pub line: usize,
+    pub column: usize,
+    pub start_index: usize,
 }
 
 impl TokenPosition {
@@ -109,11 +99,10 @@ pub fn parse_tokens(
                     if let Some((LexToken::Value(target), _)) = tokens_iter.nth(1) {
                         file.to_symlink(target);
                     } else {
-                        return Err(ParserError::new(
+                        return Err(TsmlError::ParserError(
                             position,
                             ParserErrorKind::MissingSymlinkTarget,
-                        )
-                        .into());
+                        ));
                     }
                 }
                 file_stack.push(file);
@@ -130,9 +119,10 @@ pub fn parse_tokens(
                 read_state = ParserState::Clear;
                 // If trying to open nothing, fail
                 if !already_read_some_lmao {
-                    return Err(
-                        ParserError::new(position, ParserErrorKind::BracketUnexpectedOpen).into()
-                    );
+                    return Err(TsmlError::ParserError(
+                        position,
+                        ParserErrorKind::BracketUnexpectedOpen,
+                    ));
                 }
 
                 assert!(!file_stack.is_empty());
@@ -147,11 +137,10 @@ pub fn parse_tokens(
                 brackets_open_position.pop();
 
                 if depth == 0 {
-                    return Err(ParserError::new(
+                    return Err(TsmlError::ParserError(
                         position,
                         ParserErrorKind::BracketUnexpectedClose,
-                    )
-                    .into());
+                    ));
                 }
                 already_read_some_lmao = true;
                 depth -= 1;
@@ -169,11 +158,10 @@ pub fn parse_tokens(
 
             LexToken::Separator(separator) => {
                 if depth == 0 && *separator == ',' {
-                    return Err(ParserError::new(
+                    return Err(TsmlError::ParserError(
                         position,
                         ParserErrorKind::CommasOutsideOfBrackets,
-                    )
-                    .into());
+                    ));
                 }
                 read_state = ParserState::Clear;
 
@@ -210,7 +198,7 @@ pub fn parse_tokens(
             LexToken::Tags(tags) => {
                 // tags not clear yet to read more tags
                 if !last_tags.is_empty() {
-                    return Err(ParserError::new(position, ParserErrorKind::TagAfterTag).into());
+                    return Err(TsmlError::ParserError(position, ParserErrorKind::TagAfterTag));
                 }
                 last_tags = tags.clone();
             },
@@ -230,7 +218,7 @@ pub fn parse_tokens(
         // Only show the inner bracket problem for now, even if there are multiple
         // unclosed
         let position = brackets_open_position.last().expect("should bro");
-        return Err(ParserError::new(position.clone(), ParserErrorKind::BracketUnclosed).into());
+        return Err(TsmlError::ParserError(position.clone(), ParserErrorKind::BracketUnclosed));
     }
 
     update_map_group(&mut map, current_group, &mut file_stack);
@@ -249,36 +237,4 @@ pub fn parse_tokens(
     }
 
     Ok((map, group_order))
-}
-
-impl fmt::Display for ParserError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "moao tree: ")?;
-        if let ParserErrorKind::BracketUnclosed = self.kind {
-            // "close those brackets man!!!",
-            write!(f, "bracket at {}:{} is unclosed!", self.position.line, self.position.column)?;
-        } else {
-            write!(f, "moao tree: at {}:{}: ", self.position.line, self.position.column)?;
-        }
-
-        use ParserErrorKind::*;
-        match self.kind {
-            BracketUnclosed => Ok(()),
-            BracketUnexpectedClose => {
-                write!(f, "unexpected close brackets, what are you closing?")
-            },
-            BracketUnexpectedOpen => {
-                write!(f, "what are you trying to open there?????")
-            },
-            CommasOutsideOfBrackets => {
-                write!(f, "no commas alowed outsite of scopes")
-            },
-            MissingSymlinkTarget => {
-                write!(f, "arrow without the plim plimplimplim")
-            },
-            TagAfterTag => {
-                write!(f, "tag after tag problemo")
-            },
-        }
-    }
 }

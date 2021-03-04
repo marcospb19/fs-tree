@@ -11,6 +11,7 @@ pub struct Groups {
     pub info: GroupsInfo,
 }
 
+// Collect the start of the file to retrieve as GroupsInfo
 fn get_file_header(text: &str) -> String {
     text.lines().take_while(|line| line.starts_with("//") || line.is_empty()).collect::<String>()
 }

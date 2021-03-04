@@ -1,8 +1,8 @@
-use std::{fs, io};
+use std::fs;
 
-use tsml::Groups;
+use tsml::{Groups, TsmlResult};
 
-fn main() -> io::Result<()> {
+fn main() -> TsmlResult<()> {
     // let path = "examples/simplest.tree";
     // let path = "examples/simple.tree";
     // let path = "examples/multiple_groups.tree";
@@ -10,7 +10,7 @@ fn main() -> io::Result<()> {
     let text = fs::read_to_string(path)?;
 
     let groups = Groups::from_text(&text);
-    dbg!(groups);
+    println!("{:#?}", groups);
 
     Ok(())
 }

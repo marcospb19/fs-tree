@@ -1,11 +1,11 @@
-use crate::{FileTree, Groups, Tags};
+use crate::{FileTree, Groups, Tags, TsmlError, TsmlResult};
 
 // TODO: preserve comments, somehow
 // TODO: fix order
 // TODO: preserve order of values (iter.rs)
 
 // Where T is whatever it wants to be
-pub fn groups_to_tsml(groups: &Groups) -> String {
+pub fn groups_to_tsml(groups: &Groups) -> TsmlResult<String> {
     let mut text = String::new();
     for (i, group) in groups.map.iter().enumerate() {
         // Group separator
@@ -13,9 +13,9 @@ pub fn groups_to_tsml(groups: &Groups) -> String {
             text.push('\n');
         }
         let (key, files) = group;
-        add_group_to_tsml(&mut text, key, files);
+        add_group_to_tsml(&mut text, key, files)?;
     }
-    text
+    Ok(text)
 }
 
 fn indent(text: &mut String, levels: usize) {
@@ -43,7 +43,7 @@ fn close_bracket(text: &mut String, at_indent_level: usize) {
 }
 
 // Todo: think about what to do here to deal with group tags
-fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
+fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) -> TsmlResult<()> {
     if key != "main" {
         text.push_str(format!("- [{}]\n", key.trim_end_matches('/')).as_str());
     }
@@ -78,14 +78,11 @@ fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
                     text.push_str(": [");
                 },
                 FileTree::Symlink { target_path, .. } => {
-                    text.push_str(&format!(
-                        " > \"{}\"",
-                        target_path
-                            .file_name()
-                            .expect("we found a file that does not contain a name!")
-                            .to_str()
-                            .expect("We are not supporting non utf-8 paths")
-                    ));
+                    let target_path = target_path.file_name().ok_or(TsmlError::PathWithoutName)?;
+                    let target_path = target_path
+                        .to_str()
+                        .ok_or_else(|| TsmlError::NonUtf8Path(target_path.into()))?;
+                    text.push_str(&format!(" > \"{}\"", target_path));
                 },
             }
             text.push('\n');
@@ -97,6 +94,7 @@ fn add_group_to_tsml(text: &mut String, key: &str, files: &[FileTree]) {
     for level in (0..last_depth).rev() {
         close_bracket(text, level);
     }
+    Ok(())
 }
 
 // #[cfg(test)]

@@ -6,6 +6,7 @@ pub(crate) type SpannedLexToken = (LexToken, ops::Range<usize>);
 
 #[derive(Logos, Debug, PartialEq)]
 pub enum LexToken {
+    // TODO: check if escaped "\]" is being supported
     // Groups
     // Examples:
     //   - [group_name]
@@ -20,6 +21,7 @@ pub enum LexToken {
     })]
     Group(String),
 
+    // TODO: support escaped close parenthesis "\)"
     // Tags, escaped like strings, but use () instead of ""
     // Examples:
     //   (a, b)
@@ -31,6 +33,7 @@ pub enum LexToken {
     )]
     Tags(Vec<String>),
 
+    // TODO: support escaped double quotes "\""
     // Value token delimited by ""
     #[regex("\"[^\"]+\"", |lex| {
         let start = lex.slice().find('\"').unwrap();
@@ -63,6 +66,7 @@ pub enum LexToken {
     #[regex(r" *", logos::skip)]
     // Ignore tab
     #[regex(r"\t+", logos::skip)]
+    // TODO: switch to # comments
     // Ignore comments, they start with two slashes
     #[regex(r"//[^\n]*", logos::skip)]
     // Anything unexpected
@@ -82,22 +86,22 @@ mod lexer_tests {
     };
 
     // Test lexer
-    fn tl(text: &str, expected: LexToken) {
+    fn test(text: &str, expected: LexToken) {
         let mut lex = LexToken::lexer(text);
         assert_eq!(lex.next().unwrap(), expected);
     }
 
     #[test]
     fn group_regex() {
-        tl("- [asd]", Group(String::from("asd")));
-        tl("   -    [asd]", Group(String::from("asd")));
-        tl("   -[ asd  ]", Group(String::from("asd")));
+        test("- [asd]", Group(String::from("asd")));
+        test("   -    [asd]", Group(String::from("asd")));
+        test("   -[ asd  ]", Group(String::from("asd")));
     }
 
     #[test]
     fn separator_regex() {
-        tl("\n", Separator('\n'));
-        tl(",", Separator(','));
+        test("\n", Separator('\n'));
+        test(",", Separator(','));
     }
 
     #[test]
