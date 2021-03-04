@@ -14,6 +14,7 @@ clap = "2.33"
 indoc = "*"
 toml = "0.5.8"
 libc = "0.2"
+file_type_enum = "*"
 
 # Our own workspace dependencies
 file-tree = { path = "./file-tree" }

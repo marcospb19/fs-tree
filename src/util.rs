@@ -12,6 +12,17 @@ use libc::{self, c_char};
 
 use crate::error;
 
+pub fn load_groups_from_path(_path: impl AsRef<Path>) -> tsml::Groups {
+    let mut groups = tsml::Groups::from_path("dotao.tsml").unwrap();
+    // Remove main group please
+    if let Some(main_group) = groups.map.remove("main") {
+        if !main_group.is_empty() {
+            error!("This should be empty");
+        }
+    }
+    groups
+}
+
 pub fn current_dir() -> PathBuf {
     env::current_dir()
         .unwrap_or_else(|err| error!("Failed to read curent directory path: '{}'.", err))
@@ -58,29 +69,55 @@ pub fn config_location() -> Option<PathBuf> {
     local_config
         .exists()
         .then_some(local_config)
-        .or(home_config_location.exists().then_some(home_config_location))
+        .or_else(|| home_config_location.exists().then_some(home_config_location))
 }
 
+// Always should return Some if config_location does also return Some
 pub fn load_config() -> Option<toml::Value> {
-    let config_path: PathBuf = config_location()?;
+    let config_path = config_location()?;
     let text = fs::read_to_string(&config_path).unwrap_or_else(|err| {
-        error!("Error while trying to read toml config file at '{}': {}.", to_uft(config_path), err)
+        error!("Error while trying to read config file at '{}': {}.", to_utf(config_path), err)
     });
-    todo!()
 
-    // toml::from_str(&text).ok()
+    text.parse::<toml::Value>().unwrap_or_else(|err| {
+        error!("Error while trying to parse toml config file at 'config.toml': {}", err)
+    });
+    todo!();
+}
+
+fn toml_type_to_string(value: &toml::Value) -> String {
+    match value {
+        toml::Value::Array(..) => "Array",
+        toml::Value::Boolean(..) => "Boolean",
+        toml::Value::Datetime(..) => "Datetime",
+        toml::Value::Float(..) => "Float",
+        toml::Value::Integer(..) => "Integer",
+        toml::Value::String(..) => "String",
+        toml::Value::Table(..) => "Table",
+    }
+    .to_string()
 }
 
 pub fn backup_dir() -> PathBuf {
-    use toml::Value;
+    load_config()
+        .and_then(|config| {
+            config.get("backup_dir").map(|backup_dir_value| {
+                let backup_dir_value = backup_dir_value.as_str().unwrap_or_else(|| {
+                    error!(
+                        "Error: 'backup_dir' variable at '{}' should be of type String, instead, it's of type {}.",
+                        // Safe, cause load_config.is_some(), maybe rework this?
+                        to_utf(config_location().unwrap()),
+                        toml_type_to_string(backup_dir_value)
+                    )
+                });
+                PathBuf::from(backup_dir_value)
 
-    let value = "foo = 'bar'".parse::<Value>().unwrap();
-
-    assert_eq!(value["foo"].as_str(), Some("bar"));
-    todo!()
+            })
+        })
+        .unwrap_or_else(|| PathBuf::from(".."))
 }
 
-pub fn to_uft(str: impl AsRef<OsStr>) -> String {
+pub fn to_utf(str: impl AsRef<OsStr>) -> String {
     let text = format!("{:?}", str.as_ref());
     text.trim_matches('"').to_string()
 }

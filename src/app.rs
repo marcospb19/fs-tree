@@ -3,10 +3,12 @@ use std::env;
 use crate::{
     cli,
     commands::{add::run_add_command, init::run_init_command, link::run_link_command},
+    util,
 };
 
 fn run_status_command() {
-    todo!("status not implemented yet, try --help instead")
+    let groups = util::load_groups_from_path("dotao.tsml");
+    crate::diff::StatusDiff::from_groups_map(&groups.map);
 }
 
 fn run_unlink_command() {
@@ -18,9 +20,6 @@ fn run_remove_command() {
 }
 
 pub fn run_app() {
-    // dbg!(crate::util::FINAL_DIR.display());
-    // std::process::exit(0);
-
     if env::args().len() == 1 {
         run_status_command();
     }

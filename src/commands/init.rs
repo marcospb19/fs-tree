@@ -4,7 +4,7 @@ use indoc::indoc;
 
 use crate::{
     error,
-    util::{current_dir, is_in_dotfiles_folder, to_uft},
+    util::{current_dir, is_in_dotfiles_folder, to_utf},
 };
 
 pub fn run_init_command(force_flag: bool) {
@@ -76,7 +76,7 @@ pub fn run_init_command(force_flag: bool) {
     .unwrap_or_else(|err| error!("Error while trying to write text to 'dotao.tsml': {}.", err));
 
     // Success!
-    println!("Tree file successfully created at '{}'.", to_uft(current_dir().join("dotao.tsml")));
+    println!("Tree file successfully created at '{}'.", to_utf(current_dir().join("dotao.tsml")));
     println!(
         "For help, type `dotao --help`.\n\
          See also the (TODO) full tutorial at https://github.com/marcospb19/dotao ."
