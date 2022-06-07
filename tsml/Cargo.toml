@@ -1,9 +1,0 @@
-[package]
-name = "tsml"
-version = "0.0.1"
-authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
-edition = "2018"
-
-[dependencies]
-logos = "0.12"
-file-tree = { path = "../file-tree" }
