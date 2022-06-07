@@ -52,13 +52,11 @@ use std::{
 
 use file_type_enum::FileType as FileTypeEnum;
 
-const PATH_DEFAULT: &str = "";
-
 /// A recursive defined file tree that supports a generic field.
 ///
 /// This enum has 3 variants, each of them have 2 named fields in common:
 /// 1. `path: Pathbuf`, the relative path to the file.
-/// 2. `extra: Option<T>`, a generic field that let's you customize the recursive structure.
+/// 2. `extra: Option`, a generic field that let's you customize the recursive structure.
 ///
 /// - `FileTree::Directory` field `children` is a owned Vec of other child FileTrees.
 /// - `FileTree::Symlink` field `target_path` is the pointed relative or absolute path.
@@ -79,72 +77,49 @@ const PATH_DEFAULT: &str = "";
 ///     "a/b/c"
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum FileTree<T> {
+pub enum FileTree {
     // Normal file
-    Regular { path: PathBuf, extra: Option<T> },
+    Regular { path: PathBuf },
     // Directory, can contain other `FileTree`s inside
-    Directory { path: PathBuf, extra: Option<T>, children: Vec<Self> },
+    Directory { path: PathBuf, children: Vec<Self> },
     // Symbolic link, points to another location
-    Symlink { path: PathBuf, extra: Option<T>, target_path: PathBuf },
+    Symlink { path: PathBuf, target_path: PathBuf },
 }
 
-impl<T> FileTree<T> {
+impl FileTree {
     /// Creates a `FileTree::Regular` from arguments.
     pub fn new_regular(path: impl AsRef<Path>) -> Self {
-        Self::new_regular_with_extra(path, Option::default())
-    }
-
-    /// Creates a `FileTree::Regular` with default arguments.
-    pub fn regular_default() -> Self {
-        Self::new_regular_with_extra(PATH_DEFAULT, Option::default())
-    }
-
-    /// Creates a `FileTree::Regular` with arguments, including `extra`.
-    pub fn new_regular_with_extra(path: impl AsRef<Path>, extra: Option<T>) -> Self {
         let path = path.as_ref().to_path_buf();
-        Self::Regular { path, extra }
+        Self::Regular { path }
     }
+
+    // /// Creates a `FileTree::Regular` with default arguments.
+    // pub fn regular_default() -> Self {
+    //     Self::new_regular_with_extra(path)
+    // }
 
     /// Creates a `FileTree::Directory` from arguments.
     pub fn new_directory(path: impl AsRef<Path>, children: Vec<Self>) -> Self {
-        Self::new_directory_with_extra(path, children, Option::default())
-    }
-
-    /// Creates a `FileTree::Directory` with default arguments.
-    pub fn directory_default() -> Self {
-        Self::new_directory_with_extra(PATH_DEFAULT, Vec::default(), Option::default())
-    }
-
-    /// Creates a `FileTree::Directory` with arguments, including `extra`.
-    pub fn new_directory_with_extra(
-        path: impl AsRef<Path>,
-        children: Vec<Self>,
-        extra: Option<T>,
-    ) -> Self {
         let path = path.as_ref().to_path_buf();
-        Self::Directory { path, children, extra }
+        Self::Directory { path, children }
     }
+
+    // /// Creates a `FileTree::Directory` with default arguments.
+    // pub fn directory_default() -> Self {
+    //     Self::new_directory(PATH_DEFAULT, Vec::default())
+    // }
 
     /// Creates a `FileTree::Symlink` from arguments.
     pub fn new_symlink(path: impl AsRef<Path>, target_path: impl AsRef<Path>) -> Self {
-        Self::new_symlink_with_extra(path, target_path, Option::default())
-    }
-
-    /// Creates a `FileTree::Symlink` with default arguments.
-    pub fn symlink_default() -> Self {
-        Self::new_symlink_with_extra(PATH_DEFAULT, PATH_DEFAULT, Option::default())
-    }
-
-    /// Creates a `FileTree::Symlink` with arguments, including `extra`.
-    pub fn new_symlink_with_extra(
-        path: impl AsRef<Path>,
-        target_path: impl AsRef<Path>,
-        extra: Option<T>,
-    ) -> Self {
         let path = path.as_ref().to_path_buf();
         let target_path = target_path.as_ref().to_path_buf();
-        Self::Symlink { path, target_path, extra }
+        Self::Symlink { path, target_path }
     }
+
+    // /// Creates a `FileTree::Symlink` with default arguments.
+    // pub fn symlink_default() -> Self {
+    //     Self::new_symlink(PATH_DEFAULT, PATH_DEFAULT)
+    // }
 
     // Private implementation
     fn __collect_from_directory(path: &Path, follow_symlinks: bool) -> FtResult<Vec<Self>> {
@@ -418,31 +393,15 @@ impl<T> FileTree<T> {
         }
     }
 
-    pub fn extra(&self) -> &Option<T> {
-        match self {
-            Self::Regular { extra, .. }
-            | Self::Directory { extra, .. }
-            | Self::Symlink { extra, .. } => extra,
-        }
-    }
-
-    pub fn extra_mut(&mut self) -> &mut Option<T> {
-        match self {
-            Self::Regular { extra, .. }
-            | Self::Directory { extra, .. }
-            | Self::Symlink { extra, .. } => extra,
-        }
-    }
-
     /// Iterator of all `FileTree`s in the structure
-    pub fn files(&self) -> FilesIter<T> {
+    pub fn files(&self) -> FilesIter {
         FilesIter::new(self)
     }
 
     /// Shorthand for `self.files().paths()`, see link to [`.paths()`] method
     ///
     /// [`.paths()`]: super::iter::FilesIter::paths
-    pub fn paths(&self) -> PathsIter<T> {
+    pub fn paths(&self) -> PathsIter {
         self.files().paths()
     }
 
@@ -464,35 +423,28 @@ impl<T> FileTree<T> {
     pub fn to_regular(&mut self) {
         match self {
             Self::Regular { .. } => {},
-            Self::Directory { path, extra, .. } | Self::Symlink { path, extra, .. } => {
+            Self::Directory { path, .. } | Self::Symlink { path, .. } => {
                 let path = mem::take(path);
-                let extra = mem::take(extra);
-                *self = Self::Regular { path, extra };
+                *self = Self::Regular { path };
             },
         }
     }
 
     pub fn to_directory(&mut self, children: Vec<Self>) {
         match self {
-            Self::Regular { path, extra }
-            | Self::Directory { path, extra, .. }
-            | Self::Symlink { path, extra, .. } => {
+            Self::Regular { path } | Self::Directory { path, .. } | Self::Symlink { path, .. } => {
                 let path = mem::take(path);
-                let extra = mem::take(extra);
-                *self = Self::Directory { path, children, extra };
+                *self = Self::Directory { path, children };
             },
         }
     }
 
     pub fn to_symlink(&mut self, target_path: impl AsRef<Path>) {
         match self {
-            Self::Regular { path, extra }
-            | Self::Directory { path, extra, .. }
-            | Self::Symlink { path, extra, .. } => {
+            Self::Regular { path } | Self::Directory { path, .. } | Self::Symlink { path, .. } => {
                 let path = mem::take(path);
-                let extra = mem::take(extra);
                 let target_path = target_path.as_ref().to_path_buf();
-                *self = Self::Symlink { path, target_path, extra };
+                *self = Self::Symlink { path, target_path };
             },
         }
     }

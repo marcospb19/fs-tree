@@ -8,10 +8,10 @@ use crate::FileTree;
 
 /// An iterator that runs recursively over `FileTree` structure.
 #[derive(Debug, Clone)]
-pub struct FilesIter<'a, T> {
+pub struct FilesIter<'a> {
     // Pop from the front, push to front or back, it depends
     // Cause when we open a directory, we need to traverse it's content first
-    file_deque: Deque<(&'a FileTree<T>, usize)>,
+    file_deque: Deque<(&'a FileTree, usize)>,
     // Accessed by `depth` method, determined by the last yielded element
     current_depth: usize,
 
@@ -23,8 +23,8 @@ pub struct FilesIter<'a, T> {
     max_depth: usize,
 }
 
-impl<'a, T> FilesIter<'a, T> {
-    pub(crate) fn new(start_file: &'a FileTree<T>) -> Self {
+impl<'a> FilesIter<'a> {
+    pub(crate) fn new(start_file: &'a FileTree) -> Self {
         // Deque used for iterate in recursive structure
         let mut file_deque = Deque::new();
         // Starting deque from `start_file`, at depth 0, which can increase for each file
@@ -54,7 +54,7 @@ impl<'a, T> FilesIter<'a, T> {
     }
 
     /// Consume iterator, turns into `PathsIter`
-    pub fn paths(self) -> PathsIter<'a, T> {
+    pub fn paths(self) -> PathsIter<'a> {
         PathsIter::new(self)
     }
 
@@ -121,8 +121,8 @@ impl<'a, T> FilesIter<'a, T> {
     }
 }
 
-impl<'a, T> Iterator for FilesIter<'a, T> {
-    type Item = &'a FileTree<T>;
+impl<'a> Iterator for FilesIter<'a> {
+    type Item = &'a FileTree;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Pop last element, if any
@@ -169,15 +169,15 @@ impl<'a, T> Iterator for FilesIter<'a, T> {
 
 /// Iterator for each path inside of the recursive struct
 #[derive(Debug, Clone)]
-pub struct PathsIter<'a, T> {
-    file_iter: FilesIter<'a, T>,
+pub struct PathsIter<'a> {
+    file_iter: FilesIter<'a>,
     // options
     only_show_last_segment: bool,
 }
 
-impl<'a, T> PathsIter<'a, T> {
+impl<'a> PathsIter<'a> {
     // Used by `FilesIter::paths(self)`
-    fn new(file_iter: FilesIter<'a, T>) -> Self {
+    fn new(file_iter: FilesIter<'a>) -> Self {
         Self { file_iter, only_show_last_segment: false }
     }
 
@@ -207,7 +207,7 @@ impl<'a, T> PathsIter<'a, T> {
     }
 }
 
-impl<T> Iterator for PathsIter<'_, T> {
+impl Iterator for PathsIter<'_> {
     type Item = PathBuf;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -218,11 +218,12 @@ impl<T> Iterator for PathsIter<'_, T> {
 
 #[cfg(test)]
 mod tests {
+    use crate::FileTree;
+
     #[test]
     #[rustfmt::skip]
     fn testing_files_and_paths_iters() {
         use std::path::PathBuf;
-        type FileTree = crate::FileTree<()>;
 
         // Implementing a syntax sugar util to make tests readable
         impl FileTree {

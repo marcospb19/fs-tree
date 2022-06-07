@@ -2,7 +2,7 @@ use fs_tree::{FileTree, FtResult};
 
 #[allow(unused_variables)]
 fn main() -> FtResult<()> {
-    let examples_folder = FileTree::<()>::from_path("examples/")?;
+    let examples_folder = FileTree::from_path("examples/")?;
 
     // Recursive iterator that starts at file `examples_folder`
     // See documentation to see how to apply filters to this FilesIter

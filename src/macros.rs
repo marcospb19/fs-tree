@@ -99,7 +99,7 @@ mod tests {
     #[test]
     fn testing_macros() {
         // #[rustfmt::skip]
-        let file: FileTree<()> = tree!("root", [
+        let file = tree!("root", [
             "file1",
             file!("file2"),
             dir!("inner_dir", ["more_file1", "more_file2", symlink!("from", "to")]),
@@ -119,7 +119,7 @@ mod tests {
         // });
 
         #[rustfmt::skip]
-        let expected = FileTree::<()>::new_directory("root", vec![
+        let expected = FileTree::new_directory("root", vec![
             FileTree::new_regular("root/file1"),
             FileTree::new_regular("root/file2"),
             FileTree::new_directory("root/inner_dir", vec![
