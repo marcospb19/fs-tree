@@ -40,7 +40,7 @@ const PATH_DEFAULT: &str = "";
 /// // .path for each one is:
 ///     "a"
 ///     "a/b"
-///     "a/c/c"
+///     "a/b/c"
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FileTree<T> {
