@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::file_tree::FileTree;
+use crate::FileTree;
 
 /// An iterator that runs recursively over `FileTree` structure.
 #[derive(Debug, Clone)]
@@ -163,7 +163,7 @@ impl<'a, T> Iterator for FilesIter<'a, T> {
             return self.next();
         }
 
-        Some(&file)
+        Some(file)
     }
 }
 

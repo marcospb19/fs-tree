@@ -1,4 +1,4 @@
-use file_tree::{FileTree, FtResult};
+use fs_tree::{FileTree, FtResult};
 
 #[allow(unused_variables)]
 fn main() -> FtResult<()> {

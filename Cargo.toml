@@ -1,9 +1,9 @@
 [package]
-name = "file-tree"
-version = "0.0.2"
+name = "fs-tree"
+version = "0.0.0"
 authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
-edition = "2018"
-description = "Representation of directory/file structure in filesystem, use directly to create, delete or link."
+edition = "2021"
+description = "Filesystem directory tree."
 license = "MIT"
 
 [dependencies]

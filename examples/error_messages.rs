@@ -1,6 +1,6 @@
 // This is a test for us to see what are the error messages this gives us.
 //
-use file_tree::{util, FileTree};
+use fs_tree::{util, FileTree};
 
 fn main() {
     let path = "Cargo.toml";

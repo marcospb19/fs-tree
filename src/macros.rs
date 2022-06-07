@@ -25,7 +25,7 @@ macro_rules! dir_inner {
 ///
 /// Example:
 /// ```
-/// # use crate::file_tree::*;
+/// # use crate::fs_tree::*;
 /// // let file: File<()> = dir!("root", [
 /// //     "file1",
 /// //     "file2",
@@ -53,7 +53,7 @@ macro_rules! dir {
 ///
 /// Example:
 /// ```
-/// # use crate::file_tree::*;
+/// # use crate::fs_tree::*;
 /// // let file: File<()> = dir!("root", [
 /// //     "file1",
 /// //     "file2",
@@ -74,7 +74,7 @@ macro_rules! tree {
     }};
 }
 
-/// Crate a `file_tree::File`, can be combined with `dir!`
+/// Crate a `fs_tree::File`, can be combined with `dir!`
 #[macro_export]
 macro_rules! file {
     ($path:expr) => {{
@@ -108,7 +108,7 @@ mod tests {
 
         // // We might want this one
         // #[rustfmt::skip]
-        // let file: File<()> = file_tree!("root", {
+        // let file: File<()> = fs_tree!("root", {
         //     "file1",
         //     "file2",
         //     "inner_dir" => [
