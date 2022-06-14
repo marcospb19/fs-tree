@@ -1,49 +1,36 @@
 // #![warn(missing_docs)]
 
-//! Representation of directory/file structure in file system to create, delete
-//! or link.
+//! Filesystem tree structure.
 //!
-//! This crate is in a early development stage, we can only read file structures
-//! for now.
+//! Load a tree structure from a directory and manipulate it.
 //!
-//! There's a lot left to be documented... there are some code in `examples/`
-//! folder for now, it can give you a blurry image of what this crate is about.
-//!
-//! See source code for `File` and `FileType` structs, and the methods they
-//! supply.
-//!
-//! # Performance note:
-//! This might change, but this crate isn't intended to be the fastest one out
-//! there, there is a lot to improve in terms of performance, however, we will
-//! be more focused in nice error treatment instead of blazing thought the file
-//! system and returning a `io::Result` for everything.
+//! Features:
+//! - Load from paths.
+//! - Iteration (with custom iterator adaptor filters).
+//! - Tree diff.
 //!
 //! # Alternatives:
-//! If you don't want to create structures, but instead, just read directories,
-//! I suggest you use `walkdir` instead.
+//! - If you just want to iterate in a path, use [`WalkDir`] instead.
 //!
 //! ---
 //!
-//! There's a crate in progress to make a human readable parser out of this
-//! representation.
-//!
-//! TODO:
-//! .from_text() method for File
-//! .merge() method for File
-//! FileType -> mode_t
+//! [`WalkDir`]: https://docs.rs/walkdir
 
-pub mod iter;
-pub use self::iter::{FilesIter, PathsIter};
-
-/// Exposed functions that are used internally by this crate
-pub mod util;
+// TODO (so that I don't forget):
+// - .from_text() method for FsTree
+//   - Find a better name than this
+// - .merge() method for FsTree
+// - FileType -> mode_t
+// - Absolute paths with a canonicalized from_path alternative (?)
 
 /// `FtResult` and `FtError` types.
 pub mod error;
-pub use self::error::*;
-
-// /// Macros for creating `FileTree` structure.
+/// FsTree iterators.
+pub mod iter;
+/// Macros for creating `FileTree` structure.
 pub mod macros;
+/// Exposed functions that are used internally by this crate
+pub mod util;
 
 use std::{
     env, fs, mem,
@@ -52,30 +39,17 @@ use std::{
 
 use file_type_enum::FileType as FileTypeEnum;
 
-/// A recursive defined file tree that supports a generic field.
+pub use self::{
+    error::*,
+    iter::{FilesIter, PathsIter},
+};
+
+/// A filesystem tree recursive type.
 ///
-/// This enum has 3 variants, each of them have 2 named fields in common:
-/// 1. `path: Pathbuf`, the relative path to the file.
-/// 2. `extra: Option`, a generic field that let's you customize the recursive structure.
-///
-/// - `FileTree::Directory` field `children` is a owned Vec of other child FileTrees.
-/// - `FileTree::Symlink` field `target_path` is the pointed relative or absolute path.
-///
-/// Keep in mind that each `FileTree` inside a `FileTree::Directory` will have the path with all
-/// parent components in it, so:
-///
-/// ```txt
-/// // For this structure
-///     "a": [
-///         "b": [
-///             "c"
-///         ],
-///     ]
-/// // .path for each one is:
-///     "a"
-///     "a/b"
-///     "a/b/c"
-/// ```
+/// This enum has a variant for the following file types:
+/// 1. `FsTree::Regular` - A regular file.
+/// 2. `FsTree::Directory` - A folder with a (possible empty) list of children.
+/// 3. `FsTree::Symlink` - A symbolic link that points to another path.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FileTree {
     // Normal file
