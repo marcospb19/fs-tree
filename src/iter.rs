@@ -58,38 +58,6 @@ impl<'a> FilesIter<'a> {
         PathsIter::new(self)
     }
 
-    /// Retrieve files before the directories when possible
-    ///
-    /// If true, when reading files inside a directory, put it in the start or
-    /// end of the Deque in a way that is deterministic
-    ///
-    /// Example:
-    /// ```txt
-    /// //// This was commented out because we don't have nice macros to make this example convenient
-    /// // let mut it = root.files().files_before_directories(true);
-    /// // assert_eq!(it.next(), Some(refs[0])); // .config/
-    /// // assert_eq!(it.next(), Some(refs[8])); // .config/outerfile1
-    /// // assert_eq!(it.next(), Some(refs[9])); // .config/outerfile2
-    /// // assert_eq!(it.next(), Some(refs[1])); // .config/i3/
-    /// // assert_eq!(it.next(), Some(refs[2])); // .config/i3/file1
-    /// // assert_eq!(it.next(), Some(refs[3])); // .config/i3/file2
-    /// // assert_eq!(it.next(), Some(refs[7])); // .config/i3/file3
-    /// // assert_eq!(it.next(), Some(refs[4])); // .config/i3/dir/
-    /// // assert_eq!(it.next(), Some(refs[5])); // .config/i3/dir/innerfile1
-    /// // assert_eq!(it.next(), Some(refs[6])); // .config/i3/dir/innerfile2
-    /// ```
-    ///
-    /// Se above that when we enter a directory, first we go into the files in
-    /// that directory, and then in the files of that directory, this guarantees
-    /// that when we see depth of `X`, we can only see depth of `X` or `X + 1`
-    /// for the next call.
-
-    // Removed option, I don't think it'll come back
-    // pub fn files_before_directories(mut self, arg: bool) -> Self {
-    //     self.files_before_directories = arg;
-    //     self
-    // }
-
     /// Filter out every `FileTree::Regular`
     pub fn skip_regular_files(mut self, arg: bool) -> Self {
         self.skip_regular_files = arg;
@@ -130,19 +98,6 @@ impl<'a> Iterator for FilesIter<'a> {
 
         // Update current_depth, for `.depth()` method
         self.current_depth = depth;
-
-        // a b c
-        // b c
-        // b1 b2 c
-        // b2 c
-        // c
-        // _
-
-        /*
-            a,
-            b [ b1, b2],
-            c,
-        */
 
         // If directory, add children
         if let Some(children) = file.children() {
@@ -250,13 +205,8 @@ mod tests {
         //     "outerfile2"
         // ]
 
-        // This should be replaced with a proper macro
-        //
         // Create the strucutre
         let root = {
-            // dir!(".config", [
-            //      dir!("i3", )
-            // ])
             FileTree::new_directory(".config/", vec![
                 FileTree::new_directory(".config/i3/", vec![
                     FileTree::new_regular(".config/i3/file1"),
@@ -330,22 +280,6 @@ mod tests {
         assert_eq!(it.next(), Some(refs[1])); // .config/i3/
         assert_eq!(it.next(), Some(refs[4])); // .config/i3/dir/
 
-        // let mut it = root.files();
-        // assert_eq!(it.next(), Some(refs[0])); // .config/
-        // assert_eq!(it.next(), Some(refs[1])); // .config/i3/
-        // assert_eq!(it.next(), Some(refs[2])); // .config/i3/file1
-        // assert_eq!(it.next(), Some(refs[3])); // .config/i3/file2
-        // assert_eq!(it.next(), Some(refs[4])); // .config/i3/dir/
-        // assert_eq!(it.next(), Some(refs[5])); // .config/i3/dir/innerfile1
-        // assert_eq!(it.next(), Some(refs[6])); // .config/i3/dir/innerfile2
-        // assert_eq!(it.next(), Some(refs[7])); // .config/i3/file3
-        // assert_eq!(it.next(), Some(refs[8])); // .config/outerfile1
-        // assert_eq!(it.next(), Some(refs[9])); // .config/outerfile2
-        // assert_eq!(it.next(), None);
-
-
-
-
         // min and max depth (1 <= d <= 2)
         //
         // skips:
@@ -361,14 +295,6 @@ mod tests {
         assert_eq!(it.next(), Some(refs[8])); // .config/outerfile1
         assert_eq!(it.next(), Some(refs[9])); // .config/outerfile2
         assert_eq!(it.next(), None);
-
-        // assert_eq!(it.next(), Some(refs[1])); // .config/i3/
-        // assert_eq!(it.next(), Some(refs[4])); // .config/i3/dir/
-        // assert_eq!(it.next(), Some(refs[2])); // .config/i3/file1
-        // assert_eq!(it.next(), Some(refs[3])); // .config/i3/file2
-        // assert_eq!(it.next(), Some(refs[7])); // .config/i3/file3
-        // assert_eq!(it.next(), Some(refs[8])); // .config/outerfile1
-        // assert_eq!(it.next(), Some(refs[9])); // .config/outerfile2
 
         // Paths iterator testing
         let p = PathBuf::from;
@@ -386,16 +312,16 @@ mod tests {
         assert_eq!(it.next(), None);
 
         let mut it = root.paths().only_show_last_segment(true);
-        assert_eq!(it.next(), Some(p(".config/")));                  // [0]
-        assert_eq!(it.next(), Some(p("i3/")));               // [1]
-        assert_eq!(it.next(), Some(p("file1")));          // [2]
-        assert_eq!(it.next(), Some(p("file2")));          // [3]
-        assert_eq!(it.next(), Some(p("dir/")));           // [4]
+        assert_eq!(it.next(), Some(p(".config/")));   // [0]
+        assert_eq!(it.next(), Some(p("i3/")));        // [1]
+        assert_eq!(it.next(), Some(p("file1")));      // [2]
+        assert_eq!(it.next(), Some(p("file2")));      // [3]
+        assert_eq!(it.next(), Some(p("dir/")));       // [4]
         assert_eq!(it.next(), Some(p("innerfile1"))); // [5]
         assert_eq!(it.next(), Some(p("innerfile2"))); // [6]
-        assert_eq!(it.next(), Some(p("file3")));          // [7]
-        assert_eq!(it.next(), Some(p("outerfile1")));        // [8]
-        assert_eq!(it.next(), Some(p("outerfile2")));        // [9]
+        assert_eq!(it.next(), Some(p("file3")));      // [7]
+        assert_eq!(it.next(), Some(p("outerfile1"))); // [8]
+        assert_eq!(it.next(), Some(p("outerfile2"))); // [9]
         assert_eq!(it.next(), None);
     }
 }
