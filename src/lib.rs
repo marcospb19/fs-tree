@@ -251,7 +251,9 @@ impl FileTree {
     /// Example:
     ///
     /// ```
-    /// let result = FileTree::from_path_text(Path::new(".config/i3/file"));
+    /// use fs_tree::FileTree;
+    ///
+    /// let result = FileTree::from_path_text(".config/i3/file");
     ///
     /// let expected = {
     ///     FileTree::new_directory(
@@ -265,7 +267,20 @@ impl FileTree {
     ///
     /// assert_eq!(result, Some(expected));
     /// ```
-    pub fn from_path_text<I, P>(path_iter: I) -> Option<Self>
+    pub fn from_path_text(path: impl AsRef<Path>) -> Option<Self> {
+        let mut path_iter = path.as_ref().iter();
+
+        let first_piece = path_iter.next()?;
+
+        let mut tree = Self::from_path_text_recursive_impl(first_piece, path_iter);
+
+        tree.make_paths_relative();
+
+        Some(tree)
+    }
+
+    /// More generic version of `FileTree::from_path_text`.
+    pub fn from_path_pieces<I, P>(path_iter: I) -> Option<Self>
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
