@@ -13,7 +13,7 @@ use crate::error::*;
 /// - If `path` does not exist
 /// - If `path` is not a symlink
 /// - If `Io::Error` from `fs::read_link(path)`
-pub fn symlink_target<P: AsRef<Path>>(path: P) -> FtResult<PathBuf> {
+pub fn symlink_follow<P: AsRef<Path>>(path: P) -> FtResult<PathBuf> {
     let path = path.as_ref();
     if !path.exists() {
         return Err(FtError::NotFoundError(path.to_path_buf()));

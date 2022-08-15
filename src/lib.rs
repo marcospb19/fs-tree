@@ -212,7 +212,7 @@ impl FileTree {
                 Ok(Self::new_directory(path, children))
             },
             FileTypeEnum::Symlink => {
-                let target_path = util::symlink_target(path)?;
+                let target_path = util::symlink_follow(path)?;
                 Ok(Self::new_symlink(path, target_path))
             },
             _ => Err(FtError::UnexpectedFileTypeError(path.to_path_buf())),

@@ -8,7 +8,7 @@ fn main() {
     if let Err(err) = FileTree::collect_from_directory(path) {
         eprintln!("{}", err);
     }
-    if let Err(err) = util::symlink_target(path) {
+    if let Err(err) = util::symlink_follow(path) {
         eprintln!("{}", err);
     }
 }
