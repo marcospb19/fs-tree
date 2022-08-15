@@ -10,15 +10,15 @@
 //! - Read from your filesystem.
 //! - Merge trees.
 //! - Get the difference of two trees.
+//! - Macros for creating trees more easily (WIP).
 //! - Tree iteration.
 //!   - Supports useful tree filters.
 //!   - You can perform operations on the iteration results (e.g. read each file and link them).
-//! - Macros for creating trees more easily (WIP).
 //!
 //! # When not to use:
 //!
-//! - If you just want to iterate throught a tree of files, use [`WalkDir`] instead.
-//! - If you just want a text trie, this is not.
+//! - If you just want to iterate a directory, use [`WalkDir`] instead.
+//! - If you want to use a text trie directly, use other crate too.
 //!
 //! # When to use:
 //!
@@ -33,7 +33,10 @@
 // - Change layout to a more trie-like tree, where the root may contain several subtrees.
 //   - This helps with possible node duplication, which is bad.
 //   - Also helps with complexity of queries.
-// - readd the extra generic field
+// - re-add the extra generic field
+// - re-test Pathsiter
+// - enable all tests in rustdocs
+// - improve fmt::Debug on File and FileType recursive display
 
 /// `Result` and `Error` types.
 pub mod error;

@@ -1,36 +1,31 @@
-# file-tree
+# fs-tree
 
-Representation of directory/file structure in file system to create, delete
-or link.
+Filesystem trie-like tree structure for commons operations.
 
-This crate is in a early development stage, we can only read file structures
-for now.
+Given a path, you can load a `FileTree` which might represent a regular file, directory, or symlink.
 
-There's a lot left to be documented... there are some code in `examples/`
-folder for now, it can give you a blurry image of what this crate is about.
+## Features:
 
-See source code for `File` and `FileType` structs, and the methods they
-supply.
+- Aware of regular files, directories and symlinks.
+- Read from your filesystem.
+- Merge trees.
+- Get the difference of two trees.
+- Macros for creating trees more easily (WIP).
+- Tree iteration.
+  - Supports useful tree filters.
+  - You can perform operations on the iteration results (e.g. read each file and link them).
 
-## Performance note:
-This might change, but this crate isn't intended to be the fastest one out
-there, there is a lot to improve in terms of performance, however, we will
-be more focused in nice error treatment instead of blazing thought the file
-system and returning a `io::Result` for everything.
+## When not to use:
 
-## Alternatives:
-If you don't want to create structures, but instead, just read directories,
-I suggest you use `walkdir` instead.
+- If you just want to iterate a directory, use [`WalkDir`] instead.
+- If you want to use a text trie directly, use other crate too.
+
+## When to use:
+
+- You need to easily load a file type-aware trie from your filesystem and compare with other tries.
 
 ---
 
-There's a crate in progress to make a human readable parser out of this
-representation.
+[`WalkDir`]: https://docs.rs/walkdir
 
-TODO:
-fix Pathsiter
-enable all tests in rustdocs
-.from_text() method for File
-.merge() method for File
-FileType -> mode_t
-improve fmt::Debug on File and FileType recursive display
+License: MIT
