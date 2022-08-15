@@ -69,7 +69,7 @@ macro_rules! dir {
 macro_rules! tree {
     ($($any:tt)*) => {{
         let mut result = dir!( $($any)* );
-        result.fix();
+        result.make_paths_relative();
         result
     }};
 }

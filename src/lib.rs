@@ -273,10 +273,30 @@ impl FileTree {
         }
     }
 
-    /// Fix paths for the macro
+    /// Fix relative paths from each node piece.
     ///
-    /// needs docs
-    pub fn fix(&mut self) {
+    /// If you manually build a structure like:
+    ///
+    /// ```plain
+    /// "a": [
+    ///     "b": [
+    ///         "c",
+    ///     ]
+    /// ]
+    /// ```
+    ///
+    /// Using the create methods, then you need to run this function to make them relative paths.
+    ///
+    /// ```plain
+    /// "a": [
+    ///     "a/b": [
+    ///         "a/b/c",
+    ///     ]
+    /// ]
+    /// ```
+    ///
+    /// Then, you can access any of the files only by looking at their path.
+    pub fn make_paths_relative(&mut self) {
         let parent_path_copy = self.path().clone();
         if let Some(children) = self.children_mut() {
             for child in children.iter_mut() {
@@ -284,7 +304,7 @@ impl FileTree {
                 if let Some(target) = child.target_mut() {
                     *target = parent_path_copy.join(&target);
                 }
-                child.fix();
+                child.make_paths_relative();
             }
         }
     }
