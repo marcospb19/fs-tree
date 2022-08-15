@@ -27,10 +27,11 @@
 pub mod error;
 /// FsTree iterators.
 pub mod iter;
-/// Macros for creating `FileTree` structure.
-pub mod macros;
 /// Exposed functions that are used internally by this crate
 pub mod util;
+
+// /// Macros for creating `FileTree` structure.
+// pub mod macros;
 
 use std::{
     env, fs, mem,
