@@ -17,8 +17,6 @@
 //! [`WalkDir`]: https://docs.rs/walkdir
 
 // TODO (so that I don't forget):
-// - .from_text() method for FsTree
-//   - Find a better name than this
 // - .merge() method for FsTree
 // - FileType -> mode_t
 // - Absolute paths with a canonicalized from_path alternative (?)
@@ -245,28 +243,57 @@ impl FileTree {
         Self::___from_path_cd(path.as_ref(), false)
     }
 
-    /// Creates a `FileTree` from path text.
+    /// Splits a `Path` components into a `FileTree`.
     ///
-    /// For example: `FileTree::from_path_text("a/b/c")`, results in the following structure:
-    /// ```txt
-    /// "a": [
-    ///   "b": [
-    ///     "c"
-    ///   ]
-    /// ]
+    /// Returns `None` if the string is empty.
+    ///
+    /// Can only build Regular and Directory, not symlink.
+    ///
+    /// Example:
+    ///
     /// ```
+    /// let result = FileTree::from_path_text(Path::new(".config/i3/file"));
     ///
-    /// Examples:
-    /// TODO make here a example where you create that and assert_eq the paths returned by the iters
-    /// lmao
-    // Ok so the implementation is a weird post-order recursion, need more documentation
-    // explaining!!!!!
-    //
-    // Could also be optimized using another function
-    pub fn from_path_text(path: impl AsRef<Path>) -> Self {
-        let path = path.as_ref();
-        let size = path.iter().count();
-        Self::__other(&mut path.iter(), size)
+    /// let expected = {
+    ///     FileTree::new_directory(
+    ///         ".config/",
+    ///         vec![FileTree::new_directory(
+    ///             ".config/i3/",
+    ///             vec![FileTree::new_regular(".config/i3/file")],
+    ///         )],
+    ///     )
+    /// };
+    ///
+    /// assert_eq!(result, Some(expected));
+    /// ```
+    pub fn from_path_text<I, P>(path_iter: I) -> Option<Self>
+    where
+        I: IntoIterator<Item = P>,
+        P: AsRef<Path>,
+    {
+        let mut path_iter = path_iter.into_iter();
+
+        let first_piece = path_iter.next()?;
+
+        let mut tree = Self::from_path_text_recursive_impl(first_piece, path_iter);
+
+        tree.make_paths_relative();
+
+        Some(tree)
+    }
+
+    fn from_path_text_recursive_impl<I, P>(piece: P, mut path_iter: I) -> Self
+    where
+        I: Iterator<Item = P>,
+        P: AsRef<Path>,
+    {
+        match path_iter.next() {
+            Some(next) => FileTree::new_directory(
+                piece.as_ref(),
+                vec![Self::from_path_text_recursive_impl(next, path_iter)],
+            ),
+            None => FileTree::new_regular(piece),
+        }
     }
 
     fn __other(iter: &mut std::path::Iter, how_many: usize) -> Self {
