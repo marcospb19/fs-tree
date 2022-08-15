@@ -1,12 +1,12 @@
 use crate::FileTypeEnum;
 use std::{error, fmt, io, path::PathBuf};
 
-/// Our `Result` type.
-pub type FtResult<T> = Result<T, FtError>;
+/// Result for all `fs-tree` crate errors.
+pub type Result<T> = std::result::Result<T, Error>;
 
 /// Errors generated inside of the `fs-tree` crate.
 #[derive(Debug)]
-pub enum FtError {
+pub enum Error {
     /// File not found.
     NotFoundError(PathBuf),
     /// Expected directory, but file type differs.
@@ -19,9 +19,9 @@ pub enum FtError {
     IoError(io::Error),
 }
 
-use FtError::*;
+use Error::*;
 
-impl FtError {
+impl Error {
     /// Path to where the error occurred
     pub fn path(&self) -> Option<&PathBuf> {
         match self {
@@ -34,7 +34,7 @@ impl FtError {
     }
 }
 
-impl error::Error for FtError {
+impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
             IoError(source) => Some(source),
@@ -43,7 +43,7 @@ impl error::Error for FtError {
     }
 }
 
-impl fmt::Display for FtError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             NotFoundError(..) => write!(f, "file not found"),
@@ -55,8 +55,8 @@ impl fmt::Display for FtError {
     }
 }
 
-impl From<io::Error> for FtError {
+impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
-        FtError::IoError(err)
+        Error::IoError(err)
     }
 }

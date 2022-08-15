@@ -1,7 +1,7 @@
-use fs_tree::{FileTree, FtResult};
+use fs_tree::{FileTree, Result};
 
 #[allow(unused_variables)]
-fn main() -> FtResult<()> {
+fn main() -> Result<()> {
     let examples_folder = FileTree::from_path("examples/")?;
 
     // Recursive iterator that starts at file `examples_folder`

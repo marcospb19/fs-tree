@@ -35,7 +35,7 @@
 //   - Also helps with complexity of queries.
 // - readd the extra generic field
 
-/// `FtResult` and `FtError` types.
+/// `Result` and `Error` types.
 pub mod error;
 /// FsTree iterators.
 pub mod iter;
@@ -150,11 +150,11 @@ impl FileTree {
     // }
 
     // Private implementation
-    fn __collect_from_directory(path: &Path, follow_symlinks: bool) -> FtResult<Vec<Self>> {
+    fn __collect_from_directory(path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
         if !path.exists() {
-            return Err(FtError::NotFoundError(path.to_path_buf()));
+            return Err(Error::NotFoundError(path.to_path_buf()));
         } else if !FileTypeEnum::from_path(path)?.is_directory() {
-            return Err(FtError::NotADirectoryError(path.to_path_buf()));
+            return Err(Error::NotADirectoryError(path.to_path_buf()));
         }
         let dirs = fs::read_dir(path)?;
 
@@ -168,17 +168,17 @@ impl FileTree {
     }
 
     /// Collects a `Vec` of `FileTree` from `path` that is a directory.
-    pub fn collect_from_directory(path: impl AsRef<Path>) -> FtResult<Vec<Self>> {
+    pub fn collect_from_directory(path: impl AsRef<Path>) -> Result<Vec<Self>> {
         Self::__collect_from_directory(path.as_ref(), true)
     }
 
     /// Collects a `Vec` of `FileTree` from `path` that is a directory, entries can be symlinks.
-    pub fn collect_from_directory_symlink(path: impl AsRef<Path>) -> FtResult<Vec<Self>> {
+    pub fn collect_from_directory_symlink(path: impl AsRef<Path>) -> Result<Vec<Self>> {
         Self::__collect_from_directory(path.as_ref(), false)
     }
 
     // Private implementation
-    fn __collect_from_directory_cd(path: &Path, follow_symlinks: bool) -> FtResult<Vec<Self>> {
+    fn __collect_from_directory_cd(path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
         let previous_path = env::current_dir()?;
         debug_assert!(path.is_absolute());
         env::set_current_dir(path)?;
@@ -188,17 +188,17 @@ impl FileTree {
     }
 
     /// Collects a `Vec` of `FileTree` from `path` that is a directory.
-    pub fn collect_from_directory_cd(path: impl AsRef<Path>) -> FtResult<Vec<Self>> {
+    pub fn collect_from_directory_cd(path: impl AsRef<Path>) -> Result<Vec<Self>> {
         Self::__collect_from_directory_cd(path.as_ref(), false)
     }
 
     /// Collects a `Vec` of `FileTree` from `path` that is a directory, entries can be symlinks.
-    pub fn collect_from_directory_symlink_cd(path: impl AsRef<Path>) -> FtResult<Vec<Self>> {
+    pub fn collect_from_directory_symlink_cd(path: impl AsRef<Path>) -> Result<Vec<Self>> {
         Self::__collect_from_directory_cd(path.as_ref(), false)
     }
 
     // Internal implementation of `from_path` and `from_path_symlink`
-    fn __from_path(path: &Path, follow_symlinks: bool) -> FtResult<Self> {
+    fn __from_path(path: &Path, follow_symlinks: bool) -> Result<Self> {
         let get_file_type = if follow_symlinks {
             FileTypeEnum::from_path
         } else {
@@ -215,7 +215,7 @@ impl FileTree {
                 let target_path = util::symlink_follow(path)?;
                 Ok(Self::new_symlink(path, target_path))
             },
-            other_type => Err(FtError::UnexpectedFileTypeError(
+            other_type => Err(Error::UnexpectedFileTypeError(
                 other_type,
                 path.to_path_buf(),
             )),
@@ -239,7 +239,7 @@ impl FileTree {
     /// `FileTree::from_path_symlink` instead.
     ///
     /// [unexpected file type]: docs.rs/file_type_enum
-    pub fn from_path(path: impl AsRef<Path>) -> FtResult<Self> {
+    pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
         Self::__from_path(path.as_ref(), true)
     }
 
@@ -261,12 +261,12 @@ impl FileTree {
     /// `FileTree::from_path`.
     ///
     /// [unexpected file type]: docs.rs/file_type_enum
-    pub fn from_path_symlink(path: impl AsRef<Path>) -> FtResult<Self> {
+    pub fn from_path_symlink(path: impl AsRef<Path>) -> Result<Self> {
         Self::__from_path(path.as_ref(), false)
     }
 
     // Internal
-    fn ___from_path_cd(path: &Path, follow_symlinks: bool) -> FtResult<Self> {
+    fn ___from_path_cd(path: &Path, follow_symlinks: bool) -> Result<Self> {
         let previous_path = env::current_dir()?;
         debug_assert!(path.is_absolute());
         env::set_current_dir(path)?;
@@ -278,14 +278,14 @@ impl FileTree {
     /// `cd` into path, run `from_path`, and come back.
     ///
     /// TODO explain here why this is useful
-    pub fn from_path_cd(path: impl AsRef<Path>) -> FtResult<Self> {
+    pub fn from_path_cd(path: impl AsRef<Path>) -> Result<Self> {
         Self::___from_path_cd(path.as_ref(), true)
     }
 
     /// `cd` into path, run `from_path_symlink`, and come back.
     ///
     /// TODO explain here why this is useful
-    pub fn from_cd_symlink_path(path: impl AsRef<Path>) -> FtResult<Self> {
+    pub fn from_cd_symlink_path(path: impl AsRef<Path>) -> Result<Self> {
         Self::___from_path_cd(path.as_ref(), false)
     }
 
@@ -405,7 +405,7 @@ impl FileTree {
     ///
     /// In case `std::fs::canonicalize` fails at any path, this function will stop and return an
     /// IoError, leave the tree in a mixed state in terms of canonical paths.
-    pub fn make_paths_absolute(&mut self) -> FtResult<()> {
+    pub fn make_paths_absolute(&mut self) -> Result<()> {
         *self.path_mut() = self.path().canonicalize()?;
 
         if let Some(children) = self.children_mut() {
