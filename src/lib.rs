@@ -339,12 +339,14 @@ impl FileTree {
     ///
     /// Then, you can access any of the files only by looking at their path.
     pub fn make_paths_relative(&mut self) {
-        let parent_path_copy = self.path().clone();
-        if let Some(children) = self.children_mut() {
+        // If this is a directory, update the path of all children
+        if let FileTree::Directory { children, path } = self {
             for child in children.iter_mut() {
-                *child.path_mut() = parent_path_copy.join(child.path());
+                // Update child's path
+                *child.path_mut() = path.join(child.path());
+                // Update target if it's a symlink
                 if let Some(target) = child.target_mut() {
-                    *target = parent_path_copy.join(&target);
+                    *target = path.join(&target);
                 }
                 child.make_paths_relative();
             }
