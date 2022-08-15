@@ -329,23 +329,16 @@ impl FileTree {
         }
     }
 
-    fn __other(iter: &mut std::path::Iter, how_many: usize) -> Self {
-        if true {
-            todo!("test if this is working please")
-        } else if how_many <= 1 {
-            // Only one component, only one file
-            FileTree::new_regular(iter.as_path())
-        } else {
-            // Multiple components, create a directory with the leftmost one and add the rest of
-            // them as nested children
-            let child = Self::__other(iter, how_many - 1);
-            // Remove the last one
-            iter.next_back();
+    /// Iterator of all `FileTree`s in the structure
+    pub fn files(&self) -> FilesIter {
+        FilesIter::new(self)
+    }
 
-            // Create current and return it
-            let path = iter.as_path();
-            FileTree::new_directory(path, vec![child])
-        }
+    /// Shorthand for `self.files().paths()`, see link to [`.paths()`] method
+    ///
+    /// [`.paths()`]: super::iter::FilesIter::paths
+    pub fn paths(&self) -> PathsIter {
+        self.files().paths()
     }
 
     /// Fix relative paths from each node piece.
@@ -545,18 +538,6 @@ impl FileTree {
             | Self::Directory { path, .. }
             | Self::Symlink { path, .. } => path,
         }
-    }
-
-    /// Iterator of all `FileTree`s in the structure
-    pub fn files(&self) -> FilesIter {
-        FilesIter::new(self)
-    }
-
-    /// Shorthand for `self.files().paths()`, see link to [`.paths()`] method
-    ///
-    /// [`.paths()`]: super::iter::FilesIter::paths
-    pub fn paths(&self) -> PathsIter {
-        self.files().paths()
     }
 
     /// Shorthand for `file.file_type.is_regular()`
