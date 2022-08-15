@@ -59,41 +59,61 @@ pub use self::{
 };
 
 /// A filesystem tree recursive type.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct FileTree {
+    /// The filename of this file.
+    pub path: PathBuf,
+    /// The filetype of this file.
+    pub file_type: FileTreeType,
+}
+
+/// A filesystem tree recursive enum.
 ///
 /// This enum has a variant for the following file types:
-/// 1. `FsTree::Regular` - A regular file.
-/// 2. `FsTree::Directory` - A folder with a (possible empty) list of children.
-/// 3. `FsTree::Symlink` - A symbolic link that points to another path.
+/// 1. `FileTreeType::Regular` - A regular file.
+/// 2. `FileTreeType::Directory` - A folder with a (possible empty) list of children.
+/// 3. `FileTreeType::Symlink` - A symbolic link that points to another path.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum FileTree {
+pub enum FileTreeType {
     /// A regular file.
-    Regular {
-        /// The filename of this regular file.
-        path: PathBuf,
-    },
-    /// A directory, might contain other `FileTree`s inside.
-    Directory {
-        /// The filename of this directory.
-        path: PathBuf,
-        /// Files inside of this directory.
-        children: Vec<Self>,
-    },
+    Regular,
+    /// A directory, might have children `FileTree`s inside.
+    Directory(Vec<FileTree>),
     /// Symbolic link, and it's target path.
-    Symlink {
-        /// The filename of this symlink.
-        path: PathBuf,
-        /// The path at which the symlink points at.
-        ///
-        /// Might be a broken symlink, don't rely on this path without checking.
-        target_path: PathBuf,
-    },
+    ///
+    /// The link might be broken, it's not guaranteed that a symlink points to a valid path.
+    Symlink(PathBuf),
+}
+
+impl FileTreeType {
+    /// Checks if the FileTreeType is the same type as other.
+    pub fn is_same_type_as(&self, other: &Self) -> bool {
+        mem::discriminant(self) == mem::discriminant(other)
+    }
+
+    /// Shorthand for `file.file_type.is_regular()`
+    pub fn is_regular(&self) -> bool {
+        matches!(self, Self::Regular)
+    }
+
+    /// Shorthand for `file.file_type.is_dir()`
+    pub fn is_dir(&self) -> bool {
+        matches!(self, Self::Directory(_))
+    }
+
+    /// Shorthand for `file.file_type.is_symlink()`
+    pub fn is_symlink(&self) -> bool {
+        matches!(self, Self::Symlink(_))
+    }
 }
 
 impl FileTree {
     /// Creates a `FileTree::Regular` from arguments.
     pub fn new_regular(path: impl AsRef<Path>) -> Self {
-        let path = path.as_ref().to_path_buf();
-        Self::Regular { path }
+        Self {
+            path: path.as_ref().to_owned(),
+            file_type: FileTreeType::Regular,
+        }
     }
 
     // /// Creates a `FileTree::Regular` with default arguments.
@@ -103,8 +123,10 @@ impl FileTree {
 
     /// Creates a `FileTree::Directory` from arguments.
     pub fn new_directory(path: impl AsRef<Path>, children: Vec<Self>) -> Self {
-        let path = path.as_ref().to_path_buf();
-        Self::Directory { path, children }
+        Self {
+            path: path.as_ref().to_path_buf(),
+            file_type: FileTreeType::Directory(children),
+        }
     }
 
     // /// Creates a `FileTree::Directory` with default arguments.
@@ -116,7 +138,10 @@ impl FileTree {
     pub fn new_symlink(path: impl AsRef<Path>, target_path: impl AsRef<Path>) -> Self {
         let path = path.as_ref().to_path_buf();
         let target_path = target_path.as_ref().to_path_buf();
-        Self::Symlink { path, target_path }
+        Self {
+            path,
+            file_type: FileTreeType::Symlink(target_path),
+        }
     }
 
     // /// Creates a `FileTree::Symlink` with default arguments.
@@ -358,13 +383,13 @@ impl FileTree {
     /// Then, you can access any of the files only by looking at their path.
     pub fn make_paths_relative(&mut self) {
         // If this is a directory, update the path of all children
-        if let FileTree::Directory { children, path } = self {
+        if let FileTreeType::Directory(children) = &mut self.file_type {
             for child in children.iter_mut() {
                 // Update child's path
-                *child.path_mut() = path.join(child.path());
+                *child.path_mut() = self.path.join(child.path());
                 // Update target if it's a symlink
                 if let Some(target) = child.target_mut() {
-                    *target = path.join(&target);
+                    *target = self.path.join(&target);
                 }
                 child.make_paths_relative();
             }
@@ -404,34 +429,27 @@ impl FileTree {
             return None;
         }
 
-        match (self, other) {
-            (
-                Self::Directory {
-                    children: left_children,
-                    path,
-                },
-                Self::Directory {
-                    children: right_children,
-                    ..
-                },
-            ) => {
+        let path = self.path;
+
+        match (self.file_type, other.file_type) {
+            (FileTreeType::Directory(left_children), FileTreeType::Directory(right_children)) => {
+                // TODO: Don't remake a trie here, we can use the trees directly
+                // this todo needs to be solved after migrating to a proper trie
                 let mut left_map: HashMap<PathBuf, FileTree> = left_children
                     .into_iter()
-                    .map(|child| (child.path().to_owned(), child))
+                    .map(|child| (child.path.clone(), child))
                     .collect();
 
                 let mut result_vec = vec![];
 
                 for child in right_children {
+                    // If there is another one with the same path, merge them
                     match left_map.remove(child.path()) {
                         None => result_vec.push(child),
                         Some(left_equivalent) => {
                             if !child.has_same_type_as(&left_equivalent) {
                                 return None;
-                            } else if child.path() == left_equivalent.path()
-                                && child.is_dir()
-                                && left_equivalent.is_dir()
-                            {
+                            } else if child.is_dir() && left_equivalent.is_dir() {
                                 result_vec.push(left_equivalent.merge(child).unwrap());
                             } else {
                                 result_vec.push(left_equivalent);
@@ -451,32 +469,32 @@ impl FileTree {
 
     /// Reference to children vec if self.is_directory().
     pub fn children(&self) -> Option<&Vec<Self>> {
-        match self {
-            FileTree::Directory { children, .. } => Some(children),
+        match &self.file_type {
+            FileTreeType::Directory(children) => Some(children),
             _ => None,
         }
     }
 
     /// Reference to children vec if self.is_directory(), mutable.
     pub fn children_mut(&mut self) -> Option<&mut Vec<Self>> {
-        match self {
-            FileTree::Directory { children, .. } => Some(children),
+        match &mut self.file_type {
+            FileTreeType::Directory(children) => Some(children),
             _ => None,
         }
     }
 
     /// Reference to target_path if self.is_symlink().
     pub fn target(&self) -> Option<&PathBuf> {
-        match self {
-            FileTree::Symlink { target_path, .. } => Some(target_path),
+        match &self.file_type {
+            FileTreeType::Symlink(target_path) => Some(target_path),
             _ => None,
         }
     }
 
     /// Reference to target_path if self.is_symlink(), mutable.
     pub fn target_mut(&mut self) -> Option<&mut PathBuf> {
-        match self {
-            FileTree::Symlink { target_path, .. } => Some(target_path),
+        match &mut self.file_type {
+            FileTreeType::Symlink(target_path) => Some(target_path),
             _ => None,
         }
     }
@@ -516,78 +534,53 @@ impl FileTree {
 
     /// Gets a reference to the file path to this node.
     pub fn path(&self) -> &PathBuf {
-        match self {
-            Self::Regular { path, .. }
-            | Self::Directory { path, .. }
-            | Self::Symlink { path, .. } => path,
-        }
+        &self.path
     }
 
     /// Gets a mutable reference to the file path to this node.
     pub fn path_mut(&mut self) -> &mut PathBuf {
-        match self {
-            Self::Regular { path, .. }
-            | Self::Directory { path, .. }
-            | Self::Symlink { path, .. } => path,
-        }
+        &mut self.path
     }
 
     /// Shorthand for `file.file_type.is_regular()`
     pub fn is_regular(&self) -> bool {
-        matches!(self, Self::Regular { .. })
+        self.file_type.is_regular()
     }
 
     /// Shorthand for `file.file_type.is_dir()`
     pub fn is_dir(&self) -> bool {
-        matches!(self, Self::Directory { .. })
+        self.file_type.is_dir()
     }
 
     /// Shorthand for `file.file_type.is_symlink()`
     pub fn is_symlink(&self) -> bool {
-        matches!(self, Self::Symlink { .. })
+        self.file_type.is_symlink()
     }
 
     /// Turn this node of the tree into a regular file.
     ///
     /// Beware the possible recursive drop of nested nodes if this node was a directory.
     pub fn to_regular(&mut self) {
-        match self {
-            Self::Regular { .. } => {},
-            Self::Directory { path, .. } | Self::Symlink { path, .. } => {
-                let path = mem::take(path);
-                *self = Self::Regular { path };
-            },
-        }
+        self.file_type = FileTreeType::Regular;
     }
 
     /// Turn this node of the tree into a directory.
     ///
     /// Beware the possible recursive drop of nested nodes if this node was a directory.
     pub fn to_directory(&mut self, children: Vec<Self>) {
-        match self {
-            Self::Regular { path } | Self::Directory { path, .. } | Self::Symlink { path, .. } => {
-                let path = mem::take(path);
-                *self = Self::Directory { path, children };
-            },
-        }
+        self.file_type = FileTreeType::Directory(children);
     }
 
     /// Turn this node of the tree into a symlink.
     ///
     /// Beware the possible recursive drop of nested nodes if this node was a directory.
     pub fn to_symlink(&mut self, target_path: impl AsRef<Path>) {
-        match self {
-            Self::Regular { path } | Self::Directory { path, .. } | Self::Symlink { path, .. } => {
-                let path = mem::take(path);
-                let target_path = target_path.as_ref().to_path_buf();
-                *self = Self::Symlink { path, target_path };
-            },
-        }
+        self.file_type = FileTreeType::Symlink(target_path.as_ref().to_owned());
     }
 
     /// Checks if the FileTree file type is the same as other FileTree.
     pub fn has_same_type_as(&self, other: &FileTree) -> bool {
-        mem::discriminant(self) == mem::discriminant(other)
+        self.file_type.is_same_type_as(&other.file_type)
     }
 }
 
