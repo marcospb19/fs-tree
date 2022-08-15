@@ -18,6 +18,9 @@
 
 // TODO (so that I don't forget):
 // - FileType -> mode_t
+// - Change layout to a more trie-like tree, where the root may contain several subtrees.
+//   - This helps with possible node duplication, which is bad.
+//   - Also helps with complexity of queries.
 
 /// `FtResult` and `FtError` types.
 pub mod error;
@@ -629,5 +632,13 @@ mod tests {
         };
 
         assert_eq!(result, Some(expected));
+    }
+
+    #[test]
+    fn test_partial_eq_fails() {
+        let left = FileTree::from_path_text(".config/i3/a").unwrap();
+        let right = FileTree::from_path_text(".config/i3/b").unwrap();
+
+        assert_ne!(left, right);
     }
 }
