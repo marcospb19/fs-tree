@@ -19,7 +19,6 @@
 // TODO (so that I don't forget):
 // - .merge() method for FsTree
 // - FileType -> mode_t
-// - Absolute paths with a canonicalized from_path alternative (?)
 
 /// `FtResult` and `FtError` types.
 pub mod error;
@@ -351,6 +350,23 @@ impl FileTree {
                 child.make_paths_relative();
             }
         }
+    }
+
+    /// Makes all paths in the tree absolute.
+    ///
+    /// # Errors:
+    ///
+    /// In case `std::fs::canonicalize` fails at any path, this function will stop and return an IoError, leave the tree in a mixed state in terms of canonical paths.
+    pub fn make_paths_absolute(&mut self) -> FtResult<()> {
+        *self.path_mut() = self.path().canonicalize()?;
+
+        if let Some(children) = self.children_mut() {
+            for child in children.iter_mut() {
+                Self::make_paths_absolute(child)?;
+            }
+        }
+
+        Ok(())
     }
 
     /// Reference to children vec if self.is_directory().
