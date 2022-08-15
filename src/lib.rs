@@ -17,7 +17,6 @@
 //! [`WalkDir`]: https://docs.rs/walkdir
 
 // TODO (so that I don't forget):
-// - .merge() method for FsTree
 // - FileType -> mode_t
 
 /// `FtResult` and `FtError` types.
@@ -30,6 +29,7 @@ pub mod util;
 // /// Macros for creating `FileTree` structure.
 // pub mod macros;
 
+use std::collections::HashMap;
 use std::{
     env, fs, mem,
     path::{Path, PathBuf},
@@ -369,6 +369,60 @@ impl FileTree {
         Ok(())
     }
 
+    /// Merge this tree with other `FileTree`.
+    ///
+    /// This function is currently experimental and likely to change in future versions.
+    ///
+    /// # Errors:
+    ///
+    /// This errs if:
+    ///
+    /// - The trees have different roots and thus cannot be merged.
+    /// - There are file conflicts.
+    pub fn merge(self, other: Self) -> Option<Self> {
+        if self.path() != other.path() {
+            return None;
+        }
+
+        match (self, other) {
+            (
+                Self::Directory { children: left_children, path },
+                Self::Directory { children: right_children, .. },
+            ) => {
+                let mut left_map: HashMap<PathBuf, FileTree> = left_children
+                    .into_iter()
+                    .map(|child| (child.path().to_owned(), child))
+                    .collect();
+
+                let mut result_vec = vec![];
+
+                for child in right_children {
+                    match left_map.remove(child.path()) {
+                        None => result_vec.push(child),
+                        Some(left_equivalent) => {
+                            if !child.has_same_type_as(&left_equivalent) {
+                                return None;
+                            } else if child.path() == left_equivalent.path()
+                                && child.is_dir()
+                                && left_equivalent.is_dir()
+                            {
+                                result_vec.push(left_equivalent.merge(child).unwrap());
+                            } else {
+                                result_vec.push(left_equivalent);
+                                result_vec.push(child);
+                            }
+                        },
+                    }
+                }
+
+                result_vec.extend(left_map.into_values());
+
+                Some(Self::new_directory(path, result_vec))
+            },
+            _ => None,
+        }
+    }
+
     /// Reference to children vec if self.is_directory().
     pub fn children(&self) -> Option<&Vec<Self>> {
         match self {
@@ -513,5 +567,40 @@ impl FileTree {
                 *self = Self::Symlink { path, target_path };
             },
         }
+    }
+
+    /// Checks if the FileTree file type is the same as other FileTree.
+    pub fn has_same_type_as(&self, other: &FileTree) -> bool {
+        mem::discriminant(self) == mem::discriminant(other)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_merge() {
+        let left = FileTree::from_path_text(".config/i3/file").unwrap();
+        let right = FileTree::from_path_text(".config/i3/folder/file").unwrap();
+        let result = left.merge(right);
+
+        let expected = {
+            FileTree::new_directory(
+                ".config",
+                vec![FileTree::new_directory(
+                    ".config/i3",
+                    vec![
+                        FileTree::new_directory(
+                            ".config/i3/folder",
+                            vec![FileTree::new_regular(".config/i3/folder/file")],
+                        ),
+                        FileTree::new_regular(".config/i3/file"),
+                    ],
+                )],
+            )
+        };
+
+        assert_eq!(result, Some(expected));
     }
 }
