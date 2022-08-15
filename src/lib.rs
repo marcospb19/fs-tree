@@ -1,16 +1,28 @@
 #![warn(missing_docs)]
 
-//! Filesystem tree structure.
+//! Filesystem trie tree structure for commons operations.
 //!
-//! Load a tree structure from a directory and manipulate it.
+//! Given a path, you can load a `FileTree` which might represent a regular file, directory, or symlink.
 //!
-//! Features:
-//! - Load from paths.
-//! - Iteration (with custom iterator adaptor filters).
-//! - Tree diff.
+//! # Features:
 //!
-//! # Alternatives:
-//! - If you just want to iterate in a path, use [`WalkDir`] instead.
+//! - Aware of regular files, directories and symlinks.
+//! - Read from your filesystem.
+//! - Merge trees.
+//! - Get the difference of two trees.
+//! - Tree iteration.
+//!   - Supports useful tree filters.
+//!   - You can perform operations on the iteration results (e.g. read each file and link them).
+//! - Macros for creating trees more easily (WIP).
+//!
+//! # When not to use:
+//!
+//! - If you just want to iterate throught a tree of files, use [`WalkDir`] instead.
+//! - If you just want a text trie, this is not.
+//!
+//! # When to use:
+//!
+//! - You need to easily load a file type-aware trie from your filesystem and compare with other tries.
 //!
 //! ---
 //!
@@ -21,6 +33,7 @@
 // - Change layout to a more trie-like tree, where the root may contain several subtrees.
 //   - This helps with possible node duplication, which is bad.
 //   - Also helps with complexity of queries.
+// - readd the extra generic field
 
 /// `FtResult` and `FtError` types.
 pub mod error;
