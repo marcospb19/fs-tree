@@ -1,9 +1,9 @@
 [package]
 name = "fs-tree"
-version = "0.0.0"
+version = "0.2.0"
 authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
 edition = "2021"
-description = "Filesystem directory tree."
+description = "Filesystem trie-like tree structure for commons operations."
 license = "MIT"
 
 [dependencies]
