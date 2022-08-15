@@ -1,10 +1,11 @@
 [package]
 name = "fs-tree"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
 edition = "2021"
 description = "Filesystem trie-like tree structure for commons operations."
 license = "MIT"
+repository = "https://github.com/marcospb19/fs-tree"
 
 [dependencies]
 file_type_enum = "0.11"
