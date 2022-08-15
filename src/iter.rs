@@ -178,7 +178,10 @@ pub struct PathsIter<'a> {
 impl<'a> PathsIter<'a> {
     // Used by `FilesIter::paths(self)`
     fn new(file_iter: FilesIter<'a>) -> Self {
-        Self { file_iter, only_show_last_segment: false }
+        Self {
+            file_iter,
+            only_show_last_segment: false,
+        }
     }
 
     /// Apply `Path::file_name` to each iteration

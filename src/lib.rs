@@ -29,8 +29,8 @@ pub mod util;
 // /// Macros for creating `FileTree` structure.
 // pub mod macros;
 
-use std::collections::HashMap;
 use std::{
+    collections::HashMap,
     env, fs, mem,
     path::{Path, PathBuf},
 };
@@ -158,8 +158,11 @@ impl FileTree {
 
     // Internal implementation of `from_path` and `from_path_symlink`
     fn __from_path(path: &Path, follow_symlinks: bool) -> FtResult<Self> {
-        let get_file_type =
-            if follow_symlinks { FileTypeEnum::from_path } else { FileTypeEnum::from_symlink_path };
+        let get_file_type = if follow_symlinks {
+            FileTypeEnum::from_path
+        } else {
+            FileTypeEnum::from_symlink_path
+        };
 
         match get_file_type(path)? {
             FileTypeEnum::Regular => Ok(Self::new_regular(path)),
@@ -371,7 +374,8 @@ impl FileTree {
     ///
     /// # Errors:
     ///
-    /// In case `std::fs::canonicalize` fails at any path, this function will stop and return an IoError, leave the tree in a mixed state in terms of canonical paths.
+    /// In case `std::fs::canonicalize` fails at any path, this function will stop and return an
+    /// IoError, leave the tree in a mixed state in terms of canonical paths.
     pub fn make_paths_absolute(&mut self) -> FtResult<()> {
         *self.path_mut() = self.path().canonicalize()?;
 
@@ -401,8 +405,14 @@ impl FileTree {
 
         match (self, other) {
             (
-                Self::Directory { children: left_children, path },
-                Self::Directory { children: right_children, .. },
+                Self::Directory {
+                    children: left_children,
+                    path,
+                },
+                Self::Directory {
+                    children: right_children,
+                    ..
+                },
             ) => {
                 let mut left_map: HashMap<PathBuf, FileTree> = left_children
                     .into_iter()
@@ -484,7 +494,9 @@ impl FileTree {
     /// Calls recursively for all levels.
     pub fn apply_to_all_children1(&mut self, f: impl FnMut(&mut Self) + Copy) {
         if let Some(children) = self.children_mut() {
-            children.iter_mut().for_each(|x| x.apply_to_all_children1(f));
+            children
+                .iter_mut()
+                .for_each(|x| x.apply_to_all_children1(f));
             children.iter_mut().for_each(f);
         }
     }
