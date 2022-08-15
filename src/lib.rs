@@ -287,15 +287,7 @@ impl FileTree {
     /// assert_eq!(result, Some(expected));
     /// ```
     pub fn from_path_text(path: impl AsRef<Path>) -> Option<Self> {
-        let mut path_iter = path.as_ref().iter();
-
-        let first_piece = path_iter.next()?;
-
-        let mut tree = Self::from_path_text_recursive_impl(first_piece, path_iter);
-
-        tree.make_paths_relative();
-
-        Some(tree)
+        Self::from_path_pieces(path.as_ref().iter())
     }
 
     /// More generic version of `FileTree::from_path_text`.
