@@ -215,7 +215,10 @@ impl FileTree {
                 let target_path = util::symlink_follow(path)?;
                 Ok(Self::new_symlink(path, target_path))
             },
-            _ => Err(FtError::UnexpectedFileTypeError(path.to_path_buf())),
+            other_type => Err(FtError::UnexpectedFileTypeError(
+                other_type,
+                path.to_path_buf(),
+            )),
         }
     }
 

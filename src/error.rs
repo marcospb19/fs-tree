@@ -1,3 +1,4 @@
+use crate::FileTypeEnum;
 use std::{error, fmt, io, path::PathBuf};
 
 /// Our `Result` type.
@@ -13,10 +14,11 @@ pub enum FtError {
     /// Expected symlink, but file type differs.
     NotASymlinkError(PathBuf),
     /// Unsupported file type found.
-    UnexpectedFileTypeError(PathBuf),
+    UnexpectedFileTypeError(FileTypeEnum, PathBuf),
     /// An error with reading or writing.
     IoError(io::Error),
 }
+
 use FtError::*;
 
 impl FtError {
@@ -26,7 +28,7 @@ impl FtError {
             NotFoundError(path)
             | NotADirectoryError(path)
             | NotASymlinkError(path)
-            | UnexpectedFileTypeError(path) => Some(path),
+            | UnexpectedFileTypeError(_, path) => Some(path),
             IoError(..) => None,
         }
     }
