@@ -3,12 +3,18 @@ use std::{error, fmt, io, path::PathBuf};
 /// Our `Result` type.
 pub type FtResult<T> = Result<T, FtError>;
 
+/// Errors generated inside of the `fs-tree` crate.
 #[derive(Debug)]
 pub enum FtError {
+    /// File not found.
     NotFoundError(PathBuf),
+    /// Expected directory, but file type differs.
     NotADirectoryError(PathBuf),
+    /// Expected symlink, but file type differs.
     NotASymlinkError(PathBuf),
+    /// Unsupported file type found.
     UnexpectedFileTypeError(PathBuf),
+    /// An error with reading or writing.
     IoError(io::Error),
 }
 use FtError::*;

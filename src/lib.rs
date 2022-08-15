@@ -53,12 +53,27 @@ pub use self::{
 /// 3. `FsTree::Symlink` - A symbolic link that points to another path.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FileTree {
-    // Normal file
-    Regular { path: PathBuf },
-    // Directory, can contain other `FileTree`s inside
-    Directory { path: PathBuf, children: Vec<Self> },
-    // Symbolic link, points to another location
-    Symlink { path: PathBuf, target_path: PathBuf },
+    /// A regular file.
+    Regular {
+        /// The filename of this regular file.
+        path: PathBuf,
+    },
+    /// A directory, might contain other `FileTree`s inside.
+    Directory {
+        /// The filename of this directory.
+        path: PathBuf,
+        /// Files inside of this directory.
+        children: Vec<Self>,
+    },
+    /// Symbolic link, and it's target path.
+    Symlink {
+        /// The filename of this symlink.
+        path: PathBuf,
+        /// The path at which the symlink points at.
+        ///
+        /// Might be a broken symlink, don't rely on this path without checking.
+        target_path: PathBuf,
+    },
 }
 
 impl FileTree {
@@ -372,6 +387,7 @@ impl FileTree {
         }
     }
 
+    /// Gets a reference to the file path to this node.
     pub fn path(&self) -> &PathBuf {
         match self {
             Self::Regular { path, .. }
@@ -380,6 +396,7 @@ impl FileTree {
         }
     }
 
+    /// Gets a mutable reference to the file path to this node.
     pub fn path_mut(&mut self) -> &mut PathBuf {
         match self {
             Self::Regular { path, .. }
@@ -415,6 +432,9 @@ impl FileTree {
         matches!(self, Self::Symlink { .. })
     }
 
+    /// Turn this node of the tree into a regular file.
+    ///
+    /// Beware the possible recursive drop of nested nodes if this node was a directory.
     pub fn to_regular(&mut self) {
         match self {
             Self::Regular { .. } => {},
@@ -425,6 +445,9 @@ impl FileTree {
         }
     }
 
+    /// Turn this node of the tree into a directory.
+    ///
+    /// Beware the possible recursive drop of nested nodes if this node was a directory.
     pub fn to_directory(&mut self, children: Vec<Self>) {
         match self {
             Self::Regular { path } | Self::Directory { path, .. } | Self::Symlink { path, .. } => {
@@ -434,6 +457,9 @@ impl FileTree {
         }
     }
 
+    /// Turn this node of the tree into a symlink.
+    ///
+    /// Beware the possible recursive drop of nested nodes if this node was a directory.
     pub fn to_symlink(&mut self, target_path: impl AsRef<Path>) {
         match self {
             Self::Regular { path } | Self::Directory { path, .. } | Self::Symlink { path, .. } => {
