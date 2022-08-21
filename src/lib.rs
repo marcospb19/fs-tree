@@ -33,6 +33,7 @@ pub mod macros;
 pub mod util;
 
 use std::{
+    collections::HashMap,
     env, fs, mem,
     path::{Path, PathBuf},
 };
@@ -420,6 +421,70 @@ impl FileTree {
                 let target_path = target_path.as_ref().to_path_buf();
                 *self = Self::Symlink { path, target_path };
             },
+        }
+    }
+
+    pub fn diff(&self, other: &Self) {
+        // pq isso ta comentado?
+        // if self.path() != other.path() {
+        //     print!("PATHS DIFFER!");
+        // }
+        if !self.same_type_as(other) {
+            println!("Types differ! ");
+        }
+
+        let (self_children, other_children) = match (self, other) {
+            (
+                Self::Directory { children: self_children, .. },
+                Self::Directory { children: other_children, .. },
+            ) => (self_children, other_children),
+            _ => panic!(),
+        };
+
+        let mut lookup =
+            self_children.iter().map(|x| (x.path(), x)).collect::<HashMap<&PathBuf, &FileTree>>();
+
+        for other_child in other_children {
+            if let Some(self_child) = lookup.remove(other_child.path()) {
+                if mem::discriminant(self_child) == mem::discriminant(other_child) {
+                    if self_child.is_dir() {
+                        self_child.diff(other_child);
+                    }
+                } else {
+                    println!(
+                        "File {:?} is a {} while file {:?} is a {}",
+                        self_child.path(),
+                        self_child.file_type_display(),
+                        other_child.path(),
+                        other_child.file_type_display(),
+                    );
+                }
+            } else {
+                let path = other_child.path();
+                println!("2Only in {:?}: {:?}", path.parent().unwrap(), path.file_name().unwrap());
+            }
+        }
+
+        for child_left in lookup.values() {
+            let path = child_left.path();
+            println!("1Only in {:?}: {:?}", path.parent().unwrap(), path.file_name().unwrap());
+        }
+    }
+
+    pub fn same_type_as(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Regular { .. }, Self::Regular { .. }) => true,
+            (Self::Directory { .. }, Self::Directory { .. }) => true,
+            (Self::Symlink { .. }, Self::Symlink { .. }) => true,
+            _ => false,
+        }
+    }
+
+    pub fn file_type_display(&self) -> &'static str {
+        match self {
+            Self::Regular { .. } => "regular file",
+            Self::Directory { .. } => "directory",
+            Self::Symlink { .. } => "symlink",
         }
     }
 }
