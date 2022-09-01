@@ -361,7 +361,7 @@ impl FileTree {
 
     /// Shorthand for `self.files().paths()`, see link to [`.paths()`] method
     ///
-    /// [`.paths()`]: super::iter::FilesIter::paths
+    /// [`.paths()`]: crate::iter::FilesIter::paths
     pub fn paths(&self) -> PathsIter {
         self.files().paths()
     }
