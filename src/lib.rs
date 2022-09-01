@@ -147,24 +147,6 @@ impl FileTree {
         }
     }
 
-    // Private implementation
-    fn __collect_from_directory(path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
-        if !path.exists() {
-            return Err(Error::NotFoundError(path.to_path_buf()));
-        } else if !FileTypeEnum::from_path(path)?.is_directory() {
-            return Err(Error::NotADirectoryError(path.to_path_buf()));
-        }
-        let dirs = fs::read_dir(path)?;
-
-        let mut children = vec![];
-        for entry in dirs {
-            let entry = entry?;
-            let file = Self::__from_path(&entry.path(), follow_symlinks)?;
-            children.push(file);
-        }
-        Ok(children)
-    }
-
     /// Collects a `Vec` of `FileTree` from `path` that is a directory.
     pub fn collect_from_directory(path: impl AsRef<Path>) -> Result<Vec<Self>> {
         Self::__collect_from_directory(path.as_ref(), true)
@@ -175,16 +157,6 @@ impl FileTree {
         Self::__collect_from_directory(path.as_ref(), false)
     }
 
-    // Private implementation
-    fn __collect_from_directory_cd(path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
-        let previous_path = env::current_dir()?;
-        debug_assert!(path.is_absolute());
-        env::set_current_dir(path)?;
-        let result = Self::__collect_from_directory(Path::new("."), follow_symlinks);
-        env::set_current_dir(previous_path)?;
-        result
-    }
-
     /// Collects a `Vec` of `FileTree` from `path` that is a directory.
     pub fn collect_from_directory_cd(path: impl AsRef<Path>) -> Result<Vec<Self>> {
         Self::__collect_from_directory_cd(path.as_ref(), false)
@@ -193,33 +165,6 @@ impl FileTree {
     /// Collects a `Vec` of `FileTree` from `path` that is a directory, entries can be symlinks.
     pub fn collect_from_directory_symlink_cd(path: impl AsRef<Path>) -> Result<Vec<Self>> {
         Self::__collect_from_directory_cd(path.as_ref(), false)
-    }
-
-    // Internal implementation of `from_path` and `from_path_symlink`
-    fn __from_path(path: &Path, follow_symlinks: bool) -> Result<Self> {
-        let get_file_type = if follow_symlinks {
-            FileTypeEnum::from_path
-        } else {
-            FileTypeEnum::from_symlink_path
-        };
-
-        match get_file_type(path)? {
-            FileTypeEnum::Regular => Ok(Self::new_regular(path)),
-            FileTypeEnum::Directory => {
-                let children = Self::__collect_from_directory(path, follow_symlinks)?;
-                Ok(Self::new_directory(path, children))
-            },
-            FileTypeEnum::Symlink => {
-                let target_path = util::symlink_follow(path)?;
-                Ok(Self::new_symlink(path, target_path))
-            },
-            other_type => {
-                Err(Error::UnexpectedFileTypeError(
-                    other_type,
-                    path.to_path_buf(),
-                ))
-            },
-        }
     }
 
     /// Builds a `FileTree` from `path`, follows symlinks.
@@ -265,28 +210,18 @@ impl FileTree {
         Self::__from_path(path.as_ref(), false)
     }
 
-    // Internal
-    fn ___from_path_cd(path: &Path, follow_symlinks: bool) -> Result<Self> {
-        let previous_path = env::current_dir()?;
-        debug_assert!(path.is_absolute());
-        env::set_current_dir(path)?;
-        let result = Self::__from_path(Path::new("."), follow_symlinks);
-        env::set_current_dir(previous_path)?;
-        result
-    }
-
     /// `cd` into path, run `from_path`, and come back.
     ///
     /// TODO explain here why this is useful
     pub fn from_path_cd(path: impl AsRef<Path>) -> Result<Self> {
-        Self::___from_path_cd(path.as_ref(), true)
+        Self::__from_path_cd(path.as_ref(), true)
     }
 
     /// `cd` into path, run `from_path_symlink`, and come back.
     ///
     /// TODO explain here why this is useful
     pub fn from_cd_symlink_path(path: impl AsRef<Path>) -> Result<Self> {
-        Self::___from_path_cd(path.as_ref(), false)
+        Self::__from_path_cd(path.as_ref(), false)
     }
 
     /// Splits a `Path` components into a `FileTree`.
@@ -333,6 +268,67 @@ impl FileTree {
         tree.make_paths_relative();
 
         Some(tree)
+    }
+
+    fn __collect_from_directory(path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
+        if !path.exists() {
+            return Err(Error::NotFoundError(path.to_path_buf()));
+        } else if !FileTypeEnum::from_path(path)?.is_directory() {
+            return Err(Error::NotADirectoryError(path.to_path_buf()));
+        }
+        let dirs = fs::read_dir(path)?;
+
+        let mut children = vec![];
+        for entry in dirs {
+            let entry = entry?;
+            let file = Self::__from_path(&entry.path(), follow_symlinks)?;
+            children.push(file);
+        }
+        Ok(children)
+    }
+
+    fn __collect_from_directory_cd(path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
+        let previous_path = env::current_dir()?;
+        debug_assert!(path.is_absolute());
+        env::set_current_dir(path)?;
+        let result = Self::__collect_from_directory(Path::new("."), follow_symlinks);
+        env::set_current_dir(previous_path)?;
+        result
+    }
+
+    fn __from_path(path: &Path, follow_symlinks: bool) -> Result<Self> {
+        let get_file_type = if follow_symlinks {
+            FileTypeEnum::from_path
+        } else {
+            FileTypeEnum::from_symlink_path
+        };
+
+        match get_file_type(path)? {
+            FileTypeEnum::Regular => Ok(Self::new_regular(path)),
+            FileTypeEnum::Directory => {
+                let children = Self::__collect_from_directory(path, follow_symlinks)?;
+                Ok(Self::new_directory(path, children))
+            },
+            FileTypeEnum::Symlink => {
+                let target_path = util::symlink_follow(path)?;
+                Ok(Self::new_symlink(path, target_path))
+            },
+            other_type => {
+                Err(Error::UnexpectedFileTypeError(
+                    other_type,
+                    path.to_path_buf(),
+                ))
+            },
+        }
+    }
+
+    fn __from_path_cd(path: &Path, follow_symlinks: bool) -> Result<Self> {
+        let previous_path = env::current_dir()?;
+        debug_assert!(path.is_absolute());
+        env::set_current_dir(path)?;
+        let result = Self::__from_path(Path::new("."), follow_symlinks);
+        env::set_current_dir(previous_path)?;
+        result
     }
 
     fn from_path_text_recursive_impl<I, P>(piece: P, mut path_iter: I) -> Self
