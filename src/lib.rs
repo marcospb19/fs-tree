@@ -119,6 +119,7 @@ impl FileTreeType {
     }
 }
 
+/// Constructors.
 impl FileTree {
     /// Creates a `FileTree::Regular` from arguments.
     pub fn new_regular(path: impl AsRef<Path>) -> Self {
@@ -349,7 +350,10 @@ impl FileTree {
             None => FileTree::new_regular(piece),
         }
     }
+}
 
+/// Non-constructors.
+impl FileTree {
     /// Iterator of all `FileTree`s in the structure
     pub fn files(&self) -> FilesIter {
         FilesIter::new(self)
