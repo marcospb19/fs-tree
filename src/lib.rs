@@ -108,6 +108,15 @@ impl FileTreeType {
     pub fn is_symlink(&self) -> bool {
         matches!(self, Self::Symlink(_))
     }
+
+    /// Displays the file type discriminant str.
+    pub fn file_type_display(&self) -> &'static str {
+        match self {
+            Self::Regular => "regular file",
+            Self::Directory(_) => "directory",
+            Self::Symlink(_) => "symlink",
+        }
+    }
 }
 
 impl FileTree {
@@ -591,6 +600,59 @@ impl FileTree {
     /// Checks if the FileTree file type is the same as other FileTree.
     pub fn has_same_type_as(&self, other: &FileTree) -> bool {
         self.file_type.is_same_type_as(&other.file_type)
+    }
+
+    /// Generate a diff from two different trees.
+    pub fn diff(&self, other: &Self) {
+        if !self.has_same_type_as(other) {
+            println!("Types differ! ");
+        }
+
+        let (self_children, other_children) = match (&self.file_type, &other.file_type) {
+            (FileTreeType::Directory(self_children), FileTreeType::Directory(other_children)) => {
+                (self_children, other_children)
+            },
+            _ => panic!(),
+        };
+
+        let mut lookup = self_children
+            .iter()
+            .map(|x| (x.path(), x))
+            .collect::<HashMap<&PathBuf, &FileTree>>();
+
+        for other_child in other_children {
+            if let Some(self_child) = lookup.remove(other_child.path()) {
+                if self_child.has_same_type_as(other_child) {
+                    if self_child.is_dir() {
+                        self_child.diff(other_child);
+                    }
+                } else {
+                    println!(
+                        "File {:?} is a {} while file {:?} is a {}",
+                        self_child.path(),
+                        self_child.file_type.file_type_display(),
+                        other_child.path(),
+                        other_child.file_type.file_type_display(),
+                    );
+                }
+            } else {
+                let path = other_child.path();
+                println!(
+                    "2Only in {:?}: {:?}",
+                    path.parent().unwrap(),
+                    path.file_name().unwrap()
+                );
+            }
+        }
+
+        for child_left in lookup.values() {
+            let path = child_left.path();
+            println!(
+                "1Only in {:?}: {:?}",
+                path.parent().unwrap(),
+                path.file_name().unwrap()
+            );
+        }
     }
 }
 
