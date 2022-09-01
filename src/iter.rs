@@ -158,9 +158,9 @@ impl<'a> PathsIter<'a> {
         let file = self.file_iter.next()?;
 
         if self.only_show_last_segment {
-            file.path().file_name().map(OsStr::as_ref)
+            file.path.file_name().map(OsStr::as_ref)
         } else {
-            Some(file.path())
+            Some(&file.path)
         }
     }
 }

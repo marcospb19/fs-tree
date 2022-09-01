@@ -394,7 +394,7 @@ impl FileTree {
         if let FileTreeType::Directory(children) = &mut self.file_type {
             for child in children.iter_mut() {
                 // Update child's path
-                *child.path_mut() = self.path.join(child.path());
+                child.path = self.path.join(&child.path);
                 // Update target if it's a symlink
                 if let Some(target) = child.target_mut() {
                     *target = self.path.join(&target);
@@ -411,7 +411,7 @@ impl FileTree {
     /// In case `std::fs::canonicalize` fails at any path, this function will stop and return an
     /// IoError, leave the tree in a mixed state in terms of canonical paths.
     pub fn make_paths_absolute(&mut self) -> Result<()> {
-        *self.path_mut() = self.path().canonicalize()?;
+        self.path = self.path.canonicalize()?;
 
         if let Some(children) = self.children_mut() {
             for child in children.iter_mut() {
@@ -433,7 +433,7 @@ impl FileTree {
     /// - The trees have different roots and thus cannot be merged.
     /// - There are file conflicts.
     pub fn merge(self, other: Self) -> Option<Self> {
-        if self.path() != other.path() {
+        if self.path != other.path {
             return None;
         }
 
@@ -452,7 +452,7 @@ impl FileTree {
 
                 for child in right_children {
                     // If there is another one with the same path, merge them
-                    match left_map.remove(child.path()) {
+                    match left_map.remove(&child.path) {
                         None => result_vec.push(child),
                         Some(left_equivalent) => {
                             if !child.has_same_type_as(&left_equivalent) {
@@ -540,16 +540,6 @@ impl FileTree {
         }
     }
 
-    /// Gets a reference to the file path to this node.
-    pub fn path(&self) -> &PathBuf {
-        &self.path
-    }
-
-    /// Gets a mutable reference to the file path to this node.
-    pub fn path_mut(&mut self) -> &mut PathBuf {
-        &mut self.path
-    }
-
     /// Shorthand for `file.file_type.is_regular()`
     pub fn is_regular(&self) -> bool {
         self.file_type.is_regular()
@@ -606,11 +596,11 @@ impl FileTree {
 
         let mut lookup = self_children
             .iter()
-            .map(|x| (x.path(), x))
+            .map(|x| (&x.path, x))
             .collect::<HashMap<&PathBuf, &FileTree>>();
 
         for other_child in other_children {
-            if let Some(self_child) = lookup.remove(other_child.path()) {
+            if let Some(self_child) = lookup.remove(&other_child.path) {
                 if self_child.has_same_type_as(other_child) {
                     if self_child.is_dir() {
                         self_child.diff(other_child);
@@ -618,14 +608,14 @@ impl FileTree {
                 } else {
                     println!(
                         "File {:?} is a {} while file {:?} is a {}",
-                        self_child.path(),
+                        self_child.path,
                         self_child.file_type.file_type_display(),
-                        other_child.path(),
+                        other_child.path,
                         other_child.file_type.file_type_display(),
                     );
                 }
             } else {
-                let path = other_child.path();
+                let path = &other_child.path;
                 println!(
                     "2Only in {:?}: {:?}",
                     path.parent().unwrap(),
@@ -635,7 +625,7 @@ impl FileTree {
         }
 
         for child_left in lookup.values() {
-            let path = child_left.path();
+            let path = &child_left.path;
             println!(
                 "1Only in {:?}: {:?}",
                 path.parent().unwrap(),
