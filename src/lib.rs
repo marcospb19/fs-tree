@@ -218,10 +218,12 @@ impl FileTree {
                 let target_path = util::symlink_follow(path)?;
                 Ok(Self::new_symlink(path, target_path))
             },
-            other_type => Err(Error::UnexpectedFileTypeError(
-                other_type,
-                path.to_path_buf(),
-            )),
+            other_type => {
+                Err(Error::UnexpectedFileTypeError(
+                    other_type,
+                    path.to_path_buf(),
+                ))
+            },
         }
     }
 
@@ -344,10 +346,12 @@ impl FileTree {
         P: AsRef<Path>,
     {
         match path_iter.next() {
-            Some(next) => FileTree::new_directory(
-                piece.as_ref(),
-                vec![Self::from_path_text_recursive_impl(next, path_iter)],
-            ),
+            Some(next) => {
+                FileTree::new_directory(
+                    piece.as_ref(),
+                    vec![Self::from_path_text_recursive_impl(next, path_iter)],
+                )
+            },
             None => FileTree::new_regular(piece),
         }
     }
