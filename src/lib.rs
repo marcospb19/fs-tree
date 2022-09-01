@@ -128,11 +128,6 @@ impl FileTree {
         }
     }
 
-    // /// Creates a `FileTree::Regular` with default arguments.
-    // pub fn regular_default() -> Self {
-    //     Self::new_regular_with_extra(path)
-    // }
-
     /// Creates a `FileTree::Directory` from arguments.
     pub fn new_directory(path: impl AsRef<Path>, children: Vec<Self>) -> Self {
         Self {
@@ -140,11 +135,6 @@ impl FileTree {
             file_type: FileTreeType::Directory(children),
         }
     }
-
-    // /// Creates a `FileTree::Directory` with default arguments.
-    // pub fn directory_default() -> Self {
-    //     Self::new_directory(PATH_DEFAULT, Vec::default())
-    // }
 
     /// Creates a `FileTree::Symlink` from arguments.
     pub fn new_symlink(path: impl AsRef<Path>, target_path: impl AsRef<Path>) -> Self {
@@ -155,11 +145,6 @@ impl FileTree {
             file_type: FileTreeType::Symlink(target_path),
         }
     }
-
-    // /// Creates a `FileTree::Symlink` with default arguments.
-    // pub fn symlink_default() -> Self {
-    //     Self::new_symlink(PATH_DEFAULT, PATH_DEFAULT)
-    // }
 
     // Private implementation
     fn __collect_from_directory(path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
