@@ -633,6 +633,17 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
+    fn test_diff() {
+        let left = FileTree::from_path_text(".config/i3/file").unwrap();
+        let right = FileTree::from_path_text(".config/i3/folder/file/oie").unwrap();
+
+        left.diff(&right);
+
+        panic!();
+    }
+
+    #[test]
     fn test_merge() {
         let left = FileTree::from_path_text(".config/i3/file").unwrap();
         let right = FileTree::from_path_text(".config/i3/folder/file").unwrap();
