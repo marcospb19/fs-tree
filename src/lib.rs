@@ -45,9 +45,6 @@ pub mod iter;
 /// Exposed functions that are used internally by this crate
 pub mod util;
 
-// /// Macros for creating `FileTree` structure.
-// pub mod macros;
-
 use std::{
     collections::HashMap,
     env, fs, mem,
