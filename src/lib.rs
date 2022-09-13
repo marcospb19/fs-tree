@@ -43,6 +43,11 @@ pub mod util;
 
 mod error;
 mod fs_tree;
+mod macros;
 mod tree_node;
 
-pub use self::{error::*, fs_tree::FsTree, tree_node::TreeNode};
+pub use self::{
+    error::{Error, Result},
+    fs_tree::FsTree,
+    tree_node::TreeNode,
+};
