@@ -29,6 +29,8 @@
 //! [`WalkDir`]: https://docs.rs/walkdir
 
 // TODO (so that I don't forget):
+// - Turn into trie
+// - Rename trie to FsTree
 // - FileType -> mode_t
 // - Change layout to a more trie-like tree, where the root may contain several subtrees.
 //   - This helps with possible node duplication, which is bad.
@@ -42,7 +44,7 @@
 pub mod error;
 /// FsTree iterators.
 pub mod iter;
-/// Exposed functions that are used internally by this crate
+/// Exposed functions that are used internally by this crate.
 pub mod util;
 
 use std::{
