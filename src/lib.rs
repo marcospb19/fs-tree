@@ -46,6 +46,7 @@ pub mod iter;
 pub mod util;
 
 mod error;
+mod file_type;
 mod tree;
 
 use file_type_enum::FileType as FileTypeEnum;
