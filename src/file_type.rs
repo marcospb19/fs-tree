@@ -50,3 +50,15 @@ impl FileTreeType {
         }
     }
 }
+
+#[cfg(feature = "libc-file-type")]
+impl FileType {
+    /// Returns the file type equivalent [`libc::mode_t`] value.
+    pub fn as_mode_t(&self) -> libc::mode_t {
+        match self {
+            FileType::Regular => libc::S_IFREG,
+            FileType::Directory(_) => libc::S_IFDIR,
+            FileType::Symlink(_) => libc::S_IFCHR,
+        }
+    }
+}

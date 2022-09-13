@@ -31,7 +31,6 @@
 // TODO (so that I don't forget):
 // - Turn into trie
 // - Rename trie to FsTree
-// - FileType -> mode_t
 // - Change layout to a more trie-like tree, where the root may contain several subtrees.
 //   - This helps with possible node duplication, which is bad.
 //   - Also helps with complexity of queries.
