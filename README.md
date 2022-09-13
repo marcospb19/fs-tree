@@ -2,7 +2,7 @@
 
 Filesystem trie-like tree structure for commons operations.
 
-Given a path, you can load a `FileTree` which might represent a regular file, directory, or symlink.
+Given a path, you can load a `FsTree` which might represent a regular file, directory, or symlink.
 
 ## Features:
 

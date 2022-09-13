@@ -1,5 +1,6 @@
-use crate::FileTypeEnum;
 use std::{error, fmt, io, path::PathBuf};
+
+use file_type_enum::FileType;
 
 /// Result for all `fs-tree` crate errors.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -14,7 +15,7 @@ pub enum Error {
     /// Expected symlink, but file type differs.
     NotASymlinkError(PathBuf),
     /// Unsupported file type found.
-    UnexpectedFileTypeError(FileTypeEnum, PathBuf),
+    UnexpectedFileTypeError(FileType, PathBuf),
     /// An error with reading or writing.
     IoError(io::Error),
 }

@@ -1,27 +1,27 @@
 use std::{mem, path::PathBuf};
 
-use crate::FileTree;
+use crate::FsTree;
 
 /// A filesystem tree recursive enum.
 ///
 /// This enum has a variant for the following file types:
-/// 1. `FileTreeType::Regular` - A regular file.
-/// 2. `FileTreeType::Directory` - A folder with a (possible empty) list of children.
-/// 3. `FileTreeType::Symlink` - A symbolic link that points to another path.
+/// 1. `TreeNode::Regular` - A regular file.
+/// 2. `TreeNode::Directory` - A folder with a (possible empty) list of children.
+/// 3. `TreeNode::Symlink` - A symbolic link that points to another path.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum FileTreeType {
+pub enum TreeNode {
     /// A regular file.
     Regular,
-    /// A directory, might have children `FileTree`s inside.
-    Directory(Vec<FileTree>),
+    /// A directory, might have children `FsTree`s inside.
+    Directory(Vec<FsTree>),
     /// Symbolic link, and it's target path.
     ///
     /// The link might be broken, it's not guaranteed that a symlink points to a valid path.
     Symlink(PathBuf),
 }
 
-impl FileTreeType {
-    /// Checks if the FileTreeType is the same type as other.
+impl TreeNode {
+    /// Checks if the TreeNode is the same type as other.
     pub fn is_same_type_as(&self, other: &Self) -> bool {
         mem::discriminant(self) == mem::discriminant(other)
     }
@@ -52,13 +52,13 @@ impl FileTreeType {
 }
 
 #[cfg(feature = "libc-file-type")]
-impl FileType {
+impl TreeNode {
     /// Returns the file type equivalent [`libc::mode_t`] value.
     pub fn as_mode_t(&self) -> libc::mode_t {
         match self {
-            FileType::Regular => libc::S_IFREG,
-            FileType::Directory(_) => libc::S_IFDIR,
-            FileType::Symlink(_) => libc::S_IFCHR,
+            TreeNode::Regular => libc::S_IFREG,
+            TreeNode::Directory(_) => libc::S_IFDIR,
+            TreeNode::Symlink(_) => libc::S_IFCHR,
         }
     }
 }

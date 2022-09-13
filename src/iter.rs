@@ -4,14 +4,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::FileTree;
+use crate::FsTree;
 
-/// An iterator that runs recursively over `FileTree` structure.
+/// An iterator that runs recursively over `FsTree` structure.
 #[derive(Debug, Clone)]
 pub struct FilesIter<'a> {
     // Pop from the front, push to front or back, it depends
     // Cause when we open a directory, we need to traverse it's content first
-    file_deque: Deque<(&'a FileTree, usize)>,
+    file_deque: Deque<(&'a FsTree, usize)>,
     // Accessed by `depth` method, determined by the last yielded element
     current_depth: usize,
 
@@ -24,7 +24,7 @@ pub struct FilesIter<'a> {
 }
 
 impl<'a> FilesIter<'a> {
-    pub(crate) fn new(start_file: &'a FileTree) -> Self {
+    pub(crate) fn new(start_file: &'a FsTree) -> Self {
         // Deque used for iterate in recursive structure
         let mut file_deque = Deque::new();
         // Starting deque from `start_file`, at depth 0, which can increase for each file
@@ -58,19 +58,19 @@ impl<'a> FilesIter<'a> {
         PathsIter::new(self)
     }
 
-    /// Filter out every `FileTree::Regular`
+    /// Filter out every `FsTree::Regular`
     pub fn skip_regular_files(mut self, arg: bool) -> Self {
         self.skip_regular_files = arg;
         self
     }
 
-    /// Filter out every `FileTree::Directory`
+    /// Filter out every `FsTree::Directory`
     pub fn skip_dirs(mut self, arg: bool) -> Self {
         self.skip_dirs = arg;
         self
     }
 
-    /// Filter out every `FileTree::Symlink`
+    /// Filter out every `FsTree::Symlink`
     pub fn skip_symlinks(mut self, arg: bool) -> Self {
         self.skip_symlinks = arg;
         self
@@ -90,7 +90,7 @@ impl<'a> FilesIter<'a> {
 }
 
 impl<'a> Iterator for FilesIter<'a> {
-    type Item = &'a FileTree;
+    type Item = &'a FsTree;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Pop last element, if any
@@ -176,7 +176,7 @@ impl Iterator for PathsIter<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::FileTree;
+    use crate::FsTree;
 
     #[test]
     #[rustfmt::skip]
@@ -184,8 +184,8 @@ mod tests {
         use std::path::PathBuf;
 
         // Implementing a syntax sugar util to make tests readable
-        impl FileTree {
-            fn c(&self, index: usize) -> &FileTree {
+        impl FsTree {
+            fn c(&self, index: usize) -> &FsTree {
                 &self.children().unwrap()[index]
             }
         }
@@ -207,18 +207,18 @@ mod tests {
 
         // Create the strucutre
         let root = {
-            FileTree::new_directory(".config/", vec![
-                FileTree::new_directory(".config/i3/", vec![
-                    FileTree::new_regular(".config/i3/file1"),
-                    FileTree::new_regular(".config/i3/file2"),
-                    FileTree::new_directory(".config/i3/dir/", vec![
-                        FileTree::new_regular(".config/i3/dir/innerfile1"),
-                        FileTree::new_regular(".config/i3/dir/innerfile2")
+            FsTree::new_directory(".config/", vec![
+                FsTree::new_directory(".config/i3/", vec![
+                    FsTree::new_regular(".config/i3/file1"),
+                    FsTree::new_regular(".config/i3/file2"),
+                    FsTree::new_directory(".config/i3/dir/", vec![
+                        FsTree::new_regular(".config/i3/dir/innerfile1"),
+                        FsTree::new_regular(".config/i3/dir/innerfile2")
                     ]),
-                    FileTree::new_regular(".config/i3/file3"),
+                    FsTree::new_regular(".config/i3/file3"),
                 ]),
-                FileTree::new_regular(".config/outerfile1"),
-                FileTree::new_regular(".config/outerfile2")
+                FsTree::new_regular(".config/outerfile1"),
+                FsTree::new_regular(".config/outerfile2")
             ])
         };
 

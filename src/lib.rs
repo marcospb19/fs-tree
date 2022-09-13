@@ -2,7 +2,7 @@
 
 //! Filesystem trie-like tree structure for commons operations.
 //!
-//! Given a path, you can load a `FileTree` which might represent a regular file, directory, or symlink.
+//! Given a path, you can load a `FsTree` which might represent a regular file, directory, or symlink.
 //!
 //! # Features:
 //!
@@ -28,26 +28,21 @@
 //!
 //! [`WalkDir`]: https://docs.rs/walkdir
 
-// TODO (so that I don't forget):
-// - Turn into trie
-// - Rename trie to FsTree
+// TODO:
 // - Change layout to a more trie-like tree, where the root may contain several subtrees.
 //   - This helps with possible node duplication, which is bad.
 //   - Also helps with complexity of queries.
-// - re-add the extra generic field
 // - re-test Pathsiter
 // - enable all tests in rustdocs
-// - improve fmt::Debug on File and FileType recursive display
+// - improve fmt::Debug on File and TreeNode recursive display
 
-/// FileTree iterators.
+/// [`FsTree`] iterators.
 pub mod iter;
 /// Exposed functions that are used internally by this crate.
 pub mod util;
 
 mod error;
-mod file_type;
-mod tree;
+mod fs_tree;
+mod tree_node;
 
-use file_type_enum::FileType as FileTypeEnum;
-
-pub use self::{error::*, tree::*};
+pub use self::{error::*, fs_tree::FsTree, tree_node::TreeNode};

@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use file_type_enum::FileType as FileTypeEnum;
+use file_type_enum::FileType;
 
 use crate::error::*;
 
@@ -20,7 +20,7 @@ pub fn symlink_follow<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
         // "while trying to read symlink target path",
     }
 
-    if !FileTypeEnum::from_path(path)?.is_symlink() {
+    if !FileType::from_path(path)?.is_symlink() {
         return Err(Error::NotASymlinkError(path.to_path_buf()));
         // "while trying to read symlink target path",
     }
