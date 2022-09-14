@@ -1,3 +1,40 @@
+//! Macros for declaring a [`FsTree`](crate::FsTree)
+
+/// Macro for declaring a [`FsTree`](crate::FsTree) literal.
+///
+/// # Syntax:
+///
+/// - `name: [ ... ]` is a directory.
+/// - `name -> name` is a symlink.
+/// - `name` is a regular file.
+/// - Spaces is optional.
+/// - Commas are not necessary, it's recommended to use newline to separate items.
+///
+/// # Example:
+///
+/// ```
+/// use fs_tree::{FsTree, tree};
+///
+/// let result = tree! {
+///     config
+///     outer_dir: [
+///         file1
+///         file2
+///     ]
+///     link -> target
+/// };
+///
+/// let expected = vec![
+///     FsTree::new_regular("config"),
+///     FsTree::new_directory("outer_dir", vec![
+///         FsTree::new_regular("file1"),
+///         FsTree::new_regular("file2")
+///     ]),
+///     FsTree::new_symlink("link", "target"),
+/// ];
+///
+/// assert_eq!(result, expected);
+/// ```
 #[macro_export]
 macro_rules! tree {
     ($($all:tt)*) => {{
