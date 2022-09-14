@@ -7,31 +7,28 @@ macro_rules! tree {
     }};
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! tree_internal {
     // Base case
     ($vec:ident) => {};
-    // Ignore leading comma
-    ($vec:ident , $($rest:tt)*) => {
-        $crate::tree_internal!($($rest)*)
-    };
     // Directory
     ($vec:ident $path:ident : [ $($inner:tt)* ] $($rest:tt)*) => {
         #[allow(unused_mut)]
         let mut inner_dir = std::vec::Vec::<$crate::FsTree>::new();
-        tree_internal!(inner_dir $($inner)*);
+        $crate::tree_internal!(inner_dir $($inner)*);
         $vec.push($crate::FsTree::new_directory(stringify!($path), inner_dir));
-        tree_internal!($vec $($rest)*)
+        $crate::tree_internal!($vec $($rest)*)
     };
     // Symlink
     ($vec:ident $path:ident -> $target:ident $($rest:tt)*) => {
         $vec.push($crate::FsTree::new_symlink(stringify!($path), stringify!($target)));
-        tree_internal!($vec $($rest)*)
+        $crate::tree_internal!($vec $($rest)*)
     };
     // Regular file
     ($vec:ident $path:ident $($rest:tt)*) => {
         $vec.push($crate::FsTree::new_regular(stringify!($path)));
-        tree_internal!($vec $($rest)*);
+        $crate::tree_internal!($vec $($rest)*);
     };
 }
 
