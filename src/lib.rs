@@ -35,6 +35,7 @@
 // - re-test Pathsiter
 // - enable all tests in rustdocs
 // - improve fmt::Debug on File and TreeNode recursive display
+// - add https://crates.io/crates/build-fs-tree to the list of alternatives.
 
 /// [`FsTree`] iterators.
 pub mod iter;

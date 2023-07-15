@@ -532,6 +532,37 @@ impl FsTree {
             );
         }
     }
+
+    pub fn create_at(&self, path: impl AsRef<Path>) -> Result<()> {
+        let path = path.as_ref();
+
+        #[cfg(target_family = "unix")]
+        let create_symlink = std::os::unix::fs::symlink;
+        #[cfg(target_family = "windows")]
+        let create_symlink = std::os::windows::fs::symlink_file;
+
+        for file in self.files() {
+            let path = path.join(&file.path);
+
+            match &file.file_type {
+                TreeNode::Regular => {
+                    fs::File::create(path)?;
+                },
+                TreeNode::Directory(_) => {
+                    fs::create_dir(path)?;
+                },
+                TreeNode::Symlink(target) => {
+                    create_symlink(path, target)?;
+                },
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn create(&self) -> Result<()> {
+        self.create_at(".")
+    }
 }
 
 #[cfg(test)]
