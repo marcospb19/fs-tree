@@ -570,6 +570,9 @@ impl FsTree {
         Ok(())
     }
 
+    /// Create `FsTree` in the current directory.
+    ///
+    /// Alias to `self.create_at(".")`.
     pub fn create(&self) -> Result<()> {
         self.create_at(".")
     }
