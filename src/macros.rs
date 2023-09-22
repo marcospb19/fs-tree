@@ -4,11 +4,12 @@
 ///
 /// # Syntax:
 ///
-/// - `name: [ ... ]` is a directory.
+/// - `name: { ... }` is a directory.
 /// - `name -> name` is a symlink.
 /// - `name` is a regular file.
 /// - Spaces is optional.
-/// - Commas are not necessary, it's recommended to use newline to separate items.
+/// - Commas are not required, but you should separate items with newlines or commas to improve
+/// readability.
 ///
 /// # Example:
 ///
@@ -17,10 +18,10 @@
 ///
 /// let result = tree! {
 ///     config
-///     outer_dir: [
+///     outer_dir: {
 ///         file1
 ///         file2
-///     ]
+///     }
 ///     link -> target
 /// };
 ///
@@ -50,7 +51,15 @@ macro_rules! tree_internal {
     // Base case
     ($vec:ident) => {};
     // Directory
-    ($vec:ident $path:ident : [ $($inner:tt)* ] $($rest:tt)*) => {
+    ($vec:ident $path:ident : { $($inner:tt)* } $($rest:tt)*) => {
+        #[allow(unused_mut)]
+        let mut inner_dir = std::vec::Vec::<$crate::FsTree>::new();
+        $crate::tree_internal!(inner_dir $($inner)*);
+        $vec.push($crate::FsTree::new_directory(stringify!($path), inner_dir));
+        $crate::tree_internal!($vec $($rest)*)
+    };
+    // Directory variation
+    ($vec:ident $path:literal : { $($inner:tt)* } $($rest:tt)*) => {
         #[allow(unused_mut)]
         let mut inner_dir = std::vec::Vec::<$crate::FsTree>::new();
         $crate::tree_internal!(inner_dir $($inner)*);
@@ -62,8 +71,28 @@ macro_rules! tree_internal {
         $vec.push($crate::FsTree::new_symlink(stringify!($path), stringify!($target)));
         $crate::tree_internal!($vec $($rest)*)
     };
+    // Symlink variation
+    ($vec:ident $path:literal -> $target:ident $($rest:tt)*) => {
+        $vec.push($crate::FsTree::new_symlink(stringify!($path), stringify!($target)));
+        $crate::tree_internal!($vec $($rest)*)
+    };
+    // Symlink variation
+    ($vec:ident $path:ident -> $target:literal $($rest:tt)*) => {
+        $vec.push($crate::FsTree::new_symlink(stringify!($path), stringify!($target)));
+        $crate::tree_internal!($vec $($rest)*)
+    };
+    // Symlink variation
+    ($vec:ident $path:literal -> $target:literal $($rest:tt)*) => {
+        $vec.push($crate::FsTree::new_symlink(stringify!($path), stringify!($target)));
+        $crate::tree_internal!($vec $($rest)*)
+    };
     // Regular file
     ($vec:ident $path:ident $($rest:tt)*) => {
+        $vec.push($crate::FsTree::new_regular(stringify!($path)));
+        $crate::tree_internal!($vec $($rest)*);
+    };
+    // Regular file
+    ($vec:ident $path:literal $($rest:tt)*) => {
         $vec.push($crate::FsTree::new_regular(stringify!($path)));
         $crate::tree_internal!($vec $($rest)*);
     };
@@ -72,6 +101,22 @@ macro_rules! tree_internal {
 #[cfg(test)]
 mod tests {
     use crate::FsTree;
+
+    #[test]
+    fn macro_compiles() {
+        let _ = tree! {
+            ".config": {
+                oi
+                "oi"
+                i3: {
+                    config -> oi
+                    config -> "oi"
+                    "config" -> oi
+                    "config" -> "oi"
+                }
+            }
+        };
+    }
 
     #[test]
     fn test_tree_macro_single_regular_file() {
@@ -87,7 +132,7 @@ mod tests {
     #[test]
     fn test_tree_macro_empty_directory() {
         let result = tree! {
-            dir: []
+            dir: {}
         };
 
         let expected = FsTree::new_directory("dir", vec![]);
@@ -109,10 +154,10 @@ mod tests {
     #[test]
     fn test_tree_macro_nested_directories() {
         let result = tree! {
-            outer_dir: [
-                inner_dir: [
-                ]
-            ]
+            outer_dir: {
+                inner_dir: {
+                }
+            }
         };
 
         let expected = FsTree::new_directory(
@@ -127,10 +172,10 @@ mod tests {
     fn test_tree_macro_mixed_types() {
         let result = tree! {
             config
-            outer_dir: [
+            outer_dir: {
                 file1
                 file2
-            ]
+            }
             link -> target
         };
 
@@ -151,16 +196,16 @@ mod tests {
         let result = tree! {
             config1
             config2
-            outer_dir: [
+            outer_dir: {
                 file1
                 file2
-                inner_dir: [
+                inner_dir: {
                     inner1
                     inner2
                     inner3
                     inner_link -> inner_target
-                ]
-            ]
+                }
+            }
             link -> target
             config3
         };
