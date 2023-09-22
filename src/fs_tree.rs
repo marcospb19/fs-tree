@@ -564,7 +564,7 @@ impl FsTree {
                     fs::create_dir(path)?;
                 },
                 TreeNode::Symlink(target) => {
-                    symlink_function(path, target)?;
+                    symlink_function(target, path)?;
                 },
             }
         }
