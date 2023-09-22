@@ -51,6 +51,7 @@ macro_rules! trees {
 #[macro_export]
 macro_rules! tree {
     ($($all:tt)*) => {{
+        #[allow(clippy::vec_init_then_push)]
         let mut vec = std::vec::Vec::<$crate::FsTree>::new();
         $crate::trees_internal!(vec $($all)*);
         assert!(

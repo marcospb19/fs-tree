@@ -223,7 +223,7 @@ mod tests {
         };
 
         // Get the references in declaration order, from top to bottom
-        let refs = vec![
+        let refs = [
             /* 0 */ &root,                // .config/
             /* 1 */ &root.c(0),           // .config/i3/
             /* 2 */ &root.c(0).c(0),      // .config/i3/file1

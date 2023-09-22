@@ -544,19 +544,17 @@ impl FsTree {
     // }
 
     /// Create the tree folder structure in the path
-    pub fn create_at(&self, path: impl AsRef<Path>) -> Result<()> {
-        let path = path.as_ref();
-
+    pub fn create_at(&self, folder: impl AsRef<Path>) -> Result<()> {
         #[cfg(not(feature = "fs-err"))]
         let symlink_function = std::os::unix::fs::symlink;
 
         #[cfg(feature = "fs-err")]
         let symlink_function = fs_err::os::unix::fs::symlink;
 
-        for file in self.files() {
-            let path = path.join(&file.path);
+        for tree in self.files() {
+            let path = folder.as_ref().join(&tree.path);
 
-            match &file.file_type {
+            match &tree.file_type {
                 TreeNode::Regular => {
                     fs::File::create(path)?;
                 },

@@ -22,7 +22,7 @@ pub fn symlink_follow<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
         // "while trying to read symlink target path",
     }
 
-    let target = fs::read_link(&path)?;
+    let target = fs::read_link(path)?;
 
     Ok(target)
 }
