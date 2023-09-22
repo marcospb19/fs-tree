@@ -1,11 +1,8 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use file_type_enum::FileType;
 
-use crate::error::*;
+use crate::{error::*, fs};
 
 /// Follow symlink at `path` in one level, and return the new path.
 ///

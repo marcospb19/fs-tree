@@ -42,6 +42,12 @@ pub mod iter;
 /// Exposed functions that are used internally by this crate.
 pub mod util;
 
+#[cfg(not(feature = "fs-err"))]
+pub(crate) use std::fs;
+
+#[cfg(feature = "fs-err")]
+pub(crate) use fs_err as fs;
+
 mod error;
 mod fs_tree;
 mod macros;
