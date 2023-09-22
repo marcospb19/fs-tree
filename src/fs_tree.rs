@@ -25,25 +25,25 @@ pub struct FsTree {
 /// Constructors.
 impl FsTree {
     /// Creates a `FsTree::Regular` from arguments.
-    pub fn new_regular(path: impl AsRef<Path>) -> Self {
+    pub fn new_regular(path: impl Into<PathBuf>) -> Self {
         Self {
-            path: path.as_ref().to_owned(),
+            path: path.into(),
             file_type: TreeNode::Regular,
         }
     }
 
     /// Creates a `FsTree::Directory` from arguments.
-    pub fn new_directory(path: impl AsRef<Path>, children: Vec<Self>) -> Self {
+    pub fn new_directory(path: impl Into<PathBuf>, children: Vec<Self>) -> Self {
         Self {
-            path: path.as_ref().to_path_buf(),
+            path: path.into(),
             file_type: TreeNode::Directory(children),
         }
     }
 
     /// Creates a `FsTree::Symlink` from arguments.
-    pub fn new_symlink(path: impl AsRef<Path>, target_path: impl AsRef<Path>) -> Self {
-        let path = path.as_ref().to_path_buf();
-        let target_path = target_path.as_ref().to_path_buf();
+    pub fn new_symlink(path: impl Into<PathBuf>, target_path: impl Into<PathBuf>) -> Self {
+        let path = path.into();
+        let target_path = target_path.into();
         Self {
             path,
             file_type: TreeNode::Symlink(target_path),
@@ -246,7 +246,7 @@ impl FsTree {
                     vec![Self::from_path_text_recursive_impl(next, path_iter)],
                 )
             },
-            None => FsTree::new_regular(piece),
+            None => FsTree::new_regular(piece.as_ref()),
         }
     }
 }
@@ -477,9 +477,9 @@ impl FsTree {
     /// Turn this node of the tree into a symlink.
     ///
     /// Beware the possible recursive drop of nested nodes if this node was a directory.
-    pub fn to_symlink(self, target_path: impl AsRef<Path>) -> Self {
+    pub fn to_symlink(self, target_path: impl Into<PathBuf>) -> Self {
         Self {
-            file_type: TreeNode::Symlink(target_path.as_ref().to_owned()),
+            file_type: TreeNode::Symlink(target_path.into()),
             ..self
         }
     }
