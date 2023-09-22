@@ -81,7 +81,7 @@ macro_rules! trees_internal {
         #[allow(unused_mut)]
         let mut inner_dir = std::vec::Vec::<$crate::FsTree>::new();
         $crate::trees_internal!(inner_dir $($inner)*);
-        $vec.push($crate::FsTree::new_directory(stringify!($path), inner_dir));
+        $vec.push($crate::FsTree::new_directory($path, inner_dir));
         $crate::trees_internal!($vec $($rest)*)
     };
     // Symlink
@@ -91,17 +91,17 @@ macro_rules! trees_internal {
     };
     // Symlink variation
     ($vec:ident $path:literal -> $target:ident $($rest:tt)*) => {
-        $vec.push($crate::FsTree::new_symlink(stringify!($path), stringify!($target)));
+        $vec.push($crate::FsTree::new_symlink($path, stringify!($target)));
         $crate::trees_internal!($vec $($rest)*)
     };
     // Symlink variation
     ($vec:ident $path:ident -> $target:literal $($rest:tt)*) => {
-        $vec.push($crate::FsTree::new_symlink(stringify!($path), stringify!($target)));
+        $vec.push($crate::FsTree::new_symlink(stringify!($path), $target));
         $crate::trees_internal!($vec $($rest)*)
     };
     // Symlink variation
     ($vec:ident $path:literal -> $target:literal $($rest:tt)*) => {
-        $vec.push($crate::FsTree::new_symlink(stringify!($path), stringify!($target)));
+        $vec.push($crate::FsTree::new_symlink($path, $target));
         $crate::trees_internal!($vec $($rest)*)
     };
     // Regular file
@@ -111,7 +111,7 @@ macro_rules! trees_internal {
     };
     // Regular file
     ($vec:ident $path:literal $($rest:tt)*) => {
-        $vec.push($crate::FsTree::new_regular(stringify!($path)));
+        $vec.push($crate::FsTree::new_regular($path));
         $crate::trees_internal!($vec $($rest)*);
     };
 }
