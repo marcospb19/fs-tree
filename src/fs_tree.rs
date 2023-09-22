@@ -490,58 +490,58 @@ impl FsTree {
         self.file_type.is_same_type_as(&other.file_type)
     }
 
-    /// Generate a diff from two different trees.
-    pub fn diff(&self, other: &Self) {
-        if !self.has_same_type_as(other) {
-            println!("Types differ! ");
-        }
+    // /// Generate a diff from two different trees.
+    // pub fn diff(&self, other: &Self) {
+    //     if !self.has_same_type_as(other) {
+    //         println!("Types differ! ");
+    //     }
 
-        let (self_children, other_children) = match (&self.file_type, &other.file_type) {
-            (TreeNode::Directory(self_children), TreeNode::Directory(other_children)) => {
-                (self_children, other_children)
-            },
-            _ => panic!(),
-        };
+    //     let (self_children, other_children) = match (&self.file_type, &other.file_type) {
+    //         (TreeNode::Directory(self_children), TreeNode::Directory(other_children)) => {
+    //             (self_children, other_children)
+    //         },
+    //         _ => panic!(),
+    //     };
 
-        let mut lookup = self_children
-            .iter()
-            .map(|x| (&x.path, x))
-            .collect::<HashMap<&PathBuf, &FsTree>>();
+    //     let mut lookup = self_children
+    //         .iter()
+    //         .map(|x| (&x.path, x))
+    //         .collect::<HashMap<&PathBuf, &FsTree>>();
 
-        for other_child in other_children {
-            if let Some(self_child) = lookup.remove(&other_child.path) {
-                if self_child.has_same_type_as(other_child) {
-                    if self_child.is_dir() {
-                        self_child.diff(other_child);
-                    }
-                } else {
-                    println!(
-                        "File {:?} is a {} while file {:?} is a {}",
-                        self_child.path,
-                        self_child.file_type.file_type_display(),
-                        other_child.path,
-                        other_child.file_type.file_type_display(),
-                    );
-                }
-            } else {
-                let path = &other_child.path;
-                println!(
-                    "2Only in {:?}: {:?}",
-                    path.parent().unwrap(),
-                    path.file_name().unwrap()
-                );
-            }
-        }
+    //     for other_child in other_children {
+    //         if let Some(self_child) = lookup.remove(&other_child.path) {
+    //             if self_child.has_same_type_as(other_child) {
+    //                 if self_child.is_dir() {
+    //                     self_child.diff(other_child);
+    //                 }
+    //             } else {
+    //                 println!(
+    //                     "File {:?} is a {} while file {:?} is a {}",
+    //                     self_child.path,
+    //                     self_child.file_type.file_type_display(),
+    //                     other_child.path,
+    //                     other_child.file_type.file_type_display(),
+    //                 );
+    //             }
+    //         } else {
+    //             let path = &other_child.path;
+    //             println!(
+    //                 "2Only in {:?}: {:?}",
+    //                 path.parent().unwrap(),
+    //                 path.file_name().unwrap()
+    //             );
+    //         }
+    //     }
 
-        for child_left in lookup.values() {
-            let path = &child_left.path;
-            println!(
-                "1Only in {:?}: {:?}",
-                path.parent().unwrap(),
-                path.file_name().unwrap()
-            );
-        }
-    }
+    //     for child_left in lookup.values() {
+    //         let path = &child_left.path;
+    //         println!(
+    //             "1Only in {:?}: {:?}",
+    //             path.parent().unwrap(),
+    //             path.file_name().unwrap()
+    //         );
+    //     }
+    // }
 
     /// Create the tree folder structure in the path
     pub fn create_at(&self, path: impl AsRef<Path>) -> Result<()> {
@@ -584,16 +584,16 @@ impl FsTree {
 mod tests {
     use super::*;
 
-    #[test]
-    #[ignore]
-    fn test_diff() {
-        let left = FsTree::from_path_text(".config/i3/file").unwrap();
-        let right = FsTree::from_path_text(".config/i3/folder/file/oie").unwrap();
+    // #[test]
+    // #[ignore]
+    // fn test_diff() {
+    //     let left = FsTree::from_path_text(".config/i3/file").unwrap();
+    //     let right = FsTree::from_path_text(".config/i3/folder/file/oie").unwrap();
 
-        left.diff(&right);
+    //     left.diff(&right);
 
-        panic!();
-    }
+    //     panic!();
+    // }
 
     #[test]
     fn test_merge() {
