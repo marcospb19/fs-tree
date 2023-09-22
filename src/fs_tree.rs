@@ -457,22 +457,31 @@ impl FsTree {
     /// Turn this node of the tree into a regular file.
     ///
     /// Beware the possible recursive drop of nested nodes if this node was a directory.
-    pub fn to_regular(&mut self) {
-        self.file_type = TreeNode::Regular;
+    pub fn to_regular(self) -> Self {
+        Self {
+            file_type: TreeNode::Regular,
+            ..self
+        }
     }
 
     /// Turn this node of the tree into a directory.
     ///
     /// Beware the possible recursive drop of nested nodes if this node was a directory.
-    pub fn to_directory(&mut self, children: Vec<Self>) {
-        self.file_type = TreeNode::Directory(children);
+    pub fn to_directory(self, children: Vec<Self>) -> Self {
+        Self {
+            file_type: TreeNode::Directory(children),
+            ..self
+        }
     }
 
     /// Turn this node of the tree into a symlink.
     ///
     /// Beware the possible recursive drop of nested nodes if this node was a directory.
-    pub fn to_symlink(&mut self, target_path: impl AsRef<Path>) {
-        self.file_type = TreeNode::Symlink(target_path.as_ref().to_owned());
+    pub fn to_symlink(self, target_path: impl AsRef<Path>) -> Self {
+        Self {
+            file_type: TreeNode::Symlink(target_path.as_ref().to_owned()),
+            ..self
+        }
     }
 
     /// Checks if the FsTree file type is the same as other FsTree.
@@ -533,6 +542,7 @@ impl FsTree {
         }
     }
 
+    /// Create the tree folder structure in the path
     pub fn create_at(&self, path: impl AsRef<Path>) -> Result<()> {
         let path = path.as_ref();
 
