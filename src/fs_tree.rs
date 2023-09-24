@@ -15,6 +15,12 @@ use crate::{
 };
 
 /// A filesystem tree recursive type.
+///
+/// Methods for iteration: [`.iter()`], [`.nodes()`] or [`.paths()`].
+///
+/// [`.iter()`]: Self::iter
+/// [`.nodes()`]: Self::nodes
+/// [`.paths()`]: Self::paths
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FsTree {
     /// The filename of this file.
