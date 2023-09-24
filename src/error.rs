@@ -46,6 +46,7 @@ impl error::Error for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "FsError: ")?;
         match self {
             NotFoundError(..) => write!(f, "file not found"),
             NotADirectoryError(..) => write!(f, "not a directory"),
