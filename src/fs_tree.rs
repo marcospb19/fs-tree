@@ -3,6 +3,7 @@
 use std::{
     collections::HashMap,
     env,
+    ops::Index,
     path::{Path, PathBuf},
 };
 
@@ -563,6 +564,65 @@ impl FsTree {
     pub fn create(&self) -> Result<()> {
         self.create_at(".")
     }
+
+    /// Returns a reference to the node at the path.
+    ///
+    /// # Examples:
+    ///
+    /// ```
+    /// use fs_tree::FsTree;
+    ///
+    /// let root = FsTree::from_path_text("root/b/c/d").unwrap();
+    ///
+    /// // Indexing is relative from `root`, so `root` cannot be indexed.
+    /// assert!(root.get("root").is_none());
+    ///
+    /// assert_eq!(root["b"], FsTree::from_path_text("b/c/d").unwrap());
+    /// assert_eq!(root["b/c"], FsTree::from_path_text("c/d").unwrap());
+    /// assert_eq!(root["b"]["c"], FsTree::from_path_text("c/d").unwrap());
+    /// assert_eq!(root["b/c/d"], FsTree::from_path_text("d").unwrap());
+    /// assert_eq!(root["b/c"]["d"], FsTree::from_path_text("d").unwrap());
+    /// assert_eq!(root["b"]["c/d"], FsTree::from_path_text("d").unwrap());
+    /// assert_eq!(root["b"]["c"]["d"], FsTree::from_path_text("d").unwrap());
+    /// ```
+    pub fn get(&self, path: impl AsRef<Path>) -> Option<&FsTree> {
+        let path = path.as_ref();
+
+        // Split first piece from the rest
+        let (popped, path_rest) = {
+            let mut iter = path.iter();
+            let popped = iter.next();
+            (popped, iter.as_path())
+        };
+
+        // If path ended, we reached the desired node
+        let Some(popped) = popped else {
+            return Some(self);
+        };
+
+        // Corner case: if `.`, ignore it and call again with the rest
+        if popped == Path::new(".") {
+            return self.get(path_rest);
+        }
+
+        self.children()
+            .unwrap_or(&[])
+            .iter()
+            .find(|child| child.path == popped)
+            .and_then(|child| child.get(path_rest))
+    }
+}
+
+impl<P> Index<P> for FsTree
+where
+    P: AsRef<Path>,
+{
+    type Output = FsTree;
+
+    fn index(&self, path: P) -> &Self::Output {
+        self.get(path.as_ref())
+            .unwrap_or_else(|| panic!("no node found for path '{}'", path.as_ref().display()))
+    }
 }
 
 #[cfg(test)]
@@ -580,6 +640,31 @@ mod tests {
     //     left.diff(&right);
     //     panic!();
     // }
+
+    #[test]
+    fn test_get() {
+        let tree = FsTree::from_path_text("a/b/c/d").unwrap();
+
+        // Path accesses are relative from `a`, so `a` itself cannot be indexed
+        assert!(tree.get("a").is_none());
+
+        assert_eq!(tree["b"], FsTree::from_path_text("b/c/d").unwrap());
+        assert_eq!(tree["b/c"], FsTree::from_path_text("c/d").unwrap());
+        assert_eq!(tree["b"]["c"], FsTree::from_path_text("c/d").unwrap());
+        assert_eq!(tree["b/c/d"], FsTree::from_path_text("d").unwrap());
+        assert_eq!(tree["b/c"]["d"], FsTree::from_path_text("d").unwrap());
+        assert_eq!(tree["b"]["c/d"], FsTree::from_path_text("d").unwrap());
+        assert_eq!(tree["b"]["c"]["d"], FsTree::from_path_text("d").unwrap());
+
+        // Empty path returns self
+        assert_eq!(tree[""], tree);
+        assert_eq!(tree[""], tree[""]);
+        // "."s are ignored
+        assert_eq!(tree["."], tree[""]);
+        assert_eq!(tree["././"], tree["."]);
+        assert_eq!(tree["././."], tree);
+        assert_eq!(tree["b/./."], FsTree::from_path_text("b/c/d").unwrap());
+    }
 
     #[test]
     fn test_merge() {

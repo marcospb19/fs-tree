@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+// Emits false-positives on macros.
 #![allow(clippy::vec_init_then_push)]
 
 //! Filesystem trie-like tree structure for commons operations.
