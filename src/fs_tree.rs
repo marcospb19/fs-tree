@@ -23,7 +23,6 @@ pub struct FsTree {
     pub file_type: TreeNode,
 }
 
-/// Constructors.
 impl FsTree {
     /// Creates a `FsTree::Regular` from arguments.
     pub fn new_regular(path: impl Into<PathBuf>) -> Self {
@@ -250,10 +249,7 @@ impl FsTree {
             None => FsTree::new_regular(piece.as_ref()),
         }
     }
-}
 
-/// Non-constructors.
-impl FsTree {
     /// An iterator over `(&FsTree, PathBuf)`.
     pub fn iter(&self) -> Iter {
         Iter::new(self.files())
@@ -381,7 +377,7 @@ impl FsTree {
     }
 
     /// Reference to children vec if self.is_directory().
-    pub fn children(&self) -> Option<&Vec<Self>> {
+    pub fn children(&self) -> Option<&[Self]> {
         match &self.file_type {
             TreeNode::Directory(children) => Some(children),
             _ => None,
