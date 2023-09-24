@@ -16,3 +16,6 @@ fs-err = { version = "2.9.0", optional = true }
 fs-err = ["dep:fs-err"]
 default = ["fs-err"]
 libc-file-type = ["dep:libc"]
+
+[dev-dependencies]
+pretty_assertions = "1.4.0"

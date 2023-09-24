@@ -136,18 +136,16 @@ impl FsTree {
     /// Example:
     ///
     /// ```
-    /// use fs_tree::FsTree;
+    /// use fs_tree::{FsTree, tree};
     ///
-    /// let result = FsTree::from_path_text(".config/i3/file");
+    /// let result = FsTree::from_path_text("dir/inner/file");
     ///
-    /// let expected = {
-    ///     FsTree::new_directory(
-    ///         ".config/",
-    ///         vec![FsTree::new_directory(
-    ///             ".config/i3/",
-    ///             vec![FsTree::new_regular(".config/i3/file")],
-    ///         )],
-    ///     )
+    /// let expected = tree! {
+    ///     dir: {
+    ///         inner: {
+    ///             file
+    ///         }
+    ///     }
     /// };
     ///
     /// assert_eq!(result, Some(expected));
@@ -156,7 +154,9 @@ impl FsTree {
         Self::from_path_pieces(path.as_ref().iter())
     }
 
-    /// More generic version of `FsTree::from_path_text`.
+    /// Generic version of `FsTree::from_path_text`.
+    ///
+    /// Returns `None` if path is empty.
     pub fn from_path_pieces<I, P>(path_iter: I) -> Option<Self>
     where
         I: IntoIterator<Item = P>,
@@ -164,13 +164,14 @@ impl FsTree {
     {
         let mut path_iter = path_iter.into_iter();
 
-        let first_piece = path_iter.next()?;
+        let popped_piece = path_iter.next()?;
 
-        let mut tree = Self::from_path_text_recursive_impl(first_piece, path_iter);
-
-        tree.make_paths_relative();
-
-        Some(tree)
+        if let Some(subtree) = Self::from_path_pieces(path_iter) {
+            Self::new_directory(popped_piece.as_ref(), vec![subtree])
+        } else {
+            Self::new_regular(popped_piece.as_ref())
+        }
+        .into()
     }
 
     fn __collect_from_directory(path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
@@ -232,22 +233,6 @@ impl FsTree {
         let result = Self::__from_path(Path::new("."), follow_symlinks);
         env::set_current_dir(previous_path)?;
         result
-    }
-
-    fn from_path_text_recursive_impl<I, P>(piece: P, mut path_iter: I) -> Self
-    where
-        I: Iterator<Item = P>,
-        P: AsRef<Path>,
-    {
-        match path_iter.next() {
-            Some(next) => {
-                FsTree::new_directory(
-                    piece.as_ref(),
-                    vec![Self::from_path_text_recursive_impl(next, path_iter)],
-                )
-            },
-            None => FsTree::new_regular(piece.as_ref()),
-        }
     }
 
     /// An iterator over `(&FsTree, PathBuf)`.
@@ -582,16 +567,17 @@ impl FsTree {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::{assert_eq, assert_ne};
+
     use super::*;
+    use crate::tree;
 
     // #[test]
     // #[ignore]
     // fn test_diff() {
     //     let left = FsTree::from_path_text(".config/i3/file").unwrap();
     //     let right = FsTree::from_path_text(".config/i3/folder/file/oie").unwrap();
-
     //     left.diff(&right);
-
     //     panic!();
     // }
 
@@ -601,20 +587,15 @@ mod tests {
         let right = FsTree::from_path_text(".config/i3/folder/file").unwrap();
         let result = left.merge(right);
 
-        let expected = {
-            FsTree::new_directory(
-                ".config",
-                vec![FsTree::new_directory(
-                    ".config/i3",
-                    vec![
-                        FsTree::new_directory(
-                            ".config/i3/folder",
-                            vec![FsTree::new_regular(".config/i3/folder/file")],
-                        ),
-                        FsTree::new_regular(".config/i3/file"),
-                    ],
-                )],
-            )
+        let expected = tree! {
+            ".config": {
+                i3: {
+                    folder: {
+                        file
+                    }
+                    file
+                }
+            }
         };
 
         assert_eq!(result, Some(expected));
