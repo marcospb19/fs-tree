@@ -12,12 +12,8 @@ use crate::{error::*, fs};
 /// - If `Io::Error` from `fs::read_link(path)`
 pub fn symlink_follow<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
     let path = path.as_ref();
-    if !path.exists() {
-        return Err(Error::NotFoundError(path.to_path_buf()));
-        // "while trying to read symlink target path",
-    }
 
-    if !FileType::from_path(path)?.is_symlink() {
+    if FileType::from_symlink_path(path).is_ok_and(|file| !file.is_symlink()) {
         return Err(Error::NotASymlinkError(path.to_path_buf()));
         // "while trying to read symlink target path",
     }
