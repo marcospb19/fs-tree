@@ -1,8 +1,4 @@
-use std::{
-    collections::VecDeque as Deque,
-    ffi::OsStr,
-    path::{Path, PathBuf},
-};
+use std::{collections::VecDeque as Deque, path::PathBuf};
 
 use crate::FsTree;
 
@@ -122,61 +118,88 @@ impl<'a> Iterator for FilesIter<'a> {
     }
 }
 
+/// Tree nodes iterator.
+///
+/// Yields `(&FsTree, PathBuf)`.
+///
+/// Created by `FsTree::iter`.
+#[derive(Debug, Clone)]
+pub struct Iter<'a> {
+    files_iter: FilesIter<'a>,
+    path_builder: PathBuf,
+    previous_depth: usize,
+}
+
+impl<'a> Iter<'a> {
+    // Used by `FilesIter::paths(self)`
+    pub(crate) fn new(files_iter: FilesIter<'a>) -> Self {
+        Self {
+            files_iter,
+            path_builder: PathBuf::new(),
+            previous_depth: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for Iter<'a> {
+    // I'd like to return `&Path`, but the `Iterator` trait blocks putting a lifetime on `self`
+    type Item = (&'a FsTree, PathBuf);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let file = self.files_iter.next()?;
+        let new_depth = self.files_iter.depth();
+
+        for _ in new_depth..=self.previous_depth {
+            self.path_builder.pop();
+        }
+        self.path_builder.push(&file.path);
+
+        self.previous_depth = new_depth;
+
+        Some((file, self.path_builder.clone()))
+    }
+}
+
 /// Iterator for each path inside of the recursive struct
 #[derive(Debug, Clone)]
 pub struct PathsIter<'a> {
-    file_iter: FilesIter<'a>,
-    // options
-    only_show_last_segment: bool,
+    files_iter: FilesIter<'a>,
+    path_builder: PathBuf,
+    previous_depth: usize,
 }
 
 impl<'a> PathsIter<'a> {
-    // Used by `FilesIter::paths(self)`
-    fn new(file_iter: FilesIter<'a>) -> Self {
+    fn new(files_iter: FilesIter<'a>) -> Self {
         Self {
-            file_iter,
-            only_show_last_segment: false,
-        }
-    }
-
-    /// Apply `Path::file_name` to each iteration
-    pub fn only_show_last_segment(mut self, arg: bool) -> Self {
-        self.only_show_last_segment = arg;
-        self
-    }
-
-    /// Query for depth of the last element
-    ///
-    /// Same as FilesIter.depth()
-    pub fn depth(&self) -> usize {
-        self.file_iter.depth()
-    }
-
-    /// Underlying implementation of `Iterator` for `PathsIter`, without any
-    /// `.clone()`
-    pub fn next_ref(&mut self) -> Option<&Path> {
-        let file = self.file_iter.next()?;
-
-        if self.only_show_last_segment {
-            file.path.file_name().map(OsStr::as_ref)
-        } else {
-            Some(&file.path)
+            files_iter,
+            path_builder: PathBuf::new(),
+            previous_depth: 0,
         }
     }
 }
 
 impl Iterator for PathsIter<'_> {
+    // I'd like to return `&Path`, but the `Iterator` trait doesn't allow a lifetime parameter on `self`
     type Item = PathBuf;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let path_buf = self.next_ref()?.to_path_buf();
-        Some(path_buf)
+        let file = self.files_iter.next()?;
+
+        let new_depth = self.files_iter.depth();
+        for _ in new_depth..=self.previous_depth {
+            self.path_builder.pop();
+        }
+        self.path_builder.push(&file.path);
+
+        self.previous_depth = new_depth;
+
+        Some(self.path_builder.clone())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::FsTree;
+    use crate::{tree, FsTree};
 
     #[test]
     #[rustfmt::skip]
@@ -206,37 +229,37 @@ mod tests {
         // ]
 
         // Create the strucutre
-        let root = {
-            FsTree::new_directory(".config/", vec![
-                FsTree::new_directory(".config/i3/", vec![
-                    FsTree::new_regular(".config/i3/file1"),
-                    FsTree::new_regular(".config/i3/file2"),
-                    FsTree::new_directory(".config/i3/dir/", vec![
-                        FsTree::new_regular(".config/i3/dir/innerfile1"),
-                        FsTree::new_regular(".config/i3/dir/innerfile2")
-                    ]),
-                    FsTree::new_regular(".config/i3/file3"),
-                ]),
-                FsTree::new_regular(".config/outerfile1"),
-                FsTree::new_regular(".config/outerfile2")
-            ])
+        let tree = tree! {
+            ".config": {
+                i3: {
+                    file1
+                    file2
+                    dir: {
+                        innerfile1
+                        innerfile2
+                    }
+                    file3
+                }
+                outerfile1
+                outerfile2
+            }
         };
 
         // Get the references in declaration order, from top to bottom
         let refs = [
-            /* 0 */ &root,                // .config/
-            /* 1 */ &root.c(0),           // .config/i3/
-            /* 2 */ &root.c(0).c(0),      // .config/i3/file1
-            /* 3 */ &root.c(0).c(1),      // .config/i3/file2
-            /* 4 */ &root.c(0).c(2),      // .config/i3/dir/
-            /* 5 */ &root.c(0).c(2).c(0), // .config/i3/dir/innerfile1
-            /* 6 */ &root.c(0).c(2).c(1), // .config/i3/dir/innerfile2
-            /* 7 */ &root.c(0).c(3),      // .config/i3/file3
-            /* 8 */ &root.c(1),           // .config/outerfile1
-            /* 9 */ &root.c(2),           // .config/outerfile2
+            /* 0 */ &tree,                // .config/
+            /* 1 */ &tree.c(0),           // .config/i3/
+            /* 2 */ &tree.c(0).c(0),      // .config/i3/file1
+            /* 3 */ &tree.c(0).c(1),      // .config/i3/file2
+            /* 4 */ &tree.c(0).c(2),      // .config/i3/dir/
+            /* 5 */ &tree.c(0).c(2).c(0), // .config/i3/dir/innerfile1
+            /* 6 */ &tree.c(0).c(2).c(1), // .config/i3/dir/innerfile2
+            /* 7 */ &tree.c(0).c(3),      // .config/i3/file3
+            /* 8 */ &tree.c(1),           // .config/outerfile1
+            /* 9 */ &tree.c(2),           // .config/outerfile2
         ];
 
-        let mut it = root.files();
+        let mut it = tree.files();
         assert_eq!(it.next(), Some(refs[0])); // .config/
         assert_eq!(it.depth(), 0);            // 0
         assert_eq!(it.next(), Some(refs[1])); // .config/i3/
@@ -259,13 +282,13 @@ mod tests {
         assert_eq!(it.depth(), 1);            // 0       1
         assert_eq!(it.next(), None);
 
-        let mut it = root.files().skip_regular_files(true);
+        let mut it = tree.files().skip_regular_files(true);
         assert_eq!(it.next(), Some(refs[0])); // .config/
         assert_eq!(it.next(), Some(refs[1])); // .config/i3/
         assert_eq!(it.next(), Some(refs[4])); // .config/i3/dir/
         assert_eq!(it.next(), None);
 
-        let mut it = root.files().skip_dirs(true);
+        let mut it = tree.files().skip_dirs(true);
         assert_eq!(it.next(), Some(refs[2])); // .config/i3/file1
         assert_eq!(it.next(), Some(refs[3])); // .config/i3/file2
         assert_eq!(it.next(), Some(refs[5])); // .config/i3/dir/innerfile1
@@ -275,7 +298,7 @@ mod tests {
         assert_eq!(it.next(), Some(refs[9])); // .config/outerfile2
         assert_eq!(it.next(), None);
 
-        let mut it = root.files().skip_regular_files(true);
+        let mut it = tree.files().skip_regular_files(true);
         assert_eq!(it.next(), Some(refs[0])); // .config/
         assert_eq!(it.next(), Some(refs[1])); // .config/i3/
         assert_eq!(it.next(), Some(refs[4])); // .config/i3/dir/
@@ -286,7 +309,7 @@ mod tests {
         // .config/
         // .config/i3/dir/innerfile1
         // .config/i3/dir/innerfile2
-        let mut it = root.files().min_depth(1).max_depth(2);
+        let mut it = tree.files().min_depth(1).max_depth(2);
         assert_eq!(it.next(), Some(refs[1])); // .config/i3/
         assert_eq!(it.next(), Some(refs[2])); // .config/i3/file1
         assert_eq!(it.next(), Some(refs[3])); // .config/i3/file2
@@ -298,7 +321,7 @@ mod tests {
 
         // Paths iterator testing
         let p = PathBuf::from;
-        let mut it = root.paths();
+        let mut it = tree.paths();
         assert_eq!(it.next(), Some(p(".config/")));                  // [0]
         assert_eq!(it.next(), Some(p(".config/i3/")));               // [1]
         assert_eq!(it.next(), Some(p(".config/i3/file1")));          // [2]
@@ -309,19 +332,6 @@ mod tests {
         assert_eq!(it.next(), Some(p(".config/i3/file3")));          // [7]
         assert_eq!(it.next(), Some(p(".config/outerfile1")));        // [8]
         assert_eq!(it.next(), Some(p(".config/outerfile2")));        // [9]
-        assert_eq!(it.next(), None);
-
-        let mut it = root.paths().only_show_last_segment(true);
-        assert_eq!(it.next(), Some(p(".config/")));   // [0]
-        assert_eq!(it.next(), Some(p("i3/")));        // [1]
-        assert_eq!(it.next(), Some(p("file1")));      // [2]
-        assert_eq!(it.next(), Some(p("file2")));      // [3]
-        assert_eq!(it.next(), Some(p("dir/")));       // [4]
-        assert_eq!(it.next(), Some(p("innerfile1"))); // [5]
-        assert_eq!(it.next(), Some(p("innerfile2"))); // [6]
-        assert_eq!(it.next(), Some(p("file3")));      // [7]
-        assert_eq!(it.next(), Some(p("outerfile1"))); // [8]
-        assert_eq!(it.next(), Some(p("outerfile2"))); // [9]
         assert_eq!(it.next(), None);
     }
 }

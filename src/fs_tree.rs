@@ -10,7 +10,7 @@ use file_type_enum::FileType;
 
 use crate::{
     fs,
-    iter::{FilesIter, PathsIter},
+    iter::{FilesIter, Iter, PathsIter},
     util, Error, Result, TreeNode,
 };
 
@@ -254,6 +254,11 @@ impl FsTree {
 
 /// Non-constructors.
 impl FsTree {
+    /// An iterator over `(&FsTree, PathBuf)`.
+    pub fn iter(&self) -> Iter {
+        Iter::new(self.files())
+    }
+
     /// Iterator of all `FsTree`s in the structure
     pub fn files(&self) -> FilesIter {
         FilesIter::new(self)
@@ -545,16 +550,17 @@ impl FsTree {
 
     /// Create the tree folder structure in the path
     pub fn create_at(&self, folder: impl AsRef<Path>) -> Result<()> {
-        #[cfg(not(feature = "fs-err"))]
-        let symlink_function = std::os::unix::fs::symlink;
+        let folder = folder.as_ref();
 
         #[cfg(feature = "fs-err")]
         let symlink_function = fs_err::os::unix::fs::symlink;
+        #[cfg(not(feature = "fs-err"))]
+        let symlink_function = std::os::unix::fs::symlink;
 
-        for tree in self.files() {
-            let path = folder.as_ref().join(&tree.path);
+        for (node, path) in self.iter() {
+            let path = folder.join(&path);
 
-            match &tree.file_type {
+            match &node.file_type {
                 TreeNode::Regular => {
                     fs::File::create(path)?;
                 },
