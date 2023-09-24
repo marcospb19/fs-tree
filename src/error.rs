@@ -8,8 +8,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Errors generated inside of the `fs-tree` crate.
 #[derive(Debug)]
 pub enum Error {
-    /// File not found.
-    NotFoundError(PathBuf),
     /// Expected directory, but file type differs.
     NotADirectoryError(PathBuf),
     /// Expected symlink, but file type differs.
@@ -26,8 +24,7 @@ impl Error {
     /// Path to where the error occurred
     pub fn path(&self) -> Option<&PathBuf> {
         match self {
-            NotFoundError(path)
-            | NotADirectoryError(path)
+            NotADirectoryError(path)
             | NotASymlinkError(path)
             | UnexpectedFileTypeError(_, path) => Some(path),
             IoError(..) => None,
@@ -48,7 +45,6 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "FsError: ")?;
         match self {
-            NotFoundError(..) => write!(f, "file not found"),
             NotADirectoryError(..) => write!(f, "not a directory"),
             NotASymlinkError(..) => write!(f, "not a symlink"),
             UnexpectedFileTypeError(..) => write!(f, "unexpected file type"),

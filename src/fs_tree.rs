@@ -2,7 +2,6 @@
 
 use std::{
     collections::HashMap,
-    env,
     ops::Index,
     path::{Path, PathBuf},
 };
@@ -61,16 +60,6 @@ impl FsTree {
         Self::__collect_from_directory(path.as_ref(), false)
     }
 
-    /// Collects a `Vec` of `FsTree` from `path` that is a directory.
-    pub fn collect_from_directory_cd(path: impl AsRef<Path>) -> Result<Vec<Self>> {
-        Self::__collect_from_directory_cd(path.as_ref(), false)
-    }
-
-    /// Collects a `Vec` of `FsTree` from `path` that is a directory, entries can be symlinks.
-    pub fn collect_from_directory_symlink_cd(path: impl AsRef<Path>) -> Result<Vec<Self>> {
-        Self::__collect_from_directory_cd(path.as_ref(), false)
-    }
-
     /// Builds a `FsTree` from `path`, follows symlinks.
     ///
     /// Similar to `from_path_symlink`.
@@ -114,21 +103,7 @@ impl FsTree {
         Self::__from_path(path.as_ref(), false)
     }
 
-    /// `cd` into path, run `from_path`, and come back.
-    ///
-    /// TODO explain here why this is useful
-    pub fn from_path_cd(path: impl AsRef<Path>) -> Result<Self> {
-        Self::__from_path_cd(path.as_ref(), true)
-    }
-
-    /// `cd` into path, run `from_path_symlink`, and come back.
-    ///
-    /// TODO explain here why this is useful
-    pub fn from_cd_symlink_path(path: impl AsRef<Path>) -> Result<Self> {
-        Self::__from_path_cd(path.as_ref(), false)
-    }
-
-    /// Splits a `Path` components into a `FsTree`.
+    /// Splits `Path` pieces into a `FsTree`.
     ///
     /// Returns `None` if the string is empty.
     ///
@@ -175,30 +150,29 @@ impl FsTree {
         .into()
     }
 
-    fn __collect_from_directory(path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
-        if !path.exists() {
-            return Err(Error::NotFoundError(path.to_path_buf()));
-        } else if !FileType::from_path(path)?.is_directory() {
-            return Err(Error::NotADirectoryError(path.to_path_buf()));
+    fn __collect_from_directory(folder_path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
+        if !FileType::from_path(folder_path)?.is_directory() {
+            return Err(Error::NotADirectoryError(folder_path.to_path_buf()));
         }
-        let dirs = fs::read_dir(path)?;
 
         let mut children = vec![];
-        for entry in dirs {
+
+        for entry in fs::read_dir(folder_path)? {
             let entry = entry?;
-            let file = Self::__from_path(&entry.path(), follow_symlinks)?;
+            let entry_path = entry.path();
+
+            let mut file = Self::__from_path(&entry_path, follow_symlinks)?;
+
+            let stripped_file_path = entry_path.strip_prefix(folder_path).expect(
+                "Failed to strip prefix that was assumed to always succeed, this \
+                 is an error in the library `fs-tree`, please open an issue",
+            );
+
+            file.path = stripped_file_path.into();
             children.push(file);
         }
-        Ok(children)
-    }
 
-    fn __collect_from_directory_cd(path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
-        let previous_path = env::current_dir()?;
-        debug_assert!(path.is_absolute());
-        env::set_current_dir(path)?;
-        let result = Self::__collect_from_directory(Path::new("."), follow_symlinks);
-        env::set_current_dir(previous_path)?;
-        result
+        Ok(children)
     }
 
     fn __from_path(path: &Path, follow_symlinks: bool) -> Result<Self> {
@@ -225,15 +199,6 @@ impl FsTree {
                 ))
             },
         }
-    }
-
-    fn __from_path_cd(path: &Path, follow_symlinks: bool) -> Result<Self> {
-        let previous_path = env::current_dir()?;
-        debug_assert!(path.is_absolute());
-        env::set_current_dir(path)?;
-        let result = Self::__from_path(Path::new("."), follow_symlinks);
-        env::set_current_dir(previous_path)?;
-        result
     }
 
     /// An iterator over `(&FsTree, PathBuf)`.
