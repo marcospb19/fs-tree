@@ -1,7 +1,6 @@
 //! Implementation of [`FsTree`].
 
 use std::{
-    collections::HashMap,
     io,
     ops::Index,
     path::{Path, PathBuf},
@@ -12,7 +11,7 @@ use file_type_enum::FileType;
 use crate::{
     fs,
     iter::{Iter, NodesIter, PathsIter},
-    util, Error, Result, TreeNode,
+    utils, Error, Result, TreeNode,
 };
 
 /// A filesystem tree recursive type.
@@ -25,7 +24,7 @@ pub struct FsTree {
     /// The filename of this file.
     pub path: PathBuf,
     /// The TreeNode of this file.
-    pub file_type: TreeNode,
+    file_type: TreeNode,
 }
 
 impl FsTree {
@@ -150,7 +149,7 @@ impl FsTree {
                 Ok(Self::new_directory(path, children))
             },
             FileType::Symlink => {
-                let target_path = util::symlink_follow(path)?;
+                let target_path = utils::symlink_follow(path)?;
                 Ok(Self::new_symlink(path, target_path))
             },
             other_type => {
@@ -173,7 +172,7 @@ impl FsTree {
     /// ```
     /// use fs_tree::{FsTree, tree};
     ///
-    /// let result = FsTree::from_path_text("a/b/c");
+    /// let result = FsTree::from_path_text("a/b/c").unwrap();
     ///
     /// let expected = tree! {
     ///     a: {
@@ -184,12 +183,12 @@ impl FsTree {
     /// };
     ///
     /// // The expected tree
-    /// assert_eq!(result, Some(expected));
+    /// assert_eq!(result, expected);
     ///
     /// // Nodes are nested
     /// assert!(result.is_dir());
     /// assert!(result["b"].is_dir());
-    /// assert!(result["c"].is_regular());
+    /// assert!(result["b"]["c"].is_regular());
     /// ```
     ///
     /// # Warning
@@ -259,54 +258,48 @@ impl FsTree {
         Ok(true)
     }
 
-    /// Merge this tree with other `FsTree`.
+    /// Merge two trees.
+    ///
+    /// Unsolved questions: what happens if FsTree has a mismatching name?
     ///
     /// # Errors:
     ///
-    /// This errs if:
-    ///
-    /// - The trees have different roots and thus cannot be merged.
-    /// - There are file conflicts.
-    pub fn merge(self, other: Self) -> Option<Self> {
-        if self.path != other.path {
-            return None;
-        }
+    /// - Returns `None` if contents of both trees conflict.
+    //
+    // TODO: return Result<Self, DiffNode>.
+    pub fn try_merge(mut self, other: Self) -> Option<Self> {
+        use TreeNode::{Directory, Regular, Symlink};
 
-        let path = self.path;
+        // If types match, check if their contents match, otherwise, return `None`
+        match (&mut self.file_type, other.file_type) {
+            (Regular, Regular) => Some(self),
+            (Symlink(left_target), Symlink(right_target)) => {
+                (*left_target == right_target).then_some(self)
+            },
+            (Directory(left_children), Directory(right_children)) => {
+                // Just to clarify it to you, we're merging the right onto the left
+                let left_children: &mut Vec<FsTree> = left_children;
+                let right_children: Vec<FsTree> = right_children;
 
-        match (self.file_type, other.file_type) {
-            (TreeNode::Directory(left_children), TreeNode::Directory(right_children)) => {
-                // TODO: Don't remake a trie here, we can use the trees directly
-                // this todo needs to be solved after migrating to a proper trie
-                let mut left_map: HashMap<PathBuf, FsTree> = left_children
-                    .into_iter()
-                    .map(|child| (child.path.clone(), child))
-                    .collect();
-
-                let mut result_vec = vec![];
-
-                for child in right_children {
-                    // If there is another one with the same path, merge them
-                    match left_map.remove(&child.path) {
-                        None => result_vec.push(child),
-                        Some(left_equivalent) => {
-                            if !child.has_same_type_as(&left_equivalent) {
-                                return None;
-                            } else if child.is_dir() && left_equivalent.is_dir() {
-                                result_vec.push(left_equivalent.merge(child).unwrap());
-                            } else {
-                                result_vec.push(left_equivalent);
-                                result_vec.push(child);
-                            }
-                        },
+                for right_child in right_children {
+                    // If right_child is also found on left, try merging with left_child
+                    // Else, just add it to the vec
+                    if let Some(index) = left_children
+                        .iter()
+                        .position(|child| child.path == right_child.path)
+                    {
+                        let left_child = left_children.remove(index);
+                        let left_child = left_child.try_merge(right_child)?;
+                        left_children.push(left_child);
+                    } else {
+                        left_children.push(right_child);
                     }
                 }
 
-                result_vec.extend(left_map.into_values());
-
-                Some(Self::new_directory(path, result_vec))
+                Some(self)
             },
-            _ => None,
+            // Types mismatch, not possible to merge
+            (_, _) => None,
         }
     }
 
@@ -479,7 +472,7 @@ impl FsTree {
     // }
 
     /// Create the tree folder structure in the path
-    pub fn create_at(&self, folder: impl AsRef<Path>) -> Result<()> {
+    pub fn write_at(&self, folder: impl AsRef<Path>) -> Result<()> {
         let folder = folder.as_ref();
 
         #[cfg(feature = "fs-err")]
@@ -508,9 +501,9 @@ impl FsTree {
 
     /// Create `FsTree` in the current directory.
     ///
-    /// Alias to `self.create_at(".")`.
+    /// Alias to `self.write_at(".")`.
     pub fn create(&self) -> Result<()> {
-        self.create_at(".")
+        self.write_at(".")
     }
 
     /// Returns a reference to the node at the path.
@@ -614,18 +607,18 @@ mod tests {
     }
 
     #[test]
-    fn test_merge() {
+    fn test_simple_merge() {
         let left = FsTree::from_path_text(".config/i3/file").unwrap();
         let right = FsTree::from_path_text(".config/i3/folder/file").unwrap();
-        let result = left.merge(right);
+        let result = left.try_merge(right);
 
         let expected = tree! {
             ".config": {
                 i3: {
+                    file
                     folder: {
                         file
                     }
-                    file
                 }
             }
         };
