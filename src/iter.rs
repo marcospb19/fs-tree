@@ -1,17 +1,77 @@
-use std::{collections::VecDeque as Deque, path::PathBuf};
+// Dependencies of iterators:
+//   `NodesIter -> Iter(NodesIter) -> PathsIter(Iter)`
+//
+// The most primitive iterator is `NodesIter`, `Iter` does processing to get the path, and
+// `PathsIter` is basically a `std::iter::Map` to only retrieve the path.
+//
+// Sounds confusing, but it's actually the trivial solution that comes up when you're doing it.
+
+//! Iterators for [`FsTree`].
+//!
+//! Iterators traverse in [Depth-First Order](https://en.wikipedia.org/wiki/Binary_tree#Depth-first_order).
+//!
+//! There are three [`FsTree`] methods for creating an iterator:
+//! 1. [`.iter()`](FsTree::iter) for `Item = (&FsTree, PathBuf)`.
+//! 2. [`.nodes()`](FsTree::nodes) for `Item = &FsTree`.
+//! 3. [`.paths()`](FsTree::paths) for `Item = PathBuf`.
+//!
+//! The yielded [`PathBuf`]s correspond to the full relative path to the current node, which is the
+//! result of concatenating the paths of every parent, and the current node.
+//!
+//! [`PathBuf`]: std::path::PathBuf
+//!
+//! ```
+//! use fs_tree::tree;
+//! use std::path::PathBuf;
+//!
+//! let tree = tree! {
+//!     a: {
+//!         b: {
+//!             c
+//!         }
+//!     }
+//! };
+//!
+//! let mut paths = tree.paths();
+//!
+//! assert_eq!(paths.next(), Some(PathBuf::from("a")));
+//! assert_eq!(paths.next(), Some(PathBuf::from("a/b")));
+//! assert_eq!(paths.next(), Some(PathBuf::from("a/b/c")));
+//! assert_eq!(paths.next(), None);
+//!
+//! let mut nodes = tree.nodes();
+//!
+//! assert_eq!(nodes.next(), Some(&tree)); // Starts at root, it's `a` itself
+//! assert_eq!(nodes.next(), Some(&tree["b"]));
+//! assert_eq!(nodes.next(), Some(&tree["b/c"]));
+//! assert_eq!(nodes.next(), None);
+//!
+//! let mut iter = tree.iter();
+//!
+//! iter.next();
+//! assert_eq!(iter.depth(), 0);
+//! iter.next();
+//! assert_eq!(iter.depth(), 1);
+//! iter.next();
+//! assert_eq!(iter.depth(), 2);
+//! ```
+
+use std::{collections::VecDeque, path::PathBuf};
 
 use crate::FsTree;
 
+type NodeWithDepth<'a> = (&'a FsTree, usize);
+type NodesIterDeque<'a> = VecDeque<NodeWithDepth<'a>>;
+
 /// An iterator that runs recursively over `FsTree` structure.
 #[derive(Debug, Clone)]
-pub struct FilesIter<'a> {
-    // Pop from the front, push to front or back, it depends
-    // Cause when we open a directory, we need to traverse it's content first
-    file_deque: Deque<(&'a FsTree, usize)>,
-    // Accessed by `depth` method, determined by the last yielded element
+pub struct NodesIter<'a> {
+    // Always pop from the front
+    // Push to front or back, if it's a directory or not, respectively, to yield in DFS-order
+    file_deque: NodesIterDeque<'a>,
+    // Accessed by the `depth` method, determined by the last yielded element
     current_depth: usize,
-
-    // Filters public via methods
+    // Filters togglable with methods
     skip_regular_files: bool,
     skip_dirs: bool,
     skip_symlinks: bool,
@@ -19,12 +79,12 @@ pub struct FilesIter<'a> {
     max_depth: usize,
 }
 
-impl<'a> FilesIter<'a> {
+impl<'a> NodesIter<'a> {
+    /// Construct this iterator.
     pub(crate) fn new(start_file: &'a FsTree) -> Self {
         // Deque used for iterate in recursive structure
-        let mut file_deque = Deque::new();
-        // Starting deque from `start_file`, at depth 0, which can increase for each file
-        // if self is a directory
+        let mut file_deque = VecDeque::new();
+        // Starting deque from `start_file`, at depth 0, which can increase for each directory found
         file_deque.push_back((start_file, 0));
 
         Self {
@@ -38,54 +98,50 @@ impl<'a> FilesIter<'a> {
         }
     }
 
-    /// Return depth in the tree of the last element yielded.
+    /// Return depth for the last yielded element.
     ///
-    /// If called AFTER first `.next()` call, returns 0 (root has no depth).
+    /// Depth `0` corresponds to the root element (first `.next()` call).
     ///
-    /// You shouldn't do these, but if you do:
-    /// - If you call BEFORE any `.next()`, will be 0.
-    /// - If you call AFTER None is yielded, will return the last Some(val) depth.
+    /// # Corner cases:
+    /// - If you call this function before `.next()` is called, you'll get `0`.
+    /// - If `None` is yielded by this iterator, the depth value will remain immutable, and
+    /// correspond to the depth of the last yielded element.
     pub fn depth(&self) -> usize {
         self.current_depth
     }
 
-    /// Consume iterator, turns into `PathsIter`
-    pub fn paths(self) -> PathsIter<'a> {
-        PathsIter::new(self)
-    }
-
-    /// Filter out every `FsTree::Regular`
+    /// Filter out regular files.
     pub fn skip_regular_files(mut self, arg: bool) -> Self {
         self.skip_regular_files = arg;
         self
     }
 
-    /// Filter out every `FsTree::Directory`
+    /// Filter out directories.
     pub fn skip_dirs(mut self, arg: bool) -> Self {
         self.skip_dirs = arg;
         self
     }
 
-    /// Filter out every `FsTree::Symlink`
+    /// Filter out symlinks.
     pub fn skip_symlinks(mut self, arg: bool) -> Self {
         self.skip_symlinks = arg;
         self
     }
 
-    /// Filter out all the next entries that are below a minimum depth
+    /// Filter out entries below the given minimum [depth](Self::depth).
     pub fn min_depth(mut self, min: usize) -> Self {
         self.min_depth = min;
         self
     }
 
-    /// Filter out all the next entries that are above a maximum depth
+    /// Filter out entries above the given maximum [depth](Self::depth).
     pub fn max_depth(mut self, max: usize) -> Self {
         self.max_depth = max;
         self
     }
 }
 
-impl<'a> Iterator for FilesIter<'a> {
+impl<'a> Iterator for NodesIter<'a> {
     type Item = &'a FsTree;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -125,19 +181,61 @@ impl<'a> Iterator for FilesIter<'a> {
 /// Created by `FsTree::iter`.
 #[derive(Debug, Clone)]
 pub struct Iter<'a> {
-    files_iter: FilesIter<'a>,
+    files_iter: NodesIter<'a>,
     path_builder: PathBuf,
     previous_depth: usize,
 }
 
 impl<'a> Iter<'a> {
-    // Used by `FilesIter::paths(self)`
-    pub(crate) fn new(files_iter: FilesIter<'a>) -> Self {
+    /// Construct this iterator.
+    pub(crate) fn new(files_iter: NodesIter<'a>) -> Self {
         Self {
             files_iter,
             path_builder: PathBuf::new(),
             previous_depth: 0,
         }
+    }
+
+    /// Return depth for the last yielded element.
+    ///
+    /// Depth `0` corresponds to the root element (first `.next()` call).
+    ///
+    /// # Corner cases:
+    /// - If you call this function before `.next()` is called, you'll get `0`.
+    /// - If `None` is yielded by this iterator, the depth value will remain immutable, and
+    /// correspond to the depth of the last yielded element.
+    pub fn depth(&self) -> usize {
+        self.files_iter.depth()
+    }
+
+    /// Filter out regular files.
+    pub fn skip_regular_files(mut self, arg: bool) -> Self {
+        self.files_iter = self.files_iter.skip_regular_files(arg);
+        self
+    }
+
+    /// Filter out directories.
+    pub fn skip_dirs(mut self, arg: bool) -> Self {
+        self.files_iter = self.files_iter.skip_dirs(arg);
+        self
+    }
+
+    /// Filter out symlinks.
+    pub fn skip_symlinks(mut self, arg: bool) -> Self {
+        self.files_iter = self.files_iter.skip_symlinks(arg);
+        self
+    }
+
+    /// Filter out entries below the given minimum [depth](Self::depth).
+    pub fn min_depth(mut self, min: usize) -> Self {
+        self.files_iter = self.files_iter.min_depth(min);
+        self
+    }
+
+    /// Filter out entries above the given maximum [depth](Self::depth).
+    pub fn max_depth(mut self, max: usize) -> Self {
+        self.files_iter = self.files_iter.max_depth(max);
+        self
     }
 }
 
@@ -163,37 +261,64 @@ impl<'a> Iterator for Iter<'a> {
 /// Iterator for each path inside of the recursive struct
 #[derive(Debug, Clone)]
 pub struct PathsIter<'a> {
-    files_iter: FilesIter<'a>,
-    path_builder: PathBuf,
-    previous_depth: usize,
+    inner_iter: Iter<'a>,
 }
 
 impl<'a> PathsIter<'a> {
-    fn new(files_iter: FilesIter<'a>) -> Self {
-        Self {
-            files_iter,
-            path_builder: PathBuf::new(),
-            previous_depth: 0,
-        }
+    /// Construct this iterator.
+    pub(crate) fn new(inner_iter: Iter<'a>) -> Self {
+        Self { inner_iter }
+    }
+
+    /// Return depth for the last yielded element.
+    ///
+    /// Depth `0` corresponds to the root element (first `.next()` call).
+    ///
+    /// # Corner cases:
+    /// - If you call this function before `.next()` is called, you'll get `0`.
+    /// - If `None` is yielded by this iterator, the depth value will remain immutable, and
+    /// correspond to the depth of the last yielded element.
+    pub fn depth(&self) -> usize {
+        self.inner_iter.depth()
+    }
+
+    /// Filter out regular files.
+    pub fn skip_regular_files(mut self, arg: bool) -> Self {
+        self.inner_iter = self.inner_iter.skip_regular_files(arg);
+        self
+    }
+
+    /// Filter out directories.
+    pub fn skip_dirs(mut self, arg: bool) -> Self {
+        self.inner_iter = self.inner_iter.skip_dirs(arg);
+        self
+    }
+
+    /// Filter out symlinks.
+    pub fn skip_symlinks(mut self, arg: bool) -> Self {
+        self.inner_iter = self.inner_iter.skip_symlinks(arg);
+        self
+    }
+
+    /// Filter out entries below the given minimum [depth](Self::depth).
+    pub fn min_depth(mut self, min: usize) -> Self {
+        self.inner_iter = self.inner_iter.min_depth(min);
+        self
+    }
+
+    /// Filter out entries above the given maximum [depth](Self::depth).
+    pub fn max_depth(mut self, max: usize) -> Self {
+        self.inner_iter = self.inner_iter.max_depth(max);
+        self
     }
 }
 
 impl Iterator for PathsIter<'_> {
-    // I'd like to return `&Path`, but the `Iterator` trait doesn't allow a lifetime parameter on `self`
+    // I'd like to return `&Path`, but the `Iterator` trait blocks putting a lifetime on `self`
     type Item = PathBuf;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let file = self.files_iter.next()?;
-
-        let new_depth = self.files_iter.depth();
-        for _ in new_depth..=self.previous_depth {
-            self.path_builder.pop();
-        }
-        self.path_builder.push(&file.path);
-
-        self.previous_depth = new_depth;
-
-        Some(self.path_builder.clone())
+        self.inner_iter.next().map(|(_, path)| path)
     }
 }
 
@@ -259,7 +384,7 @@ mod tests {
             /* 9 */ &tree.c(2),           // .config/outerfile2
         ];
 
-        let mut it = tree.files();
+        let mut it = tree.nodes();
         assert_eq!(it.next(), Some(refs[0])); // .config/
         assert_eq!(it.depth(), 0);            // 0
         assert_eq!(it.next(), Some(refs[1])); // .config/i3/
@@ -282,13 +407,13 @@ mod tests {
         assert_eq!(it.depth(), 1);            // 0       1
         assert_eq!(it.next(), None);
 
-        let mut it = tree.files().skip_regular_files(true);
+        let mut it = tree.nodes().skip_regular_files(true);
         assert_eq!(it.next(), Some(refs[0])); // .config/
         assert_eq!(it.next(), Some(refs[1])); // .config/i3/
         assert_eq!(it.next(), Some(refs[4])); // .config/i3/dir/
         assert_eq!(it.next(), None);
 
-        let mut it = tree.files().skip_dirs(true);
+        let mut it = tree.nodes().skip_dirs(true);
         assert_eq!(it.next(), Some(refs[2])); // .config/i3/file1
         assert_eq!(it.next(), Some(refs[3])); // .config/i3/file2
         assert_eq!(it.next(), Some(refs[5])); // .config/i3/dir/innerfile1
@@ -298,7 +423,7 @@ mod tests {
         assert_eq!(it.next(), Some(refs[9])); // .config/outerfile2
         assert_eq!(it.next(), None);
 
-        let mut it = tree.files().skip_regular_files(true);
+        let mut it = tree.nodes().skip_regular_files(true);
         assert_eq!(it.next(), Some(refs[0])); // .config/
         assert_eq!(it.next(), Some(refs[1])); // .config/i3/
         assert_eq!(it.next(), Some(refs[4])); // .config/i3/dir/
@@ -309,7 +434,7 @@ mod tests {
         // .config/
         // .config/i3/dir/innerfile1
         // .config/i3/dir/innerfile2
-        let mut it = tree.files().min_depth(1).max_depth(2);
+        let mut it = tree.nodes().min_depth(1).max_depth(2);
         assert_eq!(it.next(), Some(refs[1])); // .config/i3/
         assert_eq!(it.next(), Some(refs[2])); // .config/i3/file1
         assert_eq!(it.next(), Some(refs[3])); // .config/i3/file2
