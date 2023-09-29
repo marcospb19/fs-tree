@@ -1,7 +1,8 @@
-//! Implementation of the filesystem tree.
+//! Implementation of [`FsTree`].
 
 use std::{
     collections::HashMap,
+    io,
     ops::Index,
     path::{Path, PathBuf},
 };
@@ -10,17 +11,15 @@ use file_type_enum::FileType;
 
 use crate::{
     fs,
-    iter::{FilesIter, Iter, PathsIter},
+    iter::{Iter, NodesIter, PathsIter},
     util, Error, Result, TreeNode,
 };
 
 /// A filesystem tree recursive type.
 ///
-/// Methods for iteration: [`.iter()`], [`.nodes()`] or [`.paths()`].
+/// # Iterators:
 ///
-/// [`.iter()`]: Self::iter
-/// [`.nodes()`]: Self::nodes
-/// [`.paths()`]: Self::paths
+/// See the [iterator module documentation](crate::iter).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FsTree {
     /// The filename of this file.
@@ -30,7 +29,7 @@ pub struct FsTree {
 }
 
 impl FsTree {
-    /// Creates a `FsTree::Regular` from arguments.
+    /// Construct a regular file from given value.
     pub fn new_regular(path: impl Into<PathBuf>) -> Self {
         Self {
             path: path.into(),
@@ -38,7 +37,7 @@ impl FsTree {
         }
     }
 
-    /// Creates a `FsTree::Directory` from arguments.
+    /// Construct a directory from given values.
     pub fn new_directory(path: impl Into<PathBuf>, children: Vec<Self>) -> Self {
         Self {
             path: path.into(),
@@ -46,114 +45,42 @@ impl FsTree {
         }
     }
 
-    /// Creates a `FsTree::Symlink` from arguments.
+    /// Construct a symlink from given values.
     pub fn new_symlink(path: impl Into<PathBuf>, target_path: impl Into<PathBuf>) -> Self {
-        let path = path.into();
-        let target_path = target_path.into();
         Self {
-            path,
-            file_type: TreeNode::Symlink(target_path),
+            path: path.into(),
+            file_type: TreeNode::Symlink(target_path.into()),
         }
     }
 
-    /// Collects a `Vec` of `FsTree` from `path` that is a directory.
+    /// Read a `Vec<FsTree>` from the directory at `path`, follows symlinks.
+    ///
+    /// If you want symlink-awareness, check [`collect_from_directory_symlink`].
+    ///
+    /// # Errors:
+    ///
+    /// - If any IO error occurred.
+    /// - Returns [`Error::NotADirectoryError`](crate::Error::NotADirectoryError) if the given path
+    /// is not a directory.
+    ///
+    /// [`collect_from_directory_symlink`]: FsTree::collect_from_directory_symlink
     pub fn collect_from_directory(path: impl AsRef<Path>) -> Result<Vec<Self>> {
         Self::__collect_from_directory(path.as_ref(), true)
     }
 
-    /// Collects a `Vec` of `FsTree` from `path` that is a directory, entries can be symlinks.
+    /// Read a `Vec<FsTree>` from the directory at `path`.
+    ///
+    /// If you don't want symlink-awareness, check [`collect_from_directory`].
+    ///
+    /// # Errors:
+    ///
+    /// - If any IO error occurred.
+    /// - Returns [`Error::NotADirectoryError`](crate::Error::NotADirectoryError) if the given path
+    /// is not a directory.
+    ///
+    /// [`collect_from_directory`]: FsTree::collect_from_directory
     pub fn collect_from_directory_symlink(path: impl AsRef<Path>) -> Result<Vec<Self>> {
         Self::__collect_from_directory(path.as_ref(), false)
-    }
-
-    /// Builds a `FsTree` from `path`, follows symlinks.
-    ///
-    /// Similar to `from_path_symlink`.
-    ///
-    /// If file at `path` is a regular file, will return a `FsTree::Regular`.
-    /// If file at `path` is a directory file, `FsTree::Directory` (with .children).
-    ///
-    /// # Errors:
-    /// - If `Io::Error` from `fs::metadata(path)`
-    /// - If it is a directory, and `Io::Error` from `fs::read_dir(path)` iterator usage
-    /// - If [unexpected file type] at `path`
-    ///
-    /// This function traverses symlinks until final destination, and then reads it, so it can never
-    /// return `Ok(FsTree::Symlink { .. ]})`, if you wish otherwise, use
-    /// `FsTree::from_path_symlink` instead.
-    ///
-    /// [unexpected file type]: docs.rs/file_type_enum
-    pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
-        Self::__from_path(path.as_ref(), true)
-    }
-
-    /// Builds a `FsTree` from `path`, follows symlinks.
-    ///
-    /// Similar to `from_path_symlink`.
-    ///
-    /// If file at `path` is a regular file, will return a `FsTree::Regular`.
-    /// If file at `path` is a directory file, `FsTree::Directory` (with `children` field).
-    /// If file at `path` is a symlink file, `FsTree::Symlink` (with `target_path` field).
-    ///
-    /// # Errors:
-    /// - If `Io::Error` from `fs::metadata(path)`
-    /// - If it is a directory, and `Io::Error` from `fs::read_dir(path)` iterator usage
-    /// - If it is a symlink, and `Io::Error` from `fs::read_link(path)`
-    /// - If [unexpected file type] at `path`
-    ///
-    /// If you wish to traverse symlinks until final destination, instead, use
-    /// `FsTree::from_path`.
-    ///
-    /// [unexpected file type]: docs.rs/file_type_enum
-    pub fn from_path_symlink(path: impl AsRef<Path>) -> Result<Self> {
-        Self::__from_path(path.as_ref(), false)
-    }
-
-    /// Splits `Path` pieces into a `FsTree`.
-    ///
-    /// Returns `None` if the string is empty.
-    ///
-    /// Can only build Regular and Directory, not symlink.
-    ///
-    /// Example:
-    ///
-    /// ```
-    /// use fs_tree::{FsTree, tree};
-    ///
-    /// let result = FsTree::from_path_text("dir/inner/file");
-    ///
-    /// let expected = tree! {
-    ///     dir: {
-    ///         inner: {
-    ///             file
-    ///         }
-    ///     }
-    /// };
-    ///
-    /// assert_eq!(result, Some(expected));
-    /// ```
-    pub fn from_path_text(path: impl AsRef<Path>) -> Option<Self> {
-        Self::from_path_pieces(path.as_ref().iter())
-    }
-
-    /// Generic version of `FsTree::from_path_text`.
-    ///
-    /// Returns `None` if path is empty.
-    pub fn from_path_pieces<I, P>(path_iter: I) -> Option<Self>
-    where
-        I: IntoIterator<Item = P>,
-        P: AsRef<Path>,
-    {
-        let mut path_iter = path_iter.into_iter();
-
-        let popped_piece = path_iter.next()?;
-
-        if let Some(subtree) = Self::from_path_pieces(path_iter) {
-            Self::new_directory(popped_piece.as_ref(), vec![subtree])
-        } else {
-            Self::new_regular(popped_piece.as_ref())
-        }
-        .into()
     }
 
     fn __collect_from_directory(folder_path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
@@ -179,6 +106,34 @@ impl FsTree {
         }
 
         Ok(children)
+    }
+
+    /// Construct a `FsTree` by reading from `path`, follows symlinks.
+    ///
+    /// If you want symlink-awareness, check [`from_path_symlink`].
+    ///
+    /// # Errors:
+    ///
+    /// - Any IO error from `fs::metadata` or `fs::read_dir`.
+    /// - If any file has an unsupported file type.
+    ///
+    /// [`from_path_symlink`]: FsTree::from_path
+    pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
+        Self::__from_path(path.as_ref(), true)
+    }
+
+    /// Construct a `FsTree` by reading from `path`.
+    ///
+    /// If you don't want symlink-awareness, check [`from_path`].
+    ///
+    /// # Errors:
+    ///
+    /// - Any IO error from `fs::symlink_metadata(path)` or `fs::read_dir`.
+    /// - If any file has an unsupported file type.
+    ///
+    /// [`from_path`]: FsTree::from_path_symlink
+    pub fn from_path_symlink(path: impl AsRef<Path>) -> Result<Self> {
+        Self::__from_path(path.as_ref(), false)
     }
 
     fn __from_path(path: &Path, follow_symlinks: bool) -> Result<Self> {
@@ -207,82 +162,104 @@ impl FsTree {
         }
     }
 
-    /// An iterator over `(&FsTree, PathBuf)`.
-    pub fn iter(&self) -> Iter {
-        Iter::new(self.files())
-    }
-
-    /// Iterator of all `FsTree`s in the structure
-    pub fn files(&self) -> FilesIter {
-        FilesIter::new(self)
-    }
-
-    /// Shorthand for `self.files().paths()`, see link to [`.paths()`] method
+    /// Construct a `FsTree` from path pieces.
     ///
-    /// [`.paths()`]: crate::iter::FilesIter::paths
-    pub fn paths(&self) -> PathsIter {
-        self.files().paths()
-    }
-
-    /// Fix relative paths from each node piece.
+    /// Returns `None` if the input is empty.
     ///
-    /// If you manually build a structure like:
+    /// Returned value can correspond to a regular file or directory, but not a symlink.
     ///
-    /// ```plain
-    /// "a": [
-    ///     "b": [
-    ///         "c",
-    ///     ]
-    /// ]
+    /// # Examples:
+    ///
+    /// ```
+    /// use fs_tree::{FsTree, tree};
+    ///
+    /// let result = FsTree::from_path_text("a/b/c");
+    ///
+    /// let expected = tree! {
+    ///     a: {
+    ///         b: {
+    ///             c
+    ///         }
+    ///     }
+    /// };
+    ///
+    /// // The expected tree
+    /// assert_eq!(result, Some(expected));
+    ///
+    /// // Nodes are nested
+    /// assert!(result.is_dir());
+    /// assert!(result["b"].is_dir());
+    /// assert!(result["c"].is_regular());
     /// ```
     ///
-    /// Using the create methods, then you need to run this function to make them relative paths.
+    /// # Warning
     ///
-    /// ```plain
-    /// "a": [
-    ///     "a/b": [
-    ///         "a/b/c",
-    ///     ]
-    /// ]
-    /// ```
+    /// Inputs ending with `/`, like `Path::new("example/")` are **NOT** parsed as directories.
     ///
-    /// Then, you can access any of the files only by looking at their path.
-    pub fn make_paths_relative(&mut self) {
-        // If this is a directory, update the path of all children
-        if let TreeNode::Directory(children) = &mut self.file_type {
-            for child in children.iter_mut() {
-                // Update child's path
-                child.path = self.path.join(&child.path);
-                // Update target if it's a symlink
-                if let Some(target) = child.target_mut() {
-                    *target = self.path.join(&target);
-                }
-                child.make_paths_relative();
-            }
+    /// This might change in the future, for my personal usage cases (author writing), this was
+    /// always OK, but if you'd like this to change, open an issue 👍.
+    pub fn from_path_text(path: impl AsRef<Path>) -> Option<Self> {
+        Self::from_path_pieces(path.as_ref().iter())
+    }
+
+    /// Generic iterator version of [`from_path_text`](FsTree::from_path_text).
+    pub fn from_path_pieces<I, P>(path_iter: I) -> Option<Self>
+    where
+        I: IntoIterator<Item = P>,
+        P: AsRef<Path>,
+    {
+        let mut path_iter = path_iter.into_iter();
+
+        let popped_piece = path_iter.next()?;
+
+        if let Some(subtree) = Self::from_path_pieces(path_iter) {
+            Self::new_directory(popped_piece.as_ref(), vec![subtree])
+        } else {
+            Self::new_regular(popped_piece.as_ref())
         }
+        .into()
     }
 
-    /// Makes all paths in the tree absolute.
+    /// Creates an iterator that yields `(&FsTree, PathBuf)`.
+    ///
+    /// See iterator docs at the [`iter` module documentation](crate::iter).
+    pub fn iter(&self) -> Iter {
+        Iter::new(self.nodes())
+    }
+
+    /// Creates an iterator that yields `&FsTree`.
+    ///
+    /// See iterator docs at the [`iter` module documentation](crate::iter).
+    pub fn nodes(&self) -> NodesIter {
+        NodesIter::new(self)
+    }
+
+    /// Creates an iterator that yields `PathBuf`.
+    ///
+    /// See iterator docs at the [`iter` module documentation](crate::iter).
+    pub fn paths(&self) -> PathsIter {
+        PathsIter::new(self.iter())
+    }
+
+    /// Returns `Ok(true)` if all nodes exist in the filesystem.
     ///
     /// # Errors:
     ///
-    /// In case `std::fs::canonicalize` fails at any path, this function will stop and return an
-    /// IoError, leave the tree in a mixed state in terms of canonical paths.
-    pub fn make_paths_absolute(&mut self) -> Result<()> {
-        self.path = self.path.canonicalize()?;
-
-        if let Some(children) = self.children_mut() {
-            for child in children.iter_mut() {
-                Self::make_paths_absolute(child)?;
+    /// Similar to how [`Path::try_exists`] works, this function returns `false` if any IO error
+    /// occurred when checking [`std::fs::symlink_metadata`] (except [`io::ErrorKind::NotFound`]).
+    pub fn try_exists(&mut self) -> io::Result<bool> {
+        for path in self.paths() {
+            match fs::symlink_metadata(path) {
+                Ok(_) => continue,
+                Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
+                Err(error) => return Err(error),
             }
         }
 
-        Ok(())
+        Ok(true)
     }
 
     /// Merge this tree with other `FsTree`.
-    ///
-    /// This function is currently experimental and likely to change in future versions.
     ///
     /// # Errors:
     ///
@@ -604,7 +581,6 @@ mod tests {
     use crate::tree;
 
     // #[test]
-    // #[ignore]
     // fn test_diff() {
     //     let left = FsTree::from_path_text(".config/i3/file").unwrap();
     //     let right = FsTree::from_path_text(".config/i3/folder/file/oie").unwrap();

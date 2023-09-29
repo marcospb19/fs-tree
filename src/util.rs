@@ -2,9 +2,9 @@ use std::path::{Path, PathBuf};
 
 use file_type_enum::FileType;
 
-use crate::{error::*, fs};
+use crate::{fs, Error, Result};
 
-/// Follow symlink at `path` in one level, and return the new path.
+/// Follow symlink at `path` just one level, and return the new path.
 ///
 /// # Errors:
 /// - If `path` does not exist
@@ -15,7 +15,6 @@ pub fn symlink_follow<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
 
     if FileType::from_symlink_path(path).is_ok_and(|file| !file.is_symlink()) {
         return Err(Error::NotASymlinkError(path.to_path_buf()));
-        // "while trying to read symlink target path",
     }
 
     let target = fs::read_link(path)?;

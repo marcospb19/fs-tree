@@ -2,10 +2,10 @@ use std::{error, fmt, io, path::PathBuf};
 
 use file_type_enum::FileType;
 
-/// Result for all `fs-tree` crate errors.
+/// An alias for `Result<T, fs_tree::Error>`.
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// Errors generated inside of the `fs-tree` crate.
+/// An enum for all errors generated in the `fs-tree` crate.
 #[derive(Debug)]
 pub enum Error {
     /// Expected directory, but file type differs.
@@ -15,13 +15,14 @@ pub enum Error {
     /// Unsupported file type found.
     UnexpectedFileTypeError(FileType, PathBuf),
     /// An error with reading or writing.
+    // TODO: Consider changing this to IoError(io::Error, PathBuf)
     IoError(io::Error),
 }
 
 use Error::*;
 
 impl Error {
-    /// Path to where the error occurred
+    /// The path related to this error, if any.
     pub fn path(&self) -> Option<&PathBuf> {
         match self {
             NotADirectoryError(path)
@@ -44,6 +45,7 @@ impl error::Error for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "FsError: ")?;
+
         match self {
             NotADirectoryError(..) => write!(f, "not a directory"),
             NotASymlinkError(..) => write!(f, "not a symlink"),
