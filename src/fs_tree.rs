@@ -54,7 +54,7 @@ impl FsTree {
 
     /// Read a `Vec<FsTree>` from the directory at `path`, follows symlinks.
     ///
-    /// If you want symlink-awareness, check [`collect_from_directory_symlink`].
+    /// If you want symlink-awareness, check [`symlink_collect_from_directory`].
     ///
     /// # Errors:
     ///
@@ -62,7 +62,7 @@ impl FsTree {
     /// - Returns [`Error::NotADirectoryError`](crate::Error::NotADirectoryError) if the given path
     /// is not a directory.
     ///
-    /// [`collect_from_directory_symlink`]: FsTree::collect_from_directory_symlink
+    /// [`symlink_collect_from_directory`]: FsTree::symlink_collect_from_directory
     pub fn collect_from_directory(path: impl AsRef<Path>) -> Result<Vec<Self>> {
         Self::__collect_from_directory(path.as_ref(), true)
     }
@@ -78,7 +78,7 @@ impl FsTree {
     /// is not a directory.
     ///
     /// [`collect_from_directory`]: FsTree::collect_from_directory
-    pub fn collect_from_directory_symlink(path: impl AsRef<Path>) -> Result<Vec<Self>> {
+    pub fn symlink_collect_from_directory(path: impl AsRef<Path>) -> Result<Vec<Self>> {
         Self::__collect_from_directory(path.as_ref(), false)
     }
 
@@ -109,29 +109,29 @@ impl FsTree {
 
     /// Construct a `FsTree` by reading from `path`, follows symlinks.
     ///
-    /// If you want symlink-awareness, check [`from_path_symlink`].
+    /// If you want symlink-awareness, check [`symlink_read_at`].
     ///
     /// # Errors:
     ///
     /// - Any IO error from `fs::metadata` or `fs::read_dir`.
     /// - If any file has an unsupported file type.
     ///
-    /// [`from_path_symlink`]: FsTree::from_path
-    pub fn from_path(path: impl AsRef<Path>) -> Result<Self> {
+    /// [`symlink_read_at`]: FsTree::read_at
+    pub fn read_at(path: impl AsRef<Path>) -> Result<Self> {
         Self::__from_path(path.as_ref(), true)
     }
 
     /// Construct a `FsTree` by reading from `path`.
     ///
-    /// If you don't want symlink-awareness, check [`from_path`].
+    /// If you don't want symlink-awareness, check [`read_at`].
     ///
     /// # Errors:
     ///
     /// - Any IO error from `fs::symlink_metadata(path)` or `fs::read_dir`.
     /// - If any file has an unsupported file type.
     ///
-    /// [`from_path`]: FsTree::from_path_symlink
-    pub fn from_path_symlink(path: impl AsRef<Path>) -> Result<Self> {
+    /// [`read_at`]: FsTree::symlink_read_at
+    pub fn symlink_read_at(path: impl AsRef<Path>) -> Result<Self> {
         Self::__from_path(path.as_ref(), false)
     }
 
@@ -149,7 +149,7 @@ impl FsTree {
                 Ok(Self::new_directory(path, children))
             },
             FileType::Symlink => {
-                let target_path = utils::symlink_follow(path)?;
+                let target_path = utils::follow_symlink(path)?;
                 Ok(Self::new_symlink(path, target_path))
             },
             other_type => {

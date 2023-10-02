@@ -38,8 +38,8 @@
 //!
 //! Like `std` functions, functions in this crate follow symlinks (and symlink chains), so you'll
 //! never get a `TreeNode::Symlink(_)` in your tree! However, if you want symlink-awareness, use the
-//! function version with the `symlink` suffix (see [`FsTree::from_path`] vs
-//! [`FsTree::from_path_symlink`]).
+//! function version with the `symlink` prefix (see [`FsTree::read_at`] vs
+//! [`FsTree::symlink_read_at`]).
 //!
 //! Ways to construct a [`FsTree`]:
 //! 1. Load node from path.

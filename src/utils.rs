@@ -10,7 +10,7 @@ use crate::{fs, Error, Result};
 /// - If `path` does not exist
 /// - If `path` is not a symlink
 /// - If `Io::Error` from `fs::read_link(path)`
-pub fn symlink_follow<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
+pub fn follow_symlink<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
     let path = path.as_ref();
 
     if FileType::from_symlink_path(path).is_ok_and(|file| !file.is_symlink()) {
