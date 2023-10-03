@@ -687,7 +687,7 @@ impl FsTree {
                 );
             }
 
-            tree = if let Some(tree) = dbg!(tree).get_mut(dbg!(next)) {
+            tree = if let Some(tree) = tree.get_mut(next) {
                 tree
             } else {
                 panic!("Failed to insert node, parent directory {next:?} doesn't exist");
