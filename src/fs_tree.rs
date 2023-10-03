@@ -1,7 +1,9 @@
 //! Implementation of [`FsTree`].
 
 use std::{
-    io,
+    collections::BTreeMap,
+    ffi::OsStr,
+    io, mem,
     ops::Index,
     path::{Path, PathBuf},
 };
@@ -11,8 +13,11 @@ use file_type_enum::FileType;
 use crate::{
     fs,
     iter::{Iter, NodesIter, PathsIter},
-    utils, Error, Result, TreeNode,
+    utils, Error, Result,
 };
+
+/// The children [Trie](https://en.wikipedia.org/wiki/Trie) type alias.
+pub type TrieMap = BTreeMap<PathBuf, FsTree>;
 
 /// A filesystem tree recursive type.
 ///
@@ -20,91 +25,50 @@ use crate::{
 ///
 /// See the [iterator module documentation](crate::iter).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct FsTree {
-    /// The filename of this file.
-    pub path: PathBuf,
-    /// The TreeNode of this file.
-    file_type: TreeNode,
+pub enum FsTree {
+    /// A regular file.
+    Regular,
+    /// A directory, might have children `FsTree`s inside.
+    Directory(TrieMap),
+    /// Symbolic link, and it's target path (the link might be broken).
+    Symlink(PathBuf),
 }
 
 impl FsTree {
-    /// Construct a regular file from given value.
-    pub fn new_regular(path: impl Into<PathBuf>) -> Self {
-        Self {
-            path: path.into(),
-            file_type: TreeNode::Regular,
+    /// Creates an empty directory node.
+    ///
+    /// This is an alias to `FsTree::Directory(Default::default())`.
+    ///
+    /// ```
+    /// use fs_tree::{FsTree, TrieMap};
+    ///
+    /// let result = FsTree::new_dir();
+    /// let expected = FsTree::Directory(TrieMap::new());
+    ///
+    /// assert_eq!(result, expected);
+    /// ```
+    pub fn new_dir() -> Self {
+        Self::Directory(TrieMap::new())
+    }
+
+    /// Calculate the length by counting the leafs.
+    pub fn len_leafs(&self) -> usize {
+        if let Some(children) = self.children() {
+            children.values().map(Self::len_leafs).sum::<usize>()
+        } else if self.is_leaf() {
+            1
+        } else {
+            0
         }
     }
 
-    /// Construct a directory from given values.
-    pub fn new_directory(path: impl Into<PathBuf>, children: Vec<Self>) -> Self {
-        Self {
-            path: path.into(),
-            file_type: TreeNode::Directory(children),
+    /// Calculate the length by counting all tree nodes, including the root.
+    pub fn len_all(&self) -> usize {
+        if let Some(children) = self.children() {
+            children.values().map(Self::len_leafs).sum::<usize>()
+        } else {
+            1
         }
-    }
-
-    /// Construct a symlink from given values.
-    pub fn new_symlink(path: impl Into<PathBuf>, target_path: impl Into<PathBuf>) -> Self {
-        Self {
-            path: path.into(),
-            file_type: TreeNode::Symlink(target_path.into()),
-        }
-    }
-
-    /// Read a `Vec<FsTree>` from the directory at `path`, follows symlinks.
-    ///
-    /// If you want symlink-awareness, check [`symlink_collect_from_directory`].
-    ///
-    /// # Errors:
-    ///
-    /// - If any IO error occurred.
-    /// - Returns [`Error::NotADirectoryError`](crate::Error::NotADirectoryError) if the given path
-    /// is not a directory.
-    ///
-    /// [`symlink_collect_from_directory`]: FsTree::symlink_collect_from_directory
-    pub fn collect_from_directory(path: impl AsRef<Path>) -> Result<Vec<Self>> {
-        Self::__collect_from_directory(path.as_ref(), true)
-    }
-
-    /// Read a `Vec<FsTree>` from the directory at `path`.
-    ///
-    /// If you don't want symlink-awareness, check [`collect_from_directory`].
-    ///
-    /// # Errors:
-    ///
-    /// - If any IO error occurred.
-    /// - Returns [`Error::NotADirectoryError`](crate::Error::NotADirectoryError) if the given path
-    /// is not a directory.
-    ///
-    /// [`collect_from_directory`]: FsTree::collect_from_directory
-    pub fn symlink_collect_from_directory(path: impl AsRef<Path>) -> Result<Vec<Self>> {
-        Self::__collect_from_directory(path.as_ref(), false)
-    }
-
-    fn __collect_from_directory(folder_path: &Path, follow_symlinks: bool) -> Result<Vec<Self>> {
-        if !FileType::from_path(folder_path)?.is_directory() {
-            return Err(Error::NotADirectoryError(folder_path.to_path_buf()));
-        }
-
-        let mut children = vec![];
-
-        for entry in fs::read_dir(folder_path)? {
-            let entry = entry?;
-            let entry_path = entry.path();
-
-            let mut file = Self::__from_path(&entry_path, follow_symlinks)?;
-
-            let stripped_file_path = entry_path.strip_prefix(folder_path).expect(
-                "Failed to strip prefix that was assumed to always succeed, this \
-                 is an error in the library `fs-tree`, please open an issue",
-            );
-
-            file.path = stripped_file_path.into();
-            children.push(file);
-        }
-
-        Ok(children)
     }
 
     /// Construct a `FsTree` by reading from `path`, follows symlinks.
@@ -113,12 +77,12 @@ impl FsTree {
     ///
     /// # Errors:
     ///
-    /// - Any IO error from `fs::metadata` or `fs::read_dir`.
-    /// - If any file has an unsupported file type.
+    /// - If any IO error occurs.
+    /// - If any file has an unexpected file type.
     ///
     /// [`symlink_read_at`]: FsTree::read_at
     pub fn read_at(path: impl AsRef<Path>) -> Result<Self> {
-        Self::__from_path(path.as_ref(), true)
+        Self::__read_at(path.as_ref(), true)
     }
 
     /// Construct a `FsTree` by reading from `path`.
@@ -127,15 +91,15 @@ impl FsTree {
     ///
     /// # Errors:
     ///
-    /// - Any IO error from `fs::symlink_metadata(path)` or `fs::read_dir`.
-    /// - If any file has an unsupported file type.
+    /// - If any IO error occurs.
+    /// - If any file has an unexpected file type.
     ///
     /// [`read_at`]: FsTree::symlink_read_at
     pub fn symlink_read_at(path: impl AsRef<Path>) -> Result<Self> {
-        Self::__from_path(path.as_ref(), false)
+        Self::__read_at(path.as_ref(), false)
     }
 
-    fn __from_path(path: &Path, follow_symlinks: bool) -> Result<Self> {
+    fn __read_at(path: &Path, follow_symlinks: bool) -> Result<Self> {
         let get_file_type = if follow_symlinks {
             FileType::from_path
         } else {
@@ -143,14 +107,28 @@ impl FsTree {
         };
 
         match get_file_type(path)? {
-            FileType::Regular => Ok(Self::new_regular(path)),
+            FileType::Regular => Ok(Self::Regular),
             FileType::Directory => {
-                let children = Self::__collect_from_directory(path, follow_symlinks)?;
-                Ok(Self::new_directory(path, children))
+                let mut children = TrieMap::new();
+
+                for entry in fs::read_dir(path)? {
+                    let entry = entry?;
+                    let entry_path = entry.path();
+
+                    let node = Self::__read_at(&entry_path, follow_symlinks)?;
+
+                    let stripped_file_path = entry_path
+                        .strip_prefix(path)
+                        .expect("Failed to strip prefix, expected to always succeed in Linux");
+
+                    children.insert(stripped_file_path.into(), node);
+                }
+
+                Ok(Self::Directory(children))
             },
             FileType::Symlink => {
                 let target_path = utils::follow_symlink(path)?;
-                Ok(Self::new_symlink(path, target_path))
+                Ok(Self::Symlink(target_path))
             },
             other_type => {
                 Err(Error::UnexpectedFileTypeError(
@@ -161,18 +139,149 @@ impl FsTree {
         }
     }
 
+    /// Construct a structural copy of this `FsTree` by reading files at the given path.
+    ///
+    /// In other words, the returned tree is formed of all paths in `self` that are also found in
+    /// the given `path` (intersection), missing files are skipped and types might differ.
+    ///
+    /// This function can be useful if you need to load a subtree from a huge folder and cannot
+    /// afford to load the whole folder, or if you just want to filter out every node outside of the
+    /// specified structure.
+    ///
+    /// This function will make at maximum `self.len()` syscalls.
+    ///
+    /// If you don't want symlink-awareness, check [`FsTree::symlink_read_copy_at`].
+    ///
+    /// # Examples:
+    ///
+    /// ```no_run
+    /// use fs_tree::FsTree;
+    ///
+    /// fn dynamically_load_structure() -> FsTree {
+    /// #    "
+    ///     ...
+    /// #    ";
+    /// #   todo!();
+    /// }
+    ///
+    /// let structure = dynamically_load_structure();
+    ///
+    /// let new_tree = structure.read_copy_at("path_here").unwrap();
+    ///
+    /// // It is guaranteed that every path in here is present in `structure`
+    /// for path in new_tree.paths() {
+    ///     assert!(structure.get(path).is_some());
+    /// }
+    /// ```
+    ///
+    /// # Errors:
+    ///
+    /// - If an IO error happens, except [`io::ErrorKind::NotFound`]
+    ///
+    /// [`io::ErrorKind::NotFound`]: std::io::ErrorKind::NotFound
+    pub fn read_copy_at(&self, path: impl AsRef<Path>) -> Result<Self> {
+        self.__read_copy_at(path.as_ref(), true)
+    }
+
+    /// Construct a structural copy of this `FsTree` by reading files at the given path.
+    ///
+    /// In other words, the returned tree is formed of all paths in `self` that are also found in
+    /// the given `path` (intersection), missing files are skipped and types might differ.
+    ///
+    /// This function can be useful if you need to load a subtree from a huge folder and cannot
+    /// afford to load the whole folder, or if you just want to filter out every node outside of the
+    /// specified structure.
+    ///
+    /// This function will make at maximum `self.len()` syscalls.
+    ///
+    /// If you don't want symlink-awareness, check [`FsTree::read_copy_at`].
+    ///
+    /// # Examples:
+    ///
+    /// ```no_run
+    /// use fs_tree::FsTree;
+    ///
+    /// fn dynamically_load_structure() -> FsTree {
+    /// #    "
+    ///     ...
+    /// #    ";
+    /// #   todo!();
+    /// }
+    ///
+    /// let structure = dynamically_load_structure();
+    ///
+    /// let new_tree = structure.symlink_read_copy_at("path_here").unwrap();
+    ///
+    /// // It is guaranteed that every path in here is present in `structure`
+    /// for path in new_tree.paths() {
+    ///     assert!(structure.get(path).is_some());
+    /// }
+    /// ```
+    ///
+    /// # Errors:
+    ///
+    /// - If an IO error happens, except [`io::ErrorKind::NotFound`]
+    ///
+    /// [`io::ErrorKind::NotFound`]: std::io::ErrorKind::NotFound
+    pub fn symlink_read_copy_at(&self, path: impl AsRef<Path>) -> Result<Self> {
+        self.__read_copy_at(path.as_ref(), false)
+    }
+
+    // TODO: There are easy optimizations to be done in here
+    fn __read_copy_at(&self, folder: &Path, follow_symlinks: bool) -> Result<Self> {
+        let mut new_tree = FsTree::new_dir();
+
+        for relative_path in self.paths() {
+            let path = folder.join(&relative_path);
+
+            let get_file_type = if follow_symlinks {
+                FileType::from_path
+            } else {
+                FileType::from_symlink_path
+            };
+
+            let file_type = match get_file_type(&path) {
+                Ok(file_type) => file_type,
+                Err(err) if err.kind() == io::ErrorKind::NotFound => continue,
+                Err(err) => return Err(err.into()),
+            };
+
+            let node = match file_type {
+                FileType::Regular => Self::Regular,
+                FileType::Directory => Self::new_dir(),
+                FileType::Symlink => {
+                    let target_path = utils::follow_symlink(&path)?;
+                    Self::Symlink(target_path)
+                },
+                _ => continue,
+            };
+
+            new_tree.insert(relative_path, node);
+        }
+
+        Ok(new_tree)
+    }
+
     /// Construct a `FsTree` from path pieces.
     ///
     /// Returns `None` if the input is empty.
     ///
     /// Returned value can correspond to a regular file or directory, but not a symlink.
     ///
+    /// # Warning
+    ///
+    /// The last piece is always a file, so inputs ending with `/`, like `Path::new("example/")` are
+    /// **NOT** parsed as directories.
+    ///
+    /// This might change in the future, for my personal usage cases (author writing), this was
+    /// always OK, but if you'd like this to change, open an issue 👍.
+    ///
     /// # Examples:
     ///
     /// ```
     /// use fs_tree::{FsTree, tree};
     ///
-    /// let result = FsTree::from_path_text("a/b/c").unwrap();
+    /// let result = FsTree::from_path_text("a/b/c");
     ///
     /// let expected = tree! {
     ///     a: {
@@ -187,43 +296,35 @@ impl FsTree {
     ///
     /// // Nodes are nested
     /// assert!(result.is_dir());
-    /// assert!(result["b"].is_dir());
-    /// assert!(result["b"]["c"].is_regular());
+    /// assert!(result["a"].is_dir());
+    /// assert!(result["a"]["b"].is_dir());
+    /// assert!(result["a"]["b"]["c"].is_regular());
     /// ```
-    ///
-    /// # Warning
-    ///
-    /// Inputs ending with `/`, like `Path::new("example/")` are **NOT** parsed as directories.
-    ///
-    /// This might change in the future, for my personal usage cases (author writing), this was
-    /// always OK, but if you'd like this to change, open an issue 👍.
-    pub fn from_path_text(path: impl AsRef<Path>) -> Option<Self> {
+    pub fn from_path_text(path: impl AsRef<Path>) -> Self {
         Self::from_path_pieces(path.as_ref().iter())
     }
 
     /// Generic iterator version of [`from_path_text`](FsTree::from_path_text).
-    pub fn from_path_pieces<I, P>(path_iter: I) -> Option<Self>
+    pub fn from_path_pieces<I, P>(path_iter: I) -> Self
     where
         I: IntoIterator<Item = P>,
-        P: AsRef<Path>,
+        P: Into<PathBuf>,
     {
         let mut path_iter = path_iter.into_iter();
 
-        let popped_piece = path_iter.next()?;
-
-        if let Some(subtree) = Self::from_path_pieces(path_iter) {
-            Self::new_directory(popped_piece.as_ref(), vec![subtree])
+        if let Some(popped_piece) = path_iter.next() {
+            let child = (popped_piece.into(), Self::from_path_pieces(path_iter));
+            Self::Directory(TrieMap::from([child]))
         } else {
-            Self::new_regular(popped_piece.as_ref())
+            Self::Regular
         }
-        .into()
     }
 
     /// Creates an iterator that yields `(&FsTree, PathBuf)`.
     ///
     /// See iterator docs at the [`iter` module documentation](crate::iter).
     pub fn iter(&self) -> Iter {
-        Iter::new(self.nodes())
+        Iter::new(self)
     }
 
     /// Creates an iterator that yields `&FsTree`.
@@ -237,7 +338,12 @@ impl FsTree {
     ///
     /// See iterator docs at the [`iter` module documentation](crate::iter).
     pub fn paths(&self) -> PathsIter {
-        PathsIter::new(self.iter())
+        PathsIter::new(self)
+    }
+
+    /// Returns `true` if `self` type matches `other` type.
+    pub fn is_same_type_as(&self, other: &Self) -> bool {
+        mem::discriminant(self) == mem::discriminant(other)
     }
 
     /// Returns `Ok(true)` if all nodes exist in the filesystem.
@@ -260,39 +366,29 @@ impl FsTree {
 
     /// Merge two trees.
     ///
-    /// Unsolved questions: what happens if FsTree has a mismatching name?
-    ///
     /// # Errors:
     ///
     /// - Returns `None` if contents of both trees conflict.
-    //
-    // TODO: return Result<Self, DiffNode>.
     pub fn try_merge(mut self, other: Self) -> Option<Self> {
-        use TreeNode::{Directory, Regular, Symlink};
+        use FsTree::{Directory, Regular, Symlink};
 
         // If types match, check if their contents match, otherwise, return `None`
-        match (&mut self.file_type, other.file_type) {
+        match (&mut self, other) {
             (Regular, Regular) => Some(self),
             (Symlink(left_target), Symlink(right_target)) => {
                 (*left_target == right_target).then_some(self)
             },
             (Directory(left_children), Directory(right_children)) => {
-                // Just to clarify it to you, we're merging the right onto the left
-                let left_children: &mut Vec<FsTree> = left_children;
-                let right_children: Vec<FsTree> = right_children;
+                // Just to clarify, we're merging the right onto the left
+                let left_children: &mut TrieMap = left_children;
+                let right_children: TrieMap = right_children;
 
-                for right_child in right_children {
-                    // If right_child is also found on left, try merging with left_child
-                    // Else, just add it to the vec
-                    if let Some(index) = left_children
-                        .iter()
-                        .position(|child| child.path == right_child.path)
-                    {
-                        let left_child = left_children.remove(index);
-                        let left_child = left_child.try_merge(right_child)?;
-                        left_children.push(left_child);
+                for (path, right_node) in right_children {
+                    if let Some(left_node) = left_children.remove(&path) {
+                        let new_node = left_node.try_merge(right_node)?;
+                        left_children.insert(path, new_node);
                     } else {
-                        left_children.push(right_child);
+                        left_children.insert(path, right_node);
                     }
                 }
 
@@ -304,118 +400,100 @@ impl FsTree {
     }
 
     /// Reference to children vec if self.is_directory().
-    pub fn children(&self) -> Option<&[Self]> {
-        match &self.file_type {
-            TreeNode::Directory(children) => Some(children),
+    pub fn children(&self) -> Option<&TrieMap> {
+        match &self {
+            Self::Directory(children) => Some(children),
             _ => None,
         }
     }
 
     /// Reference to children vec if self.is_directory(), mutable.
-    pub fn children_mut(&mut self) -> Option<&mut Vec<Self>> {
-        match &mut self.file_type {
-            TreeNode::Directory(children) => Some(children),
+    pub fn children_mut(&mut self) -> Option<&mut TrieMap> {
+        match self {
+            Self::Directory(children) => Some(children),
             _ => None,
         }
     }
 
-    /// Reference to target_path if self.is_symlink().
-    pub fn target(&self) -> Option<&PathBuf> {
-        match &self.file_type {
-            TreeNode::Symlink(target_path) => Some(target_path),
+    /// Reference to target path, if self is a symlink.
+    pub fn target(&self) -> Option<&Path> {
+        match &self {
+            Self::Symlink(target_path) => Some(target_path),
             _ => None,
         }
     }
 
-    /// Reference to target_path if self.is_symlink(), mutable.
+    /// Reference to target path, if self is a symlink, mutable.
     pub fn target_mut(&mut self) -> Option<&mut PathBuf> {
-        match &mut self.file_type {
-            TreeNode::Symlink(target_path) => Some(target_path),
+        match self {
+            Self::Symlink(target_path) => Some(target_path),
             _ => None,
         }
     }
 
-    /// Apply a closure for each direct child of this FsTree.
-    ///
-    /// Only 1 level deep.
-    pub fn apply_to_children0(&mut self, f: impl FnMut(&mut Self)) {
-        if let Some(children) = self.children_mut() {
-            children.iter_mut().for_each(f);
+    // /// Apply a closure for each direct child of this FsTree.
+    // ///
+    // /// Only 1 level deep.
+    // pub fn apply_to_children0(&mut self, f: impl FnMut(&mut Self)) {
+    //     if let Some(children) = self.children_mut() {
+    //         children.iter_mut().for_each(f);
+    //     }
+    // }
+
+    // /// Apply a closure to all direct and indirect descendants inside of this structure.
+    // ///
+    // /// Calls recursively for all levels.
+    // pub fn apply_to_all_children1(&mut self, f: impl FnMut(&mut Self) + Copy) {
+    //     if let Some(children) = self.children_mut() {
+    //         children
+    //             .iter_mut()
+    //             .for_each(|x| x.apply_to_all_children1(f));
+    //         children.iter_mut().for_each(f);
+    //     }
+    // }
+
+    // /// Apply a closure to all direct and indirect descendants inside, also includes root.
+    // ///
+    // /// Calls recursively for all levels.
+    // pub fn apply_to_all(&mut self, mut f: impl FnMut(&mut Self) + Copy) {
+    //     f(self);
+    //     if let Some(children) = self.children_mut() {
+    //         for child in children.iter_mut() {
+    //             child.apply_to_all(f);
+    //         }
+    //     }
+    // }
+
+    /// Returns `true` if `self` is a leaf node.
+    pub fn is_leaf(&self) -> bool {
+        match self {
+            Self::Regular | Self::Symlink(_) => true,
+            Self::Directory(children) => children.is_empty(),
         }
     }
 
-    /// Apply a closure to all direct and indirect descendants inside of this structure.
-    ///
-    /// Calls recursively for all levels.
-    pub fn apply_to_all_children1(&mut self, f: impl FnMut(&mut Self) + Copy) {
-        if let Some(children) = self.children_mut() {
-            children
-                .iter_mut()
-                .for_each(|x| x.apply_to_all_children1(f));
-            children.iter_mut().for_each(f);
+    /// The variant string.
+    pub fn variant_str(&self) -> &'static str {
+        match self {
+            Self::Regular => "regular file",
+            Self::Directory(_) => "directory",
+            Self::Symlink(_) => "symlink",
         }
     }
 
-    /// Apply a closure to all direct and indirect descendants inside, also includes root.
-    ///
-    /// Calls recursively for all levels.
-    pub fn apply_to_all(&mut self, mut f: impl FnMut(&mut Self) + Copy) {
-        f(self);
-        if let Some(children) = self.children_mut() {
-            for child in children.iter_mut() {
-                child.apply_to_all(f);
-            }
-        }
-    }
-
-    /// Shorthand for `file.file_type.is_regular()`
+    /// Returns `true` if self matches the regular variant.
     pub fn is_regular(&self) -> bool {
-        self.file_type.is_regular()
+        matches!(self, Self::Regular)
     }
 
-    /// Shorthand for `file.file_type.is_dir()`
+    /// Returns `true` if self matches the directory variant.
     pub fn is_dir(&self) -> bool {
-        self.file_type.is_dir()
+        matches!(self, Self::Directory(_))
     }
 
-    /// Shorthand for `file.file_type.is_symlink()`
+    /// Returns `true` if self matches the symlink variant.
     pub fn is_symlink(&self) -> bool {
-        self.file_type.is_symlink()
-    }
-
-    /// Turn this node of the tree into a regular file.
-    ///
-    /// Beware the possible recursive drop of nested nodes if this node was a directory.
-    pub fn to_regular(self) -> Self {
-        Self {
-            file_type: TreeNode::Regular,
-            ..self
-        }
-    }
-
-    /// Turn this node of the tree into a directory.
-    ///
-    /// Beware the possible recursive drop of nested nodes if this node was a directory.
-    pub fn to_directory(self, children: Vec<Self>) -> Self {
-        Self {
-            file_type: TreeNode::Directory(children),
-            ..self
-        }
-    }
-
-    /// Turn this node of the tree into a symlink.
-    ///
-    /// Beware the possible recursive drop of nested nodes if this node was a directory.
-    pub fn to_symlink(self, target_path: impl Into<PathBuf>) -> Self {
-        Self {
-            file_type: TreeNode::Symlink(target_path.into()),
-            ..self
-        }
-    }
-
-    /// Checks if the FsTree file type is the same as other FsTree.
-    pub fn has_same_type_as(&self, other: &FsTree) -> bool {
-        self.file_type.is_same_type_as(&other.file_type)
+        matches!(self, Self::Symlink(_))
     }
 
     // /// Generate a diff from two different trees.
@@ -425,7 +503,7 @@ impl FsTree {
     //     }
 
     //     let (self_children, other_children) = match (&self.file_type, &other.file_type) {
-    //         (TreeNode::Directory(self_children), TreeNode::Directory(other_children)) => {
+    //         (Self::Directory(self_children), Self::Directory(other_children)) => {
     //             (self_children, other_children)
     //         },
     //         _ => panic!(),
@@ -483,14 +561,14 @@ impl FsTree {
         for (node, path) in self.iter() {
             let path = folder.join(&path);
 
-            match &node.file_type {
-                TreeNode::Regular => {
+            match &node {
+                Self::Regular => {
                     fs::File::create(path)?;
                 },
-                TreeNode::Directory(_) => {
+                Self::Directory(_) => {
                     fs::create_dir(path)?;
                 },
-                TreeNode::Symlink(target) => {
+                Self::Symlink(target) => {
                     symlink_function(target, path)?;
                 },
             }
@@ -499,40 +577,36 @@ impl FsTree {
         Ok(())
     }
 
-    /// Create `FsTree` in the current directory.
+    /// Returns a reference to the node at the path, if any.
     ///
-    /// Alias to `self.write_at(".")`.
-    pub fn create(&self) -> Result<()> {
-        self.write_at(".")
-    }
-
-    /// Returns a reference to the node at the path.
+    /// # Errors:
+    ///
+    /// - Returns `None` if there is no node at the given path.
     ///
     /// # Examples:
     ///
     /// ```
     /// use fs_tree::FsTree;
     ///
-    /// let root = FsTree::from_path_text("root/b/c/d").unwrap();
+    /// let root = FsTree::from_path_text("a/b/c");
     ///
     /// // Indexing is relative from `root`, so `root` cannot be indexed.
-    /// assert!(root.get("root").is_none());
-    ///
-    /// assert_eq!(root["b"], FsTree::from_path_text("b/c/d").unwrap());
-    /// assert_eq!(root["b/c"], FsTree::from_path_text("c/d").unwrap());
-    /// assert_eq!(root["b"]["c"], FsTree::from_path_text("c/d").unwrap());
-    /// assert_eq!(root["b/c/d"], FsTree::from_path_text("d").unwrap());
-    /// assert_eq!(root["b/c"]["d"], FsTree::from_path_text("d").unwrap());
-    /// assert_eq!(root["b"]["c/d"], FsTree::from_path_text("d").unwrap());
-    /// assert_eq!(root["b"]["c"]["d"], FsTree::from_path_text("d").unwrap());
+    /// assert_eq!(root, FsTree::from_path_text("a/b/c"));
+    /// assert_eq!(root["a"], FsTree::from_path_text("b/c"));
+    /// assert_eq!(root["a/b"], FsTree::from_path_text("c"));
+    /// assert_eq!(root["a"]["b"], FsTree::from_path_text("c"));
+    /// assert_eq!(root["a/b/c"], FsTree::Regular);
+    /// assert_eq!(root["a/b"]["c"], FsTree::Regular);
+    /// assert_eq!(root["a"]["b/c"], FsTree::Regular);
+    /// assert_eq!(root["a"]["b"]["c"], FsTree::Regular);
     /// ```
-    pub fn get(&self, path: impl AsRef<Path>) -> Option<&FsTree> {
+    pub fn get(&self, path: impl AsRef<Path>) -> Option<&Self> {
         let path = path.as_ref();
 
         // Split first piece from the rest
         let (popped, path_rest) = {
             let mut iter = path.iter();
-            let popped = iter.next();
+            let popped: Option<&Path> = iter.next().map(OsStr::as_ref);
             (popped, iter.as_path())
         };
 
@@ -546,11 +620,98 @@ impl FsTree {
             return self.get(path_rest);
         }
 
-        self.children()
-            .unwrap_or(&[])
-            .iter()
-            .find(|child| child.path == popped)
+        self.children()?
+            .get(popped)
             .and_then(|child| child.get(path_rest))
+    }
+
+    /// Returns a mutable reference to the node at the path, if any.
+    ///
+    /// This is the mutable version of [`FsTree::get`].
+    pub fn get_mut(&mut self, path: impl AsRef<Path>) -> Option<&mut Self> {
+        let path = path.as_ref();
+
+        // Split first piece from the rest
+        let (popped, path_rest) = {
+            let mut iter = path.iter();
+            let popped: Option<&Path> = iter.next().map(OsStr::as_ref);
+            (popped, iter.as_path())
+        };
+
+        // If path ended, we reached the desired node
+        let Some(popped) = popped else {
+            return Some(self);
+        };
+
+        // Corner case: if `.`, ignore it and call again with the rest
+        if popped == Path::new(".") {
+            return self.get_mut(path_rest);
+        }
+
+        self.children_mut()?
+            .get_mut(popped)
+            .and_then(|child| child.get_mut(path_rest))
+    }
+
+    /// Inserts a node at the given path.
+    ///
+    /// # Panics:
+    ///
+    /// - If there are no directories up to the path node in order to insert it.
+    /// - If path is empty.
+    pub fn insert(&mut self, path: impl AsRef<Path>, node: Self) {
+        use FsTree::*;
+
+        let mut iter = path.as_ref().iter();
+
+        let Some(node_name) = iter.next_back().map(Path::new) else {
+            *self = node;
+            return;
+        };
+
+        let mut tree = self;
+
+        // Traverse tree
+        for next in iter {
+            // Give a better error message than the one below
+            if !tree.is_dir() {
+                panic!(
+                    "Failed to insert node, while traversing, one of the parent directories \
+                    ({next:?}) isn't a directory, but a {}",
+                    tree.variant_str()
+                );
+            }
+
+            tree = if let Some(tree) = dbg!(tree).get_mut(dbg!(next)) {
+                tree
+            } else {
+                panic!("Failed to insert node, parent directory {next:?} doesn't exist");
+            };
+        }
+
+        match tree {
+            Regular | Symlink(_) => {
+                panic!(
+                    "Failed to insert node, parent directory is not a directory, but a {}",
+                    tree.variant_str(),
+                );
+            },
+            Directory(children) => {
+                children.insert(node_name.into(), node);
+            },
+        }
+    }
+}
+
+#[cfg(feature = "libc-file-type")]
+impl FsTree {
+    /// Returns the file type equivalent [`libc::mode_t`] value.
+    pub fn as_mode_t(&self) -> libc::mode_t {
+        match self {
+            Self::Regular => libc::S_IFREG,
+            Self::Directory(_) => libc::S_IFDIR,
+            Self::Symlink(_) => libc::S_IFCHR,
+        }
     }
 }
 
@@ -582,54 +743,111 @@ mod tests {
     // }
 
     #[test]
+    fn test_insert_basic() {
+        let mut tree = FsTree::new_dir();
+
+        let paths = ["a", "a/b", "a/b/c", "a/b/c/d", "a/b/c/d/e"];
+        for path in paths {
+            tree.insert(path, FsTree::new_dir());
+        }
+
+        tree.insert("a/b/c/d/e/f", FsTree::Regular);
+
+        let expected = tree! {
+            a: { b: { c: { d: { e: { f } } } } }
+        };
+
+        assert_eq!(tree, expected);
+    }
+
+    #[rustfmt::skip]
+    #[test]
+    fn test_insert_complete() {
+        let result = {
+            let mut tree = FsTree::new_dir();
+            tree.insert("config1", FsTree::Regular);
+            tree.insert("config2", FsTree::Regular);
+            tree.insert("outer_dir", FsTree::new_dir());
+            tree.insert("outer_dir/file1", FsTree::Regular);
+            tree.insert("outer_dir/file2", FsTree::Regular);
+            tree.insert("outer_dir/inner_dir", FsTree::new_dir());
+            tree.insert("outer_dir/inner_dir/inner1", FsTree::Regular);
+            tree.insert("outer_dir/inner_dir/inner2", FsTree::Regular);
+            tree.insert("outer_dir/inner_dir/inner3", FsTree::Regular);
+            tree.insert("outer_dir/inner_dir/inner_link", FsTree::Symlink("inner_target".into()));
+            tree.insert("link", FsTree::Symlink("target".into()));
+            tree.insert("config3", FsTree::Regular);
+            tree
+        };
+
+        let expected = tree! {
+            config1
+            config2
+            outer_dir: {
+                file1
+                file2
+                inner_dir: {
+                    inner1
+                    inner2
+                    inner3
+                    inner_link -> inner_target
+                }
+            }
+            link -> target
+            config3
+        };
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
     fn test_get() {
-        let tree = FsTree::from_path_text("a/b/c/d").unwrap();
+        let tree = FsTree::from_path_text("a/b/c");
 
-        // Path accesses are relative from `a`, so `a` itself cannot be indexed
-        assert!(tree.get("a").is_none());
+        assert_eq!(tree["a"], FsTree::from_path_text("b/c"));
+        assert_eq!(tree["a/b"], FsTree::from_path_text("c"));
+        assert_eq!(tree["a"]["b"], FsTree::from_path_text("c"));
+        assert_eq!(tree["a/b/c"], FsTree::Regular);
+        assert_eq!(tree["a/b"]["c"], FsTree::Regular);
+        assert_eq!(tree["a"]["b/c"], FsTree::Regular);
+        assert_eq!(tree["a"]["b"]["c"], FsTree::Regular);
 
-        assert_eq!(tree["b"], FsTree::from_path_text("b/c/d").unwrap());
-        assert_eq!(tree["b/c"], FsTree::from_path_text("c/d").unwrap());
-        assert_eq!(tree["b"]["c"], FsTree::from_path_text("c/d").unwrap());
-        assert_eq!(tree["b/c/d"], FsTree::from_path_text("d").unwrap());
-        assert_eq!(tree["b/c"]["d"], FsTree::from_path_text("d").unwrap());
-        assert_eq!(tree["b"]["c/d"], FsTree::from_path_text("d").unwrap());
-        assert_eq!(tree["b"]["c"]["d"], FsTree::from_path_text("d").unwrap());
-
-        // Empty path returns self
+        // Paths are relative, so empty path returns the node itself
         assert_eq!(tree[""], tree);
         assert_eq!(tree[""], tree[""]);
+
         // "."s are ignored
         assert_eq!(tree["."], tree[""]);
         assert_eq!(tree["././"], tree["."]);
         assert_eq!(tree["././."], tree);
-        assert_eq!(tree["b/./."], FsTree::from_path_text("b/c/d").unwrap());
+        assert_eq!(tree["./a/."]["././b/./."], FsTree::from_path_text("c"));
+        assert_eq!(tree["./a/./b"]["c/."], FsTree::Regular);
     }
 
-    #[test]
-    fn test_simple_merge() {
-        let left = FsTree::from_path_text(".config/i3/file").unwrap();
-        let right = FsTree::from_path_text(".config/i3/folder/file").unwrap();
-        let result = left.try_merge(right);
+    // #[test]
+    // fn test_simple_merge() {
+    //     let left = FsTree::from_path_text(".config/i3/file");
+    //     let right = FsTree::from_path_text(".config/i3/folder/file");
+    //     let result = left.try_merge(right);
 
-        let expected = tree! {
-            ".config": {
-                i3: {
-                    file
-                    folder: {
-                        file
-                    }
-                }
-            }
-        };
+    //     let expected = tree! {
+    //         ".config": {
+    //             i3: {
+    //                 file
+    //                 folder: {
+    //                     file
+    //                 }
+    //             }
+    //         }
+    //     };
 
-        assert_eq!(result, Some(expected));
-    }
+    //     assert_eq!(result, Some(expected));
+    // }
 
     #[test]
     fn test_partial_eq_fails() {
-        let left = FsTree::from_path_text(".config/i3/a").unwrap();
-        let right = FsTree::from_path_text(".config/i3/b").unwrap();
+        let left = FsTree::from_path_text(".config/i3/a");
+        let right = FsTree::from_path_text(".config/i3/b");
 
         assert_ne!(left, right);
     }

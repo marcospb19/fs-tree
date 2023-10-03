@@ -10,7 +10,7 @@ use crate::{fs, Error, Result};
 /// - If `path` does not exist
 /// - If `path` is not a symlink
 /// - If `Io::Error` from `fs::read_link(path)`
-pub fn follow_symlink<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
+pub(crate) fn follow_symlink<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
     let path = path.as_ref();
 
     if FileType::from_symlink_path(path).is_ok_and(|file| !file.is_symlink()) {
@@ -21,3 +21,12 @@ pub fn follow_symlink<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
 
     Ok(target)
 }
+
+// /// Check if a file exists, but without following symlinks.
+// pub(crate) fn file_exists(path: &Path) -> io::Result<bool> {
+//     match fs::symlink_metadata(path) {
+//         Ok(_) => Ok(true),
+//         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+//         Err(error) => Err(error),
+//     }
+// }

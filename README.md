@@ -1,31 +1,76 @@
 # fs-tree
 
-Filesystem trie-like tree structure for commons operations.
+[`FsTree`] is a path [Trie] with an API focused on filesystem operations.
 
-Given a path, you can load a `FsTree` which might represent a regular file, directory, or symlink.
+[Trie]: https://en.wikipedia.org/wiki/Trie
 
-## Features:
+## Clarifications:
 
-- Aware of regular files, directories and symlinks.
-- Read from your filesystem.
-- Merge trees.
-- Get the difference of two trees.
-- Macros for creating trees more easily (WIP).
-- Tree iteration.
-  - Supports useful tree filters.
-  - You can perform operations on the iteration results (e.g. read each file and link them).
+1. _Unix_ only.
+2. This crate was transfered after `0.1.3`, and changed its purpose.
+3. This crate refers to _"filesystem tree"_ as the result you get from recursively traversing files:
+    - If you try traversing a single file, you get a single node.
+    - If you try traversing a directories, you might get a large subtree (of nodes).
+    - This is agnostic to the underlying filesystem (nothing to do with `ext4` or `btrfs`).
+4. Check [Trie] if you both haven't met yet.
 
-## When not to use:
+## Tree Layout:
 
-- If you just want to iterate a directory, use [`WalkDir`] instead.
-- If you want to use a text trie directly, use other crate too.
+A `FsTree` is a node with three possible file types:
 
-## When to use:
+```rust
+use std::{collections::BTreeMap, path::PathBuf};
 
-- You need to easily load a file type-aware trie from your filesystem and compare with other tries.
+pub enum FsTree {
+    Regular,
+    Directory(TrieMap), // Recursive part
+    Symlink(PathBuf),
+}
+//                                     ↓↓
+pub type TrieMap = BTreeMap<PathBuf, FsTree>; // Recursive part
+```
 
----
+The root of the `FsTree` is **unnamed** (no filename/path), the "edges" to children are the
+relative paths.
 
-[`WalkDir`]: https://docs.rs/walkdir
+## Pitfall warning:
 
-License: MIT
+Like `std` functions, functions in this crate follow symlinks (and symlink chains), so you'll
+never get a `FsTree::Symlink(_)` in your tree! If you want symlink-awareness, use the function
+version with the `symlink` prefix ([`FsTree::read_at`] vs [`FsTree::symlink_read_at`]).
+
+## Ways to construct a [`FsTree`]:
+
+1. Read node/tree from path. ([`FsTree::symlink_read_at`])
+2. Declare a `FsTree` literal. ([`tree!`])
+3. Insert each node in an empty folder. ([`FsTree::new_dir`] + [`FsTree::insert`])
+4. Parse from path text segments. ([`FsTree::from_path_text`])
+
+## What you can do with a [`FsTree`]:
+
+1. Traverse, query, and modify it.
+2. Merge with another tree. ([`FsTree::try_merge`])
+3. Write it to disk. ([`FsTree::write_at`])
+4. Try loading a structural copy of it from a path. ([`FsTree::read_copy_at`])
+5. (TODO) Compare with another `FsTree`, generating a DiffTree.
+6. (TODO) Add entry API.
+
+## Alternatives:
+- Crate [`walkdir`](https://crates.io/crates/walkdir) - Better if you just need to iterate on
+filesystem trees.
+- Crate [`build-fs-tree`](https://crates.io/crates/build-fs-tree) - If you need to create a
+filesystem tree from a YAML file.
+    - The closest we got is creating a tree literal with [`tree!`](crate::tree), and writing
+with [`FsTree::write_at`].
+
+[Trie]: https://en.wikipedia.org/wiki/Trie
+[`FsTree::from_path_text`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.from_path_text
+[`FsTree::insert`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.insert
+[`FsTree::new_dir`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.new_dir
+[`FsTree::read_at`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.read_at
+[`FsTree::read_copy_at`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.read_copy_at
+[`FsTree::symlink_read_at`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.symlink_read_at
+[`FsTree::try_merge`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.try_merge
+[`FsTree::write_at`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.write_at
+[`FsTree`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html
+[`tree!`]: https://docs.rs/fs-tree/latest/fs_tree/macro.tree.html

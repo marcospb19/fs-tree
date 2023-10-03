@@ -1,4 +1,4 @@
-use fs_tree::{tree, FsTree};
+use fs_tree::tree;
 
 fn main() {
     let a = tree! {
@@ -30,4 +30,5 @@ fn main() {
     };
 
     assert_eq!(Some(expected), merged);
+    dbg!(merged);
 }
