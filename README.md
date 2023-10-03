@@ -62,14 +62,14 @@ filesystem tree from a YAML file.
 with [`FsTree::write_at`].
 
 [Trie]: https://en.wikipedia.org/wiki/Trie
-[`FsTree::from_path_text`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.from_path_text
-[`FsTree::insert`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.insert
-[`FsTree::new_dir`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.new_dir
-[`FsTree::read_at`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.read_at
-[`FsTree::read_copy_at`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.read_copy_at
-[`FsTree::symlink_read_at`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.symlink_read_at
-[`FsTree::try_merge`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.try_merge
-[`FsTree::write_at`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.write_at
-[`FsTree`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html
+[`FsTree::from_path_text`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.from_path_text
+[`FsTree::insert`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.insert
+[`FsTree::new_dir`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.new_dir
+[`FsTree::read_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.read_at
+[`FsTree::read_copy_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.read_copy_at
+[`FsTree::symlink_read_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.symlink_read_at
+[`FsTree::try_merge`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.try_merge
+[`FsTree::write_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.write_at
+[`FsTree`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html
 [`tree!`]: https://docs.rs/fs-tree/latest/fs_tree/macro.tree.html
 [`FsTree::Symlink(_)`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#variant.Symlink
