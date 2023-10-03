@@ -1,9 +1,9 @@
 [package]
 name = "fs-tree"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
 edition = "2021"
-description = "Filesystem trie-like tree structure for commons operations."
+description = "Filesystem path Trie with API focused on filesystem operations."
 license = "MIT"
 repository = "https://github.com/marcospb19/fs-tree"
 

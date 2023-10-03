@@ -2,8 +2,6 @@
 
 [`FsTree`] is a path [Trie] with an API focused on filesystem operations.
 
-[Trie]: https://en.wikipedia.org/wiki/Trie
-
 ## Clarifications:
 
 1. _Unix_ only.
