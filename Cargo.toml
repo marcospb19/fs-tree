@@ -1,6 +1,6 @@
 [package]
 name = "fs-tree"
-version = "0.5.2"
+version = "0.5.3"
 authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
 edition = "2021"
 description = "Filesystem path Trie with an API focused on filesystem operations."
