@@ -32,7 +32,7 @@
 //! # Pitfall warning:
 //!
 //! Like `std` functions, functions in this crate follow symlinks (and symlink chains), so you'll
-//! never get a `FsTree::Symlink(_)` in your tree! If you want symlink-awareness, use the function
+//! never get a [`FsTree::Symlink(_)`] in your tree! If you want symlink-awareness, use the function
 //! version with the `symlink` prefix ([`FsTree::read_at`] vs [`FsTree::symlink_read_at`]).
 //!
 //! # Ways to construct a [`FsTree`]:
@@ -60,6 +60,7 @@
 //! with [`FsTree::write_at`].
 //!
 //! [Trie]: https://en.wikipedia.org/wiki/Trie
+//! [`FsTree::Symlink(_)`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#variant.Symlink
 
 #![warn(missing_docs)]
 // Emits false-positives on macros.

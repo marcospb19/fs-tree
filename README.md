@@ -34,7 +34,7 @@ relative paths.
 ## Pitfall warning:
 
 Like `std` functions, functions in this crate follow symlinks (and symlink chains), so you'll
-never get a `FsTree::Symlink(_)` in your tree! If you want symlink-awareness, use the function
+never get a [`FsTree::Symlink(_)`] in your tree! If you want symlink-awareness, use the function
 version with the `symlink` prefix ([`FsTree::read_at`] vs [`FsTree::symlink_read_at`]).
 
 ## Ways to construct a [`FsTree`]:
@@ -72,3 +72,4 @@ with [`FsTree::write_at`].
 [`FsTree::write_at`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html#method.write_at
 [`FsTree`]: https://docs.rs/fs-tree/latest/fs_tree/struct.FsTree.html
 [`tree!`]: https://docs.rs/fs-tree/latest/fs_tree/macro.tree.html
+[`FsTree::Symlink(_)`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#variant.Symlink
