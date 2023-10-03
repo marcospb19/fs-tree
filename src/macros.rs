@@ -7,7 +7,7 @@
 /// - `name` is a regular file.
 /// - `name: { ... }` is a directory.
 /// - `name -> name` is a symlink.
-/// - Commas are optional, you can separate items with newlines or whitespace.
+/// - Commas are (unfortunately) not supported.
 /// - Use quotes (`"name"`) for spaces, dots, etc.
 ///
 /// # Examples:
