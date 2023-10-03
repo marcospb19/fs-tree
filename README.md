@@ -53,8 +53,13 @@ version with the `symlink` prefix ([`FsTree::read_at`] vs [`FsTree::symlink_read
 5. (TODO) Compare with another `FsTree`, generating a DiffTree.
 6. (TODO) Add entry API.
 
+## Iterators:
+
+See docs in the [`iter` module].
+
 ## Alternatives:
-- Crate [`walkdir`](https://docs.rs/walkdir) - Better if you just need to iterate on filesystem trees.
+- Crate [`walkdir`](https://docs.rs/walkdir) - Better if you just need to iterate on
+filesystem trees.
 - Crate [`file_type_enum`](https://docs.rs/file_type_enum) - If you want a shallow type enum.
 - Crate [`build-fs-tree`](https://crates.io/crates/build-fs-tree) - If you need to create a
 filesystem tree from a YAML file.
@@ -67,9 +72,10 @@ with [`FsTree::write_at`].
 [`FsTree::new_dir`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.new_dir
 [`FsTree::read_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.read_at
 [`FsTree::read_copy_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.read_copy_at
+[`FsTree::Symlink(_)`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#variant.Symlink
 [`FsTree::symlink_read_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.symlink_read_at
 [`FsTree::try_merge`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.try_merge
 [`FsTree::write_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.write_at
 [`FsTree`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html
+[`iter` module]: https://docs.rs/fs-tree/latest/fs_tree/iter/index.html
 [`tree!`]: https://docs.rs/fs-tree/latest/fs_tree/macro.tree.html
-[`FsTree::Symlink(_)`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#variant.Symlink

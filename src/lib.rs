@@ -51,6 +51,10 @@
 //! 5. (TODO) Compare with another `FsTree`, generating a DiffTree.
 //! 6. (TODO) Add entry API.
 //!
+//! ## Iterators:
+//!
+//! See docs in the [`iter` module].
+//!
 //! # Alternatives:
 //! - Crate [`walkdir`](https://docs.rs/walkdir) - Better if you just need to iterate on
 //! filesystem trees.
@@ -62,6 +66,7 @@
 //!
 //! [Trie]: https://en.wikipedia.org/wiki/Trie
 //! [`FsTree::Symlink(_)`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#variant.Symlink
+//! [`iter` module]: crate::iter
 
 #![warn(missing_docs)]
 // Emits false-positives on macros.
