@@ -54,9 +54,9 @@ macro_rules! tree {
 #[macro_export]
 macro_rules! trees_internal {
     // Base case
-    ($parent_trie:ident) => {};
+    ($parent_trie:ident $(,)?) => {};
     // Directory
-    ($parent_trie:ident $path:ident : { $($inner:tt)* } $($rest:tt)*) => {
+    ($parent_trie:ident $path:ident : { $($inner:tt)* } $(,)? $($rest:tt)*) => {
         #[allow(unused_mut)]
         let mut trie = $crate::TrieMap::new();
         $crate::trees_internal!(trie $($inner)*);
@@ -67,7 +67,7 @@ macro_rules! trees_internal {
         $crate::trees_internal!($parent_trie $($rest)*)
     };
     // Directory variation
-    ($parent_trie:ident $path:literal : { $($inner:tt)* } $($rest:tt)*) => {
+    ($parent_trie:ident $path:literal : { $($inner:tt)* } $(,)? $($rest:tt)*) => {
         #[allow(unused_mut)]
         let mut trie = $crate::TrieMap::new();
         $crate::trees_internal!(trie $($inner)*);
@@ -78,7 +78,7 @@ macro_rules! trees_internal {
         $crate::trees_internal!($parent_trie $($rest)*)
     };
     // Symlink
-    ($parent_trie:ident $path:ident -> $target:ident $($rest:tt)*) => {
+    ($parent_trie:ident $path:ident -> $target:ident $(,)? $($rest:tt)*) => {
         $parent_trie.insert(
             ::std::path::PathBuf::from(stringify!($path)),
             $crate::FsTree::Symlink(::std::path::PathBuf::from(stringify!($target)))
@@ -86,7 +86,7 @@ macro_rules! trees_internal {
         $crate::trees_internal!($parent_trie $($rest)*)
     };
     // Symlink variation
-    ($parent_trie:ident $path:literal -> $target:ident $($rest:tt)*) => {
+    ($parent_trie:ident $path:literal -> $target:ident $(,)? $($rest:tt)*) => {
         $parent_trie.insert(
             ::std::path::PathBuf::from($path),
             $crate::FsTree::Symlink(::std::path::PathBuf::from(stringify!($target)))
@@ -94,7 +94,7 @@ macro_rules! trees_internal {
         $crate::trees_internal!($parent_trie $($rest)*)
     };
     // Symlink variation
-    ($parent_trie:ident $path:ident -> $target:literal $($rest:tt)*) => {
+    ($parent_trie:ident $path:ident -> $target:literal $(,)? $($rest:tt)*) => {
         $parent_trie.insert(
             ::std::path::PathBuf::from(stringify!($path)),
             $crate::FsTree::Symlink(::std::path::PathBuf::from($target))
@@ -102,7 +102,7 @@ macro_rules! trees_internal {
         $crate::trees_internal!($parent_trie $($rest)*)
     };
     // Symlink variation
-    ($parent_trie:ident $path:literal -> $target:literal $($rest:tt)*) => {
+    ($parent_trie:ident $path:literal -> $target:literal $(,)? $($rest:tt)*) => {
         $parent_trie.insert(
             ::std::path::PathBuf::from($path),
             $crate::FsTree::Symlink(::std::path::PathBuf::from($target))
@@ -110,7 +110,7 @@ macro_rules! trees_internal {
         $crate::trees_internal!($parent_trie $($rest)*)
     };
     // Regular file
-    ($parent_trie:ident $path:ident $($rest:tt)*) => {
+    ($parent_trie:ident $path:ident $(,)? $($rest:tt)*) => {
         $parent_trie.insert(
             ::std::path::PathBuf::from(stringify!($path)),
             $crate::FsTree::Regular
@@ -118,7 +118,7 @@ macro_rules! trees_internal {
         $crate::trees_internal!($parent_trie $($rest)*);
     };
     // Regular file
-    ($parent_trie:ident $path:literal $($rest:tt)*) => {
+    ($parent_trie:ident $path:literal $(,)? $($rest:tt)*) => {
         $parent_trie.insert(
             ::std::path::PathBuf::from($path),
             $crate::FsTree::Regular
@@ -264,6 +264,45 @@ mod tests {
             ("link".into(), FsTree::Symlink("target".into())),
             ("config3".into(), FsTree::Regular),
         ]));
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_tree_macro_big_example_with_commas() {
+        let result = tree! {
+            config1,
+            config2,
+            outer_dir: {
+                file1,
+                file2,
+                inner_dir: {
+                    inner1,
+                    inner2,
+                    inner3,
+                    inner_link -> inner_target,
+                },
+            },
+            link -> target,
+            config3,
+        };
+
+        let expected = tree! {
+            config1
+            config2
+            outer_dir: {
+                file1
+                file2
+                inner_dir: {
+                    inner1
+                    inner2
+                    inner3
+                    inner_link -> inner_target
+                }
+            }
+            link -> target
+            config3
+        };
 
         assert_eq!(result, expected);
     }
