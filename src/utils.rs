@@ -21,12 +21,3 @@ pub(crate) fn follow_symlink<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
 
     Ok(target)
 }
-
-// /// Check if a file exists, but without following symlinks.
-// pub(crate) fn file_exists(path: &Path) -> io::Result<bool> {
-//     match fs::symlink_metadata(path) {
-//         Ok(_) => Ok(true),
-//         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
-//         Err(error) => Err(error),
-//     }
-// }

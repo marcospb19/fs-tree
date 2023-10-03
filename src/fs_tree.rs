@@ -549,7 +549,12 @@ impl FsTree {
     //     }
     // }
 
-    /// Create the tree folder structure in the path
+    /// Write the tree structure in the path.
+    ///
+    /// # Errors:
+    ///
+    /// - If provided folder doesn't exist, or is not a directory.
+    /// - If any other IO error occurs.
     pub fn write_at(&self, folder: impl AsRef<Path>) -> Result<()> {
         let folder = folder.as_ref();
 
@@ -558,7 +563,7 @@ impl FsTree {
         #[cfg(not(feature = "fs-err"))]
         let symlink_function = std::os::unix::fs::symlink;
 
-        for (node, path) in self.iter() {
+        for (node, path) in self.iter().skip(1) {
             let path = folder.join(&path);
 
             match &node {
@@ -729,10 +734,18 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::{io, path::Path};
+
     use pretty_assertions::{assert_eq, assert_ne};
 
     use super::*;
     use crate::tree;
+
+    fn testdir() -> io::Result<(tempfile::TempDir, &'static Path)> {
+        let dir = tempfile::tempdir()?;
+        let path = dir.path().to_path_buf().into_boxed_path();
+        Ok((dir, Box::leak(path)))
+    }
 
     // #[test]
     // fn test_diff() {
@@ -798,6 +811,27 @@ mod tests {
         };
 
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_write_at() {
+        let (_dropper, test_dir) = testdir().unwrap();
+
+        let tree = tree! {
+            a: {
+                b: {
+                    c
+                    empty: {}
+                    link -> target
+                }
+            }
+        };
+
+        tree.write_at(&test_dir).unwrap();
+
+        let result = FsTree::symlink_read_at(&test_dir).unwrap();
+
+        assert_eq!(result, tree);
     }
 
     #[test]
