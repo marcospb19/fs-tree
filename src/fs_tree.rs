@@ -101,9 +101,9 @@ impl FsTree {
 
     fn __read_at(path: &Path, follow_symlinks: bool) -> Result<Self> {
         let get_file_type = if follow_symlinks {
-            FileType::from_path
+            FileType::read_at
         } else {
-            FileType::from_symlink_path
+            FileType::symlink_read_at
         };
 
         match get_file_type(path)? {
@@ -235,9 +235,9 @@ impl FsTree {
             let path = folder.join(&relative_path);
 
             let get_file_type = if follow_symlinks {
-                FileType::from_path
+                FileType::read_at
             } else {
-                FileType::from_symlink_path
+                FileType::symlink_read_at
             };
 
             let file_type = match get_file_type(&path) {

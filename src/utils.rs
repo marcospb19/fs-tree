@@ -13,7 +13,7 @@ use crate::{fs, Error, Result};
 pub(crate) fn follow_symlink<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
     let path = path.as_ref();
 
-    if FileType::from_symlink_path(path).is_ok_and(|file| !file.is_symlink()) {
+    if FileType::symlink_read_at(path).is_ok_and(|file| !file.is_symlink()) {
         return Err(Error::NotASymlinkError(path.to_path_buf()));
     }
 
