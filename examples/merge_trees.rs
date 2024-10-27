@@ -17,7 +17,7 @@ fn main() {
         }
     };
 
-    let merged = a.try_merge(b);
+    let merged = a.merge(b);
 
     let expected = tree! {
         unique_a
@@ -29,6 +29,6 @@ fn main() {
         }
     };
 
-    assert_eq!(Some(expected), merged);
+    assert_eq!(expected, merged);
     dbg!(merged);
 }

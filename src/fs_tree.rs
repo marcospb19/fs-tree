@@ -364,37 +364,52 @@ impl FsTree {
 
     /// Merge two trees.
     ///
-    /// # Errors:
-    ///
-    /// - Returns `None` if contents of both trees conflict.
-    pub fn try_merge(mut self, other: Self) -> Option<Self> {
-        use FsTree::{Directory, Regular, Symlink};
+    /// When conflicts happen, entries from `self` are kept, and the `other`'s are discarded.
+    pub fn merge(self, other: Self) -> Self {
+        // let's merge the right (consuming) onto the left (mutating)
+        let mut left = self;
+        let right = other;
 
-        // If types match, check if their contents match, otherwise, return `None`
-        match (&mut self, other) {
-            (Regular, Regular) => Some(self),
-            (Symlink(left_target), Symlink(right_target)) => {
-                (*left_target == right_target).then_some(self)
-            },
-            (Directory(left_children), Directory(right_children)) => {
-                // Just to clarify, we're merging the right onto the left
-                let left_children: &mut TrieMap = left_children;
-                let right_children: TrieMap = right_children;
-
+        match (&mut left, right) {
+            // both a directory at the same path, try merging
+            (FsTree::Directory(left_children), FsTree::Directory(right_children)) => {
                 for (path, right_node) in right_children {
+                    // if right node exists, remove, merge and re-add, otherwise, just add it
                     if let Some(left_node) = left_children.remove(&path) {
-                        let new_node = left_node.try_merge(right_node)?;
+                        let new_node = left_node.merge(right_node);
                         left_children.insert(path, new_node);
                     } else {
                         left_children.insert(path, right_node);
                     }
                 }
-
-                Some(self)
             },
-            // Types mismatch, not possible to merge
-            (_, _) => None,
+            (_, _) => { /* conflict, but nothing to do, don't mutate left side */ },
         }
+
+        left
+    }
+
+    /// Checks for conflicts in case the two trees would be merged.
+    ///
+    /// Also see [`Self::merge`].
+    pub fn conflicts_with(&self, other: &Self) -> bool {
+        let mut left = self;
+        let right = other;
+
+        match (&mut left, right) {
+            (FsTree::Directory(left_children), FsTree::Directory(right_children)) => {
+                for (path, right_node) in right_children {
+                    if let Some(left_node) = left_children.get(path.as_path()) {
+                        if left_node.conflicts_with(right_node) {
+                            return true;
+                        }
+                    }
+                }
+            },
+            (_, _) => return true,
+        }
+
+        false
     }
 
     /// Reference to children if `self.is_directory()`.
