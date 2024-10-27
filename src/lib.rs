@@ -84,9 +84,3 @@ mod error;
 mod fs_tree;
 mod macros;
 pub(crate) mod utils;
-
-#[cfg(not(feature = "fs-err"))]
-pub(crate) use std::fs;
-
-#[cfg(feature = "fs-err")]
-pub(crate) use fs_err as fs;

@@ -1,8 +1,12 @@
+#[cfg(not(feature = "fs-err"))]
+pub(crate) use std::fs;
 use std::path::{Path, PathBuf};
 
 use file_type_enum::FileType;
+#[cfg(feature = "fs-err")]
+pub(crate) use fs_err as fs;
 
-use crate::{fs, Error, Result};
+use crate::{Error, Result};
 
 /// Follow symlink at `path` just one level, and return the new path.
 ///
