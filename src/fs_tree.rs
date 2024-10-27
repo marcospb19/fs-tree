@@ -150,7 +150,7 @@ impl FsTree {
     ///
     /// This function will make at maximum `self.len()` syscalls.
     ///
-    /// If you don't want symlink-awareness, check [`FsTree::symlink_read_copy_at`].
+    /// If you don't want symlink-awareness, check [`FsTree::symlink_read_structure_at`].
     ///
     /// # Examples:
     ///
@@ -166,7 +166,7 @@ impl FsTree {
     ///
     /// let structure = dynamically_load_structure();
     ///
-    /// let new_tree = structure.read_copy_at("path_here").unwrap();
+    /// let new_tree = structure.read_structure_at("path_here").unwrap();
     ///
     /// // It is guaranteed that every path in here is present in `structure`
     /// for path in new_tree.paths() {
@@ -179,8 +179,8 @@ impl FsTree {
     /// - If an IO error happens, except [`io::ErrorKind::NotFound`]
     ///
     /// [`io::ErrorKind::NotFound`]: std::io::ErrorKind::NotFound
-    pub fn read_copy_at(&self, path: impl AsRef<Path>) -> Result<Self> {
-        self.__read_copy_at(path.as_ref(), true)
+    pub fn read_structure_at(&self, path: impl AsRef<Path>) -> Result<Self> {
+        self.__read_structure_at(path.as_ref(), true)
     }
 
     /// Construct a structural copy of this `FsTree` by reading files at the given path.
@@ -194,7 +194,7 @@ impl FsTree {
     ///
     /// This function will make at maximum `self.len()` syscalls.
     ///
-    /// If you don't want symlink-awareness, check [`FsTree::read_copy_at`].
+    /// If you don't want symlink-awareness, check [`FsTree::read_structure_at`].
     ///
     /// # Examples:
     ///
@@ -210,7 +210,7 @@ impl FsTree {
     ///
     /// let structure = dynamically_load_structure();
     ///
-    /// let new_tree = structure.symlink_read_copy_at("path_here").unwrap();
+    /// let new_tree = structure.symlink_read_structure_at("path_here").unwrap();
     ///
     /// // It is guaranteed that every path in here is present in `structure`
     /// for path in new_tree.paths() {
@@ -223,12 +223,12 @@ impl FsTree {
     /// - If an IO error happens, except [`io::ErrorKind::NotFound`]
     ///
     /// [`io::ErrorKind::NotFound`]: std::io::ErrorKind::NotFound
-    pub fn symlink_read_copy_at(&self, path: impl AsRef<Path>) -> Result<Self> {
-        self.__read_copy_at(path.as_ref(), false)
+    pub fn symlink_read_structure_at(&self, path: impl AsRef<Path>) -> Result<Self> {
+        self.__read_structure_at(path.as_ref(), false)
     }
 
     // TODO: There are easy optimizations to be done in here
-    fn __read_copy_at(&self, folder: &Path, follow_symlinks: bool) -> Result<Self> {
+    fn __read_structure_at(&self, folder: &Path, follow_symlinks: bool) -> Result<Self> {
         let mut new_tree = FsTree::new_dir();
 
         for relative_path in self.paths() {

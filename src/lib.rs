@@ -47,7 +47,7 @@
 //! 1. Traverse, query, and modify it.
 //! 2. Merge with another tree. ([`FsTree::try_merge`])
 //! 3. Write it to disk. ([`FsTree::write_at`])
-//! 4. Try loading a structural copy of it from a path. ([`FsTree::read_copy_at`])
+//! 4. Try loading a structural copy of it from a path. ([`FsTree::read_structure_at`])
 //! 5. (TODO) Compare with another `FsTree`, generating a DiffTree.
 //! 6. (TODO) Add entry API.
 //!
