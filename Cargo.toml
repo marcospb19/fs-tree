@@ -10,7 +10,7 @@ repository = "https://github.com/marcospb19/fs-tree"
 [dependencies]
 file_type_enum = "2.0.1"
 libc = { version = "0.2.132", optional = true }
-fs-err = { version = "2.9.0", optional = true }
+fs-err = { version = "3.0.0", optional = true }
 
 [features]
 fs-err = ["dep:fs-err"]
