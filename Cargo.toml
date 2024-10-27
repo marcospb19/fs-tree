@@ -18,5 +18,5 @@ default = ["fs-err"]
 libc-file-type = ["dep:libc"]
 
 [dev-dependencies]
-pretty_assertions = "1.4.0"
-tempfile = "3.8.0"
+pretty_assertions = "1.4.1"
+tempfile = "3.13.0"
