@@ -15,7 +15,6 @@ pub enum Error {
     /// Unsupported file type found.
     UnexpectedFileTypeError(FileType, PathBuf),
     /// An error with reading or writing.
-    // TODO: Consider changing this to IoError(io::Error, PathBuf)
     IoError(io::Error),
 }
 

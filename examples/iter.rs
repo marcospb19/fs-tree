@@ -1,3 +1,5 @@
+//! If you just want to iterate, use <docs.rs/walkdir> instead!!
+
 use fs_tree::tree;
 
 fn main() {

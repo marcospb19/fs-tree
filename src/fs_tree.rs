@@ -160,8 +160,7 @@ impl FsTree {
     /// fn dynamically_load_structure() -> FsTree {
     /// #    "
     ///     ...
-    /// #    ";
-    /// #   todo!();
+    /// #    "; todo!();
     /// }
     ///
     /// let structure = dynamically_load_structure();
@@ -204,8 +203,7 @@ impl FsTree {
     /// fn dynamically_load_structure() -> FsTree {
     /// #    "
     ///     ...
-    /// #    ";
-    /// #   todo!();
+    /// #    "; todo!();
     /// }
     ///
     /// let structure = dynamically_load_structure();
@@ -227,11 +225,12 @@ impl FsTree {
         self.__read_structure_at(path.as_ref(), false)
     }
 
-    // TODO: There are easy optimizations to be done in here
     fn __read_structure_at(&self, folder: &Path, follow_symlinks: bool) -> Result<Self> {
         let mut new_tree = FsTree::new_dir();
 
         for relative_path in self.paths() {
+            // TODO: optimize this, instead of creating a PathBuf for each path,
+            // it's possible to use one mutable buffer with push + pop
             let path = folder.join(&relative_path);
 
             let get_file_type = if follow_symlinks {
@@ -273,8 +272,7 @@ impl FsTree {
     /// The last piece is always a file, so inputs ending with `/`, like `Path::new("example/")` are
     /// **NOT** parsed as directories.
     ///
-    /// This might change in the future, for my personal usage cases (author writing), this was
-    /// always OK, but if you'd like this to change, open an issue 👍.
+    /// For my usage cases it's OK, but open an issue if you think otherwise 👍.
     ///
     /// # Examples:
     ///
@@ -399,7 +397,7 @@ impl FsTree {
         }
     }
 
-    /// Reference to children vec if self.is_directory().
+    /// Reference to children if `self.is_directory()`.
     pub fn children(&self) -> Option<&TrieMap> {
         match &self {
             Self::Directory(children) => Some(children),
@@ -407,7 +405,7 @@ impl FsTree {
         }
     }
 
-    /// Reference to children vec if self.is_directory(), mutable.
+    /// Mutable reference to children if `self.is_directory()`.
     pub fn children_mut(&mut self) -> Option<&mut TrieMap> {
         match self {
             Self::Directory(children) => Some(children),
@@ -415,7 +413,7 @@ impl FsTree {
         }
     }
 
-    /// Reference to target path, if self is a symlink.
+    /// Reference to target path, if `self.is_symlink()`.
     pub fn target(&self) -> Option<&Path> {
         match &self {
             Self::Symlink(target_path) => Some(target_path),
@@ -423,7 +421,7 @@ impl FsTree {
         }
     }
 
-    /// Reference to target path, if self is a symlink, mutable.
+    /// Mutable reference to target path, if `self.is_symlink()`.
     pub fn target_mut(&mut self) -> Option<&mut PathBuf> {
         match self {
             Self::Symlink(target_path) => Some(target_path),
@@ -452,7 +450,7 @@ impl FsTree {
     //     }
     // }
 
-    // /// Apply a closure to all direct and indirect descendants inside, also includes root.
+    // /// Apply a closure to all direct and indirect descendants inside (including root).
     // ///
     // /// Calls recursively for all levels.
     // pub fn apply_to_all(&mut self, mut f: impl FnMut(&mut Self) + Copy) {
@@ -465,6 +463,9 @@ impl FsTree {
     // }
 
     /// Returns `true` if `self` is a leaf node.
+    ///
+    /// A leaf node might be of any type, including directory, however, a
+    /// non-leaf node is always a directory.
     pub fn is_leaf(&self) -> bool {
         match self {
             Self::Regular | Self::Symlink(_) => true,
@@ -472,7 +473,7 @@ impl FsTree {
         }
     }
 
-    /// The variant string.
+    /// The variant string, useful for showing to user.
     pub fn variant_str(&self) -> &'static str {
         match self {
             Self::Regular => "regular file",
@@ -481,17 +482,17 @@ impl FsTree {
         }
     }
 
-    /// Returns `true` if self matches the regular variant.
+    /// Returns `true` if self matches the [`FsTree::Regular`] variant.
     pub fn is_regular(&self) -> bool {
         matches!(self, Self::Regular)
     }
 
-    /// Returns `true` if self matches the directory variant.
+    /// Returns `true` if self matches the [`FsTree::Directory`] variant.
     pub fn is_dir(&self) -> bool {
         matches!(self, Self::Directory(_))
     }
 
-    /// Returns `true` if self matches the symlink variant.
+    /// Returns `true` if self matches the [`FsTree::Symlink`] variant.
     pub fn is_symlink(&self) -> bool {
         matches!(self, Self::Symlink(_))
     }
