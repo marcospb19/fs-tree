@@ -57,12 +57,12 @@
 //!
 //! # Alternatives:
 //! - Crate [`walkdir`](https://docs.rs/walkdir) - Better if you just need to iterate on
-//! filesystem trees.
+//!   filesystem trees.
 //! - Crate [`file_type_enum`](https://docs.rs/file_type_enum) - If you want a shallow type enum.
 //! - Crate [`build-fs-tree`](https://crates.io/crates/build-fs-tree) - If you need to create a
-//! filesystem tree from a YAML file.
+//!   filesystem tree from a YAML file.
 //!     - The closest we got is creating a tree literal with [`tree!`](crate::tree), and writing
-//! with [`FsTree::write_at`].
+//!       with [`FsTree::write_at`].
 //!
 //! [Trie]: https://en.wikipedia.org/wiki/Trie
 //! [`FsTree::Symlink(_)`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#variant.Symlink

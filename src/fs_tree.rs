@@ -827,9 +827,9 @@ mod tests {
             }
         };
 
-        tree.write_at(&test_dir).unwrap();
+        tree.write_at(test_dir).unwrap();
 
-        let result = FsTree::symlink_read_at(&test_dir).unwrap();
+        let result = FsTree::symlink_read_at(test_dir).unwrap();
 
         assert_eq!(result, tree);
     }

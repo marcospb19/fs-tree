@@ -3,9 +3,9 @@
 //! Iterators traverse in [Depth-First Order](https://en.wikipedia.org/wiki/Binary_tree#Depth-first_order).
 //!
 //! There are three [`FsTree`] methods for creating an iterator:
-//! 1. [`Iter`](self::Iter) from [`.iter()`](FsTree::iter) yields `(&FsTree, PathBuf)`.
-//! 2. [`NodesIter`](self::NodesIter) from [`.nodes()`](FsTree::nodes) yields `&FsTree`.
-//! 3. [`PathsIter`](self::PathsIter) from [`.paths()`](FsTree::paths) yields `PathBuf`.
+//! 1. [`Iter`](iter::Iter) from [`.iter()`](FsTree::iter) yields `(&FsTree, PathBuf)`.
+//! 2. [`NodesIter`](iter::NodesIter) from [`.nodes()`](FsTree::nodes) yields `&FsTree`.
+//! 3. [`PathsIter`](iter::PathsIter) from [`.paths()`](FsTree::paths) yields `PathBuf`.
 //!
 //! The yielded [`PathBuf`]s correspond to the full relative path to the current node, which is the
 //! result of concatenating the paths of every parent, and the current node.
@@ -149,7 +149,7 @@ macro_rules! impl_iter_methods {
         /// # Corner cases:
         /// - If you call this function before `.next()` is called, you'll get `0`.
         /// - If `None` is yielded by this iterator, the depth value will remain immutable, and
-        /// correspond to the depth of the last yielded element.
+        ///   correspond to the depth of the last yielded element.
         pub fn depth(&self) -> usize {
             self.$($path_to_the_inner_iter)*.depth()
         }
