@@ -150,7 +150,7 @@ impl FsTree {
     ///
     /// This function will make at maximum `self.len()` syscalls.
     ///
-    /// If you don't want symlink-awareness, check [`FsTree::symlink_read_structure_at`].
+    /// If you want symlink-awareness, check [`FsTree::symlink_read_structure_at`].
     ///
     /// # Examples:
     ///
