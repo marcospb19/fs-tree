@@ -321,21 +321,21 @@ impl FsTree {
     /// Creates an iterator that yields `(&FsTree, PathBuf)`.
     ///
     /// See iterator docs at the [`iter` module documentation](crate::iter).
-    pub fn iter(&self) -> Iter {
+    pub fn iter(&self) -> Iter<'_> {
         Iter::new(self)
     }
 
     /// Creates an iterator that yields `&FsTree`.
     ///
     /// See iterator docs at the [`iter` module documentation](crate::iter).
-    pub fn nodes(&self) -> NodesIter {
+    pub fn nodes(&self) -> NodesIter<'_> {
         NodesIter::new(self)
     }
 
     /// Creates an iterator that yields `PathBuf`.
     ///
     /// See iterator docs at the [`iter` module documentation](crate::iter).
-    pub fn paths(&self) -> PathsIter {
+    pub fn paths(&self) -> PathsIter<'_> {
         PathsIter::new(self)
     }
 
