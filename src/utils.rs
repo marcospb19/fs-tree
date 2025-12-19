@@ -18,7 +18,7 @@ pub(crate) fn follow_symlink<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
     let path = path.as_ref();
 
     if FileType::symlink_read_at(path).is_ok_and(|file| !file.is_symlink()) {
-        return Err(Error::NotASymlinkError(path.to_path_buf()));
+        return Err(Error::NotASymlink(path.to_path_buf()));
     }
 
     let target = fs::read_link(path)?;

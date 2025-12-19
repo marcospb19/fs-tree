@@ -1,5 +1,5 @@
 # Stable features
-edition = "2021"
+edition = "2024"
 reorder_imports = true
 reorder_modules = true
 newline_style = "Unix"

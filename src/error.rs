@@ -9,13 +9,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     /// Expected directory, but file type differs.
-    NotADirectoryError(PathBuf),
+    NotADirectory(PathBuf),
     /// Expected symlink, but file type differs.
-    NotASymlinkError(PathBuf),
+    NotASymlink(PathBuf),
     /// Unsupported file type found.
-    UnexpectedFileTypeError(FileType, PathBuf),
+    UnexpectedFileType(FileType, PathBuf),
     /// An error with reading or writing.
-    IoError(io::Error),
+    Io(io::Error),
 }
 
 use Error::*;
@@ -24,10 +24,8 @@ impl Error {
     /// The path related to this error, if any.
     pub fn path(&self) -> Option<&PathBuf> {
         match self {
-            NotADirectoryError(path)
-            | NotASymlinkError(path)
-            | UnexpectedFileTypeError(_, path) => Some(path),
-            IoError(..) => None,
+            NotADirectory(path) | NotASymlink(path) | UnexpectedFileType(_, path) => Some(path),
+            Io(..) => None,
         }
     }
 }
@@ -35,7 +33,7 @@ impl Error {
 impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            IoError(source) => Some(source),
+            Io(source) => Some(source),
             _ => None,
         }
     }
@@ -46,16 +44,16 @@ impl fmt::Display for Error {
         write!(f, "FsError: ")?;
 
         match self {
-            NotADirectoryError(..) => write!(f, "not a directory"),
-            NotASymlinkError(..) => write!(f, "not a symlink"),
-            UnexpectedFileTypeError(..) => write!(f, "unexpected file type"),
-            IoError(inner) => inner.fmt(f),
+            NotADirectory(..) => write!(f, "not a directory"),
+            NotASymlink(..) => write!(f, "not a symlink"),
+            UnexpectedFileType(..) => write!(f, "unexpected file type"),
+            Io(inner) => inner.fmt(f),
         }
     }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
-        Error::IoError(err)
+        Error::Io(err)
     }
 }

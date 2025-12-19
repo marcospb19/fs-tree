@@ -130,12 +130,7 @@ impl FsTree {
                 let target_path = utils::follow_symlink(path)?;
                 Ok(Self::Symlink(target_path))
             },
-            other_type => {
-                Err(Error::UnexpectedFileTypeError(
-                    other_type,
-                    path.to_path_buf(),
-                ))
-            },
+            other_type => Err(Error::UnexpectedFileType(other_type, path.to_path_buf())),
         }
     }
 
