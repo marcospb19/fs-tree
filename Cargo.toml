@@ -2,7 +2,7 @@
 name = "fs-tree"
 version = "0.6.0"
 authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
-edition = "2021"
+edition = "2024"
 description = "Filesystem path Trie with an API focused on filesystem operations."
 license = "MIT"
 repository = "https://github.com/marcospb19/fs-tree"
