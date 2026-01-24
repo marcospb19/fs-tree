@@ -11,9 +11,9 @@ use std::{
 use file_type_enum::FileType;
 
 use crate::{
+    Error, Result,
     iter::{Iter, NodesIter, PathsIter},
     utils::{self, fs},
-    Error, Result,
 };
 
 /// The children [Trie](https://en.wikipedia.org/wiki/Trie) type alias.
