@@ -5,7 +5,7 @@
 ## Clarifications:
 
 1. _Unix_ only.
-2. This crate was transfered after `0.1.3`, and changed its purpose.
+2. This crate was transferred after `0.1.3`, and changed its purpose.
 3. This crate refers to _"filesystem tree"_ as the result you get from recursively traversing files:
     - If you try traversing a single file, you get a single node.
     - If you try traversing a directories, you might get a large subtree (of nodes).
@@ -47,7 +47,7 @@ version with the `symlink` prefix ([`FsTree::read_at`] vs [`FsTree::symlink_read
 ## What you can do with a [`FsTree`]:
 
 1. Traverse, query, and modify it.
-2. Merge with another tree. ([`FsTree::try_merge`])
+2. Merge with another tree. ([`FsTree::merge`])
 3. Write it to disk. ([`FsTree::write_at`])
 4. Try loading a structural copy of it from a path. ([`FsTree::read_structure_at`])
 5. (TODO) Compare with another `FsTree`, generating a DiffTree.
@@ -74,7 +74,7 @@ See docs in the [`iter` module].
 [`FsTree::read_structure_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.read_structure_at
 [`FsTree::Symlink(_)`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#variant.Symlink
 [`FsTree::symlink_read_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.symlink_read_at
-[`FsTree::try_merge`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.try_merge
+[`FsTree::merge`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.merge
 [`FsTree::write_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.write_at
 [`FsTree`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html
 [`iter` module]: https://docs.rs/fs-tree/latest/fs_tree/iter/index.html

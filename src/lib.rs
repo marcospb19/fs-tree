@@ -3,7 +3,7 @@
 //! # Clarifications:
 //!
 //! 1. _Unix_ only.
-//! 2. This crate was transfered after `0.1.3`, and changed its purpose.
+//! 2. This crate was transferred after `0.1.3`, and changed its purpose.
 //! 3. This crate refers to _"filesystem tree"_ as the result you get from recursively traversing files:
 //!     - If you try traversing a single file, you get a single node.
 //!     - If you try traversing a directories, you might get a large subtree (of nodes).

@@ -73,28 +73,30 @@ impl FsTree {
 
     /// Construct a `FsTree` by reading from `path`, follows symlinks.
     ///
-    /// If you want symlink-awareness, check [`symlink_read_at`].
+    /// Symlinks are resolved to their targets. If you want to preserve symlinks
+    /// in the tree, use [`symlink_read_at`] instead.
     ///
     /// # Errors:
     ///
     /// - If any IO error occurs.
     /// - If any file has an unexpected file type.
     ///
-    /// [`symlink_read_at`]: FsTree::read_at
+    /// [`symlink_read_at`]: FsTree::symlink_read_at
     pub fn read_at(path: impl AsRef<Path>) -> Result<Self> {
         Self::__read_at(path.as_ref(), true)
     }
 
-    /// Construct a `FsTree` by reading from `path`.
+    /// Construct a `FsTree` by reading from `path`, does not follow symlinks.
     ///
-    /// If you don't want symlink-awareness, check [`read_at`].
+    /// Symlinks appear as [`FsTree::Symlink`] nodes. If you want symlinks to be
+    /// resolved to their targets, use [`read_at`] instead.
     ///
     /// # Errors:
     ///
     /// - If any IO error occurs.
     /// - If any file has an unexpected file type.
     ///
-    /// [`read_at`]: FsTree::symlink_read_at
+    /// [`read_at`]: FsTree::read_at
     pub fn symlink_read_at(path: impl AsRef<Path>) -> Result<Self> {
         Self::__read_at(path.as_ref(), false)
     }

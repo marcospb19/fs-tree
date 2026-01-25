@@ -1,29 +1,32 @@
 //! Macros for declaring a [`FsTree`](crate::FsTree).
+//!
+//! See [`tree!`] for the main macro and syntax documentation.
 
-/// Macro for declaring a [`FsTree`](crate::FsTree) literal.
+/// Macro for creating a [`FsTree`](crate::FsTree).
 ///
 /// # Syntax:
 ///
-/// - `name` is a regular file.
+/// ## Base syntax:
+///
+/// - `name` represents a regular file with the given `name`.
 /// - `name: [ ... ]` is a directory.
 /// - `name -> name` is a symlink.
-/// - Commas are (unfortunately) not supported.
-/// - Use quotes (`"name"`) for spaces, dots, etc.
+/// - Commas are not accepted.
 ///
-/// # Examples:
+/// Here is a simple example:
 ///
 /// ```
 /// use fs_tree::{FsTree, tree, TrieMap};
 ///
-/// let result = tree! {
+/// let trie = tree! {
 ///     file1
 ///     outer_dir: [
 ///         file2
 ///         inner_dir: [
 ///             file3
 ///         ]
-///         link1 -> target
-///         link2 -> "/home/username/.gitconfig"
+///         link1 -> target1
+///         link2 -> target2
 ///     ]
 /// };
 ///
@@ -34,13 +37,92 @@
 ///         ("inner_dir".into(), FsTree::Directory(TrieMap::from([
 ///             ("file3".into(), FsTree::Regular),
 ///         ]))),
-///         ("link1".into(), FsTree::Symlink("target".into())),
-///         ("link2".into(), FsTree::Symlink("/home/username/.gitconfig".into())),
+///         ("link1".into(), FsTree::Symlink("target1".into())),
+///         ("link2".into(), FsTree::Symlink("target2".into())),
 ///     ]))),
 /// ]));
 ///
-/// assert_eq!(result, expected);
+/// assert_eq!(trie, expected);
 /// ```
+///
+/// ## Other symbols
+///
+/// If you need symbols like `-` or `.`, you must use `""` (double quotes):
+///
+/// ```
+/// use fs_tree::tree;
+///
+/// let my_tree = tree! {
+///     ".gitignore"
+///     ".config": [
+///         folder1: [
+///             folder2: [
+///                 "complex-!@#%&-filename"
+///             ]
+///         ]
+///     ]
+/// };
+/// ```
+///
+/// If the path you want is stored in a variable, you can insert an expression
+/// by enclosing it in `{}` (curly braces). The expression must implement
+/// `Into<PathBuf>` (e.g., `String`, `&str`, `PathBuf`).
+///
+/// ```
+/// use fs_tree::tree;
+///
+/// use std::path::PathBuf;
+/// # fn random_name() -> String { String::new() }
+/// # fn main() -> std::io::Result<()> {
+/// # struct Link { from: &'static str, to: &'static str }
+///
+/// let hi = "hello ".to_string();
+///
+/// let regular_example = tree! {
+///     hardcoded_file_name
+///     {hi + " world!"}
+///     {100.to_string()}
+///     {PathBuf::from("look im using PathBuf now")}
+/// };
+///
+/// let link = Link { from: "from", to: "to" };
+///
+/// let symlink_example = tree! {
+///     {link.from} -> {link.to}
+/// };
+///
+/// let dir_name = "also works with directories".to_string();
+/// let directory_example = tree! {
+///     {dir_name.to_uppercase()}: [
+///         file1
+///         file2
+///         file3
+///         file4
+///     ]
+/// };
+/// # Ok(()) }
+/// ```
+///
+/// # Return Value
+///
+/// This macro always returns an [`FsTree::Directory`] containing the declared entries.
+///
+/// # Note
+///
+/// If duplicate keys are declared, later entries overwrite earlier ones (standard
+/// [`BTreeMap`](std::collections::BTreeMap) behavior).
+///
+/// # Alternatives
+///
+/// This macro isn't always the easiest way to create an [`FsTree`]. See also:
+/// - [`FsTree::new_dir`] + [`FsTree::insert`] for programmatic construction
+/// - [`FsTree::from_path_text`] for parsing from path strings
+///
+/// [`FsTree`]: crate::FsTree
+/// [`FsTree::Directory`]: crate::FsTree::Directory
+/// [`FsTree::new_dir`]: crate::FsTree::new_dir
+/// [`FsTree::insert`]: crate::FsTree::insert
+/// [`FsTree::from_path_text`]: crate::FsTree::from_path_text
 #[macro_export]
 macro_rules! tree {
     ($($all:tt)+) => {{
