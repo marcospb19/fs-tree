@@ -19,11 +19,11 @@
 //! use std::path::PathBuf;
 //!
 //! let tree = tree! {
-//!     dir: {
+//!     dir: [
 //!         file1
 //!         file2
 //!         file3
-//!     }
+//!     ]
 //! };
 //!
 //!
@@ -295,19 +295,19 @@ mod tests {
     fn testing_files_and_paths_iters() {
         // Create the strucutre
         let tree = tree! {
-            ".config": {
-                i3: {
+            ".config": [
+                i3: [
                     file1
                     file2
-                    dir: {
+                    dir: [
                         innerfile1
                         innerfile2
-                    }
+                    ]
                     file3
-                }
+                ]
                 outerfile1
                 outerfile2
-            }
+            ]
         };
 
         // Get the references in ascending order

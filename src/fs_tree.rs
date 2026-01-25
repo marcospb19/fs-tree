@@ -277,11 +277,11 @@ impl FsTree {
     /// let result = FsTree::from_path_text("a/b/c");
     ///
     /// let expected = tree! {
-    ///     a: {
-    ///         b: {
+    ///     a: [
+    ///         b: [
     ///             c
-    ///         }
-    ///     }
+    ///         ]
+    ///     ]
     /// };
     ///
     /// // The expected tree
@@ -778,7 +778,7 @@ mod tests {
         tree.insert("a/b/c/d/e/f", FsTree::Regular);
 
         let expected = tree! {
-            a: { b: { c: { d: { e: { f } } } } }
+            a: [ b: [ c: [ d: [ e: [ f ] ] ] ] ]
         };
 
         assert_eq!(tree, expected);
@@ -807,16 +807,16 @@ mod tests {
         let expected = tree! {
             config1
             config2
-            outer_dir: {
+            outer_dir: [
                 file1
                 file2
-                inner_dir: {
+                inner_dir: [
                     inner1
                     inner2
                     inner3
                     inner_link -> inner_target
-                }
-            }
+                ]
+            ]
             link -> target
             config3
         };
@@ -829,13 +829,13 @@ mod tests {
         let (_dropper, test_dir) = testdir().unwrap();
 
         let tree = tree! {
-            a: {
-                b: {
+            a: [
+                b: [
                     c
-                    empty: {}
+                    empty: []
                     link -> target
-                }
-            }
+                ]
+            ]
         };
 
         tree.write_at(test_dir).unwrap();
@@ -876,14 +876,14 @@ mod tests {
     //     let result = left.try_merge(right);
 
     //     let expected = tree! {
-    //         ".config": {
-    //             i3: {
+    //         ".config": [
+    //             i3: [
     //                 file
-    //                 folder: {
+    //                 folder: [
     //                     file
-    //                 }
-    //             }
-    //         }
+    //                 ]
+    //             ]
+    //         ]
     //     };
 
     //     assert_eq!(result, Some(expected));

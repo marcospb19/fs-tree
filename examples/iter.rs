@@ -4,10 +4,10 @@ use fs_tree::tree;
 
 fn main() {
     let tree = tree! {
-        folder: {
+        folder: [
             file1
             file2
-        }
+        ]
     };
 
     // Other available iterators
