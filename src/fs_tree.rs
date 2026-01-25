@@ -64,11 +64,10 @@ impl FsTree {
 
     /// Calculate the length by counting all tree nodes, including the root.
     pub fn len_all(&self) -> usize {
-        if let Some(children) = self.children() {
-            children.values().map(Self::len_leafs).sum::<usize>()
-        } else {
-            1
-        }
+        self.children()
+            .map(|children| children.values().map(Self::len_all).sum::<usize>())
+            .unwrap_or(0)
+            + 1
     }
 
     /// Construct a `FsTree` by reading from `path`, follows symlinks.
@@ -758,6 +757,20 @@ mod tests {
         let dir = tempfile::tempdir()?;
         let path = dir.path().to_path_buf().into_boxed_path();
         Ok((dir, Box::leak(path)))
+    }
+
+    #[test]
+    fn test_len_all_counts_all_nodes_including_root() {
+        let tree = tree! {
+            file1
+            dir1: [
+                file2
+                file3
+            ]
+            file4
+        };
+
+        assert_eq!(tree.len_all(), 6);
     }
 
     // #[test]
