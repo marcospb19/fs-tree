@@ -374,11 +374,11 @@ mod tests {
                 {{
                     let mut string = String::new();
                     string.push_str("file");
-                    string.push_str("1");
+                    string.push('1');
                     string
                 }}
                 file2
-                {format!("inner") + "_" + "dir"}: [
+                {"inner".to_string() + "_" + "dir"}: [
                     inner1
                     {{"inner2"}}
                     inner3

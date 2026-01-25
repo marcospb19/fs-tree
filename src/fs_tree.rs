@@ -395,10 +395,10 @@ impl FsTree {
         match (&mut left, right) {
             (FsTree::Directory(left_children), FsTree::Directory(right_children)) => {
                 for (path, right_node) in right_children {
-                    if let Some(left_node) = left_children.get(path.as_path()) {
-                        if left_node.conflicts_with(right_node) {
-                            return true;
-                        }
+                    if let Some(left_node) = left_children.get(path.as_path())
+                        && left_node.conflicts_with(right_node)
+                    {
+                        return true;
                     }
                 }
             },
