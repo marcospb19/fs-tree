@@ -360,7 +360,13 @@ impl FsTree {
 
     /// Merge two trees.
     ///
-    /// When conflicts happen, entries from `self` are kept, and the `other`'s are discarded.
+    /// On conflicts, nodes from `other` are ignored and `self` is kept unchanged.
+    ///
+    /// For conflict checking, see [`conflicts_with`], in other words, if
+    /// [`conflicts_with`] returns `true`, then at least one file will be
+    /// ignored from `other` in the `merge` call.
+    ///
+    /// [`conflicts_with`]: Self::conflicts_with
     pub fn merge(self, other: Self) -> Self {
         // let's merge the right (consuming) onto the left (mutating)
         let mut left = self;
@@ -387,16 +393,20 @@ impl FsTree {
 
     /// Checks for conflicts in case the two trees would be merged.
     ///
-    /// Also see [`Self::merge`].
+    /// Rules to what a conflict is:
+    ///
+    /// - Two files have the same path, but different type.
+    /// - Two symlinks at the same path point at a different target.
+    ///
+    /// Note: directories with different children isn't considered a conflict.
+    ///
+    /// Also see [`Self::merge`] docs.
     pub fn conflicts_with(&self, other: &Self) -> bool {
-        let mut left = self;
-        let right = other;
-
-        match (&mut left, right) {
-            (FsTree::Directory(left_children), FsTree::Directory(right_children)) => {
-                for (path, right_node) in right_children {
-                    if let Some(left_node) = left_children.get(path.as_path())
-                        && left_node.conflicts_with(right_node)
+        match (self, other) {
+            (FsTree::Directory(self_children), FsTree::Directory(other_children)) => {
+                for (path, other_node) in other_children {
+                    if let Some(self_node) = self_children.get(path.as_path())
+                        && self_node.conflicts_with(other_node)
                     {
                         return true;
                     }
