@@ -805,6 +805,15 @@ where
     }
 }
 
+impl<'a> IntoIterator for &'a FsTree {
+    type Item = (&'a FsTree, PathBuf);
+    type IntoIter = Iter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{io, path::Path};
