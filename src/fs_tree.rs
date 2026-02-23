@@ -935,25 +935,26 @@ mod tests {
         assert_eq!(tree["./a/./b"]["c/."], FsTree::Regular);
     }
 
-    // #[test]
-    // fn test_simple_merge() {
-    //     let left = FsTree::from_path_text(".config/i3/file");
-    //     let right = FsTree::from_path_text(".config/i3/folder/file");
-    //     let result = left.try_merge(right);
-
-    //     let expected = tree! {
-    //         ".config": [
-    //             i3: [
-    //                 file
-    //                 folder: [
-    //                     file
-    //                 ]
-    //             ]
-    //         ]
-    //     };
-
-    //     assert_eq!(result, Some(expected));
-    // }
+    #[test]
+    fn test_merge_two_paths_with_partial_intersection() {
+        let left = FsTree::from_path_text(".config/i3/file");
+        let right = FsTree::from_path_text(".config/i3/folder/file");
+        assert!(!left.conflicts_with(&right));
+        let result = left.merge(right);
+        assert_eq!(
+            result,
+            tree! {
+                ".config": [
+                    i3: [
+                        file
+                        folder: [
+                            file
+                        ]
+                    ]
+                ]
+            }
+        );
+    }
 
     #[test]
     fn test_partial_eq_fails() {
@@ -961,5 +962,85 @@ mod tests {
         let right = FsTree::from_path_text(".config/i3/b");
 
         assert_ne!(left, right);
+    }
+
+    #[test]
+    fn test_merge_disjoint_trees() {
+        let left = tree! { a };
+        let right = tree! { b };
+        assert!(!left.conflicts_with(&right));
+        let merged = left.merge(right);
+        assert_eq!(
+            merged,
+            tree! {
+                a
+                b
+            }
+        );
+    }
+
+    #[test]
+    fn test_merge_conflict_keeps_self() {
+        let left = tree! {
+            a
+            b -> c
+            link -> v1
+        };
+        let right = tree! {
+            a: []
+            b
+            link -> v2
+        };
+        assert!(left.conflicts_with(&right));
+        let merged = left.clone().merge(right);
+        assert_eq!(merged, left);
+    }
+
+    #[test]
+    fn test_merge_nested_directories() {
+        let left = tree! { dir: [a] };
+        let right = tree! { dir: [b] };
+        assert!(!left.conflicts_with(&right));
+        let merged = left.merge(right);
+        assert_eq!(
+            merged,
+            tree! {
+                dir: [
+                    a
+                    b
+                ]
+            }
+        );
+    }
+
+    #[test]
+    fn test_conflicts_with() {
+        let left = tree! { a };
+        let right = tree! { b };
+        assert!(!left.conflicts_with(&right));
+
+        let left = tree! { file };
+        let right = tree! { file };
+        assert!(left.conflicts_with(&right));
+
+        let left = tree! { x };
+        let right = tree! { x: [] };
+        assert!(left.conflicts_with(&right));
+
+        let left = tree! { a -> b };
+        let right = tree! { a };
+        assert!(left.conflicts_with(&right));
+
+        let left = tree! { a -> b };
+        let right = tree! { a: [] };
+        assert!(left.conflicts_with(&right));
+
+        let left = tree! { a -> b };
+        let right = tree! { a -> c };
+        assert!(left.conflicts_with(&right));
+
+        let left = tree! { a -> c };
+        let right = tree! { b -> c };
+        assert!(!left.conflicts_with(&right));
     }
 }
