@@ -48,7 +48,7 @@ version with the `symlink` prefix ([`FsTree::read_at`] vs [`FsTree::symlink_read
 
 1. Traverse, query, and modify it.
 2. Merge with another tree. ([`FsTree::merge`])
-3. Write it to disk. ([`FsTree::write_at`])
+3. Write it to disk. ([`FsTree::write_structure_at`])
 4. Try loading a structural copy of it from a path. ([`FsTree::read_structure_at`])
 5. (TODO) Compare with another `FsTree`, generating a DiffTree.
 6. (TODO) Add entry API.
@@ -64,7 +64,7 @@ See docs in the [`iter` module].
 - Crate [`build-fs-tree`](https://crates.io/crates/build-fs-tree) - If you need to create a
   filesystem tree from a YAML file.
     - The closest we got is creating a tree literal with [`tree!`](crate::tree), and writing
-      with [`FsTree::write_at`].
+      with [`FsTree::write_structure_at`].
 
 [Trie]: https://en.wikipedia.org/wiki/Trie
 [`FsTree::from_path_text`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.from_path_text
@@ -75,7 +75,7 @@ See docs in the [`iter` module].
 [`FsTree::Symlink(_)`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#variant.Symlink
 [`FsTree::symlink_read_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.symlink_read_at
 [`FsTree::merge`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.merge
-[`FsTree::write_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.write_at
+[`FsTree::write_structure_at`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html#method.write_structure_at
 [`FsTree`]: https://docs.rs/fs-tree/latest/fs_tree/enum.FsTree.html
 [`iter` module]: https://docs.rs/fs-tree/latest/fs_tree/iter/index.html
 [`tree!`]: https://docs.rs/fs-tree/latest/fs_tree/macro.tree.html

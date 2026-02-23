@@ -561,13 +561,35 @@ impl FsTree {
     //     }
     // }
 
-    /// Write the tree structure in the path.
+    /// Write the tree structure at the given folder path.
     ///
-    /// # Errors:
+    /// This method creates files, directories, and symlinks as defined by the
+    /// tree structure. When a path already exists, the behavior depends on the
+    /// node type:
     ///
-    /// - If provided folder doesn't exist, or is not a directory.
+    /// - **Regular files**: If a regular file already exists at the path, it is
+    ///   left unchanged. If a non-regular file exists, returns
+    ///   [`Error::NotARegularFile`].
+    ///
+    /// - **Directories**: If a directory already exists at the path, it is left
+    ///   unchanged. If a non-directory exists, returns [`Error::NotADirectory`].
+    ///
+    /// - **Symlinks**: If a symlink already exists and points to the expected
+    ///   target, it is left unchanged. If a symlink exists but points to a
+    ///   different target, returns [`Error::SymlinkTargetMismatch`]. If a
+    ///   non-symlink exists, returns [`Error::NotASymlink`].
+    ///
+    /// # Errors
+    ///
+    /// - If the provided folder doesn't exist, or is not a directory.
+    /// - If a path conflict occurs (see above for conflict rules).
     /// - If any other IO error occurs.
-    pub fn write_at(&self, folder: impl AsRef<Path>) -> Result<()> {
+    ///
+    /// [`Error::NotARegularFile`]: crate::Error::NotARegularFile
+    /// [`Error::NotADirectory`]: crate::Error::NotADirectory
+    /// [`Error::NotASymlink`]: crate::Error::NotASymlink
+    /// [`Error::SymlinkTargetMismatch`]: crate::Error::SymlinkTargetMismatch
+    pub fn write_structure_at(&self, folder: impl AsRef<Path>) -> Result<()> {
         let folder = folder.as_ref();
 
         #[cfg(feature = "fs-err")]
@@ -575,18 +597,47 @@ impl FsTree {
         #[cfg(not(feature = "fs-err"))]
         let symlink_function = std::os::unix::fs::symlink;
 
-        for (node, path) in self.iter().skip(1) {
-            let path = folder.join(&path);
+        for (node, relative_path) in self.iter().skip(1) {
+            let path = folder.join(&relative_path);
 
             match &node {
                 Self::Regular => {
-                    fs::File::create(path)?;
+                    if path.exists() {
+                        if !path.is_file() {
+                            return Err(Error::NotARegularFile(path));
+                        }
+                    } else {
+                        fs::File::create(path)?;
+                    }
                 },
                 Self::Directory(_) => {
-                    fs::create_dir(path)?;
+                    if path.exists() {
+                        if !path.is_dir() {
+                            return Err(Error::NotADirectory(path));
+                        }
+                    } else {
+                        fs::create_dir(path)?;
+                    }
                 },
-                Self::Symlink(target) => {
-                    symlink_function(target, path)?;
+                Self::Symlink(expected_target) => {
+                    match FileType::symlink_read_at(&path) {
+                        Ok(file_type) if file_type.is_symlink() => {
+                            let actual_target = fs::read_link(&path)?;
+                            if actual_target != *expected_target {
+                                return Err(Error::SymlinkTargetMismatch {
+                                    path,
+                                    expected: expected_target.clone(),
+                                    found: actual_target,
+                                });
+                            }
+                        },
+                        Ok(_) => {
+                            return Err(Error::NotASymlink(path));
+                        },
+                        Err(_) => {
+                            symlink_function(expected_target, path)?;
+                        },
+                    }
                 },
             }
         }
@@ -840,7 +891,7 @@ mod tests {
     }
 
     #[test]
-    fn test_write_at() {
+    fn test_write_structure_at() {
         let (_dropper, test_dir) = testdir().unwrap();
 
         let tree = tree! {
@@ -853,7 +904,7 @@ mod tests {
             ]
         };
 
-        tree.write_at(test_dir).unwrap();
+        tree.write_structure_at(test_dir).unwrap();
 
         let result = FsTree::symlink_read_at(test_dir).unwrap();
 

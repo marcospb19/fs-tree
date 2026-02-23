@@ -10,8 +10,19 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     /// Expected directory, but file type differs.
     NotADirectory(PathBuf),
+    /// Expected regular file, but file type differs.
+    NotARegularFile(PathBuf),
     /// Expected symlink, but file type differs.
     NotASymlink(PathBuf),
+    /// Symlink exists but points to a different target than expected.
+    SymlinkTargetMismatch {
+        /// The path to the symlink.
+        path: PathBuf,
+        /// The expected target.
+        expected: PathBuf,
+        /// The actual target found.
+        found: PathBuf,
+    },
     /// Unsupported file type found.
     UnexpectedFileType(FileType, PathBuf),
     /// An error with reading or writing.
@@ -24,7 +35,11 @@ impl Error {
     /// The path related to this error, if any.
     pub fn path(&self) -> Option<&PathBuf> {
         match self {
-            NotADirectory(path) | NotASymlink(path) | UnexpectedFileType(_, path) => Some(path),
+            NotADirectory(path)
+            | NotARegularFile(path)
+            | NotASymlink(path)
+            | SymlinkTargetMismatch { path, .. }
+            | UnexpectedFileType(_, path) => Some(path),
             Io(..) => None,
         }
     }
@@ -45,7 +60,9 @@ impl fmt::Display for Error {
 
         match self {
             NotADirectory(..) => write!(f, "not a directory"),
+            NotARegularFile(..) => write!(f, "not a regular file"),
             NotASymlink(..) => write!(f, "not a symlink"),
+            SymlinkTargetMismatch { .. } => write!(f, "symlink target mismatch"),
             UnexpectedFileType(..) => write!(f, "unexpected file type"),
             Io(inner) => inner.fmt(f),
         }
