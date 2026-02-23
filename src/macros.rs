@@ -125,7 +125,8 @@
 /// [`FsTree::from_path_text`]: crate::FsTree::from_path_text
 #[macro_export]
 macro_rules! tree {
-    ($($all:tt)+) => {{
+    ($($all:tt)*) => {{
+        #[allow(unused_mut)]
         let mut trie = $crate::TrieMap::new();
         // Jumps between tree_internal and inner invocations
         $crate::tree_internal!(trie $($all)*);
@@ -235,7 +236,12 @@ mod tests {
     use crate::{FsTree, TrieMap};
 
     #[test]
-    fn test_macro_compiles_with_literals_and_idents() {
+    fn test_tree_macro_empty() {
+        assert_eq!(tree! {}, FsTree::Directory(TrieMap::new()));
+    }
+
+    #[test]
+    fn test_tree_macro_compiles_with_literals_and_idents() {
         tree! {
             "folder": [
                 folder: [
