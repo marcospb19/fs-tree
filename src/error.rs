@@ -56,14 +56,31 @@ impl error::Error for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "FsError: ")?;
-
         match self {
-            NotADirectory(..) => write!(f, "not a directory"),
-            NotARegularFile(..) => write!(f, "not a regular file"),
-            NotASymlink(..) => write!(f, "not a symlink"),
-            SymlinkTargetMismatch { .. } => write!(f, "symlink target mismatch"),
-            UnexpectedFileType(..) => write!(f, "unexpected file type"),
+            NotADirectory(path) => write!(f, "not a directory: {}", path.display()),
+            NotARegularFile(path) => write!(f, "not a regular file: {}", path.display()),
+            NotASymlink(path) => write!(f, "not a symlink: {}", path.display()),
+            SymlinkTargetMismatch {
+                path,
+                expected,
+                found,
+            } => {
+                write!(
+                    f,
+                    "symlink target mismatch at {}: expected {}, found {}",
+                    path.display(),
+                    expected.display(),
+                    found.display(),
+                )
+            },
+            UnexpectedFileType(file_type, path) => {
+                write!(
+                    f,
+                    "unexpected file type {:?}: {}",
+                    file_type,
+                    path.display(),
+                )
+            },
             Io(inner) => inner.fmt(f),
         }
     }
