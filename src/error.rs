@@ -48,7 +48,7 @@ impl Error {
 impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            Io(source) => Some(source),
+            Io(source) => source.source(),
             _ => None,
         }
     }
