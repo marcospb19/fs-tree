@@ -288,7 +288,7 @@ impl Iterator for PathsIter<'_> {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use crate::tree;
+    use crate::{FsTree, tree};
 
     #[test]
     #[rustfmt::skip]
@@ -395,5 +395,22 @@ mod tests {
         assert_eq!(it.next(), Some(refs[9]));  // ".config/outerfile1"
         assert_eq!(it.next(), Some(refs[10])); // ".config/outerfile2"
         assert_eq!(it.next(), None);
+    }
+
+    #[test]
+    fn test_iters_on_non_dirs() {
+        let regular_tree = FsTree::Regular;
+        let symlink_tree = FsTree::Symlink("target".into());
+        let trees = [regular_tree, symlink_tree];
+
+        for tree in trees {
+            let mut it = tree.paths();
+            assert_eq!(it.next(), Some("".into()));
+            assert_eq!(it.next(), None);
+            let mut it = tree.nodes();
+            assert_eq!(it.next(), Some(&tree));
+            assert_eq!(it.depth(), 0);
+            assert_eq!(it.next(), None);
+        }
     }
 }
