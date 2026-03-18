@@ -3,7 +3,7 @@
 use std::{
     collections::BTreeMap,
     ffi::OsStr,
-    io, mem,
+    fmt, io, mem,
     ops::Index,
     path::{Path, PathBuf},
 };
@@ -814,6 +814,75 @@ impl<'a> IntoIterator for &'a FsTree {
     }
 }
 
+impl fmt::Display for FsTree {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut iter_next = {
+            let mut iter = self.iter();
+
+            move || iter.next().map(|(node, path)| (node, path, iter.depth()))
+        };
+
+        let mut previous_depth = 0;
+        while let Some((node, path, depth)) = iter_next() {
+            let is_first_element = path.as_os_str().is_empty();
+            if is_first_element {
+                match node {
+                    FsTree::Regular => {
+                        write!(f, "regular file")?;
+                        return Ok(());
+                    },
+                    FsTree::Symlink(target) => {
+                        write!(f, "symlink to {target:?}")?;
+                        return Ok(());
+                    },
+                    FsTree::Directory(_) => {
+                        // Open root brace
+                        writeln!(f, "{{")?;
+                        continue;
+                    },
+                }
+            }
+
+            let indent = "  ".repeat(depth);
+
+            // Close braces for directories that ended at shallower depths
+            while previous_depth > depth {
+                previous_depth -= 1;
+                let close_indent = "  ".repeat(previous_depth);
+                writeln!(f, "{}}}", close_indent)?;
+            }
+
+            let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
+
+            write!(f, "{indent}\"{filename}\"")?;
+            match node {
+                FsTree::Regular => {
+                    previous_depth = depth;
+                },
+                FsTree::Directory(_) => {
+                    write!(f, " {{")?;
+                    previous_depth = depth + 1;
+                },
+                FsTree::Symlink(target) => {
+                    previous_depth = depth;
+                    write!(f, " -> {target:?}")?;
+                },
+            }
+            writeln!(f)?;
+        }
+
+        // Close remaining open braces
+        while previous_depth > 1 {
+            previous_depth -= 1;
+            let close_indent = "  ".repeat(previous_depth);
+            writeln!(f, "{}}}", close_indent)?;
+        }
+
+        // Close root brace
+        writeln!(f, "}}")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{io, path::Path};
@@ -1061,5 +1130,62 @@ mod tests {
         let left = tree! { a -> c };
         let right = tree! { b -> c };
         assert!(!left.conflicts_with(&right));
+    }
+
+    #[test]
+    fn test_display_formatting() {
+        let regular_tree = FsTree::Regular;
+        let regular_expected = regular_tree.variant_str();
+        assert_eq!(regular_tree.to_string(), regular_expected);
+        assert_eq!(regular_tree.to_string(), "regular file");
+
+        let symlink_tree = FsTree::Symlink("b".into());
+        let symlink_expected = "symlink to \"b\"";
+        assert_eq!(symlink_tree.to_string(), symlink_expected);
+
+        let dir_tree = tree! {
+            a: [
+                b: [
+                    b1
+                ]
+                c: [
+                    c1
+                    c2
+                    c3
+                    c4
+                    link -> target
+                    d: [
+                        d1
+                        d2
+                    ]
+                ]
+            ]
+            a1
+            a2
+        };
+
+        let dir_expected = r#"{
+  "a" {
+    "b" {
+      "b1"
+    }
+    "c" {
+      "c1"
+      "c2"
+      "c3"
+      "c4"
+      "d" {
+        "d1"
+        "d2"
+      }
+      "link" -> "target"
+    }
+  }
+  "a1"
+  "a2"
+}
+"#;
+
+        assert_eq!(dir_tree.to_string(), dir_expected);
     }
 }
